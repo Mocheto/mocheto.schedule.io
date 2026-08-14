@@ -7,6 +7,7 @@ import { noaDateSet, noaDates } from "./noa-calendar";
 
 type Profile = { age: number; height: number; startWeight: number; goalWeight: number; waist: number; padelDay: string };
 type ProgressEntry = { id: number; date: string; weight: number; waist: number };
+type DailyArchiveEntry = { date: string; archivedAt: number; workoutCompleted: boolean; completedMeals: number[]; habitExceptions: string[] };
 type WeeklyHistoryEntry = { id: number; weekStart: string; weekEnd: string; completed: number; keyCompleted: number; habitExceptions: number; selectedMeals: number; weight: number; waist: number };
 type ActiveView = "today" | "week" | "calendar" | "meals" | "progress" | "history";
 type SavedState = {
@@ -18,6 +19,7 @@ type SavedState = {
   dietExceptions: Record<string, string[]>;
   custodyOverrides: Record<string, boolean>;
   progress: ProgressEntry[];
+  dailyArchives: Record<string, DailyArchiveEntry>;
   weeklyHistory: WeeklyHistoryEntry[];
   trackingStartedAt: string;
   profile: Profile;
@@ -190,7 +192,7 @@ function getRecipe(dish: string) {
   return { dish, simple, time, icon, image, steps, ingredients: ingredients.length > 0 ? ingredients : ["Ingredientes principales del plato", "AOVE", "Sal y especias"] };
 }
 
-const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], dietExceptions: {}, custodyOverrides: {}, progress: [], weeklyHistory: [], trackingStartedAt: "2026-08-14", profile: defaultProfile };
+const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], dietExceptions: {}, custodyOverrides: {}, progress: [], dailyArchives: {}, weeklyHistory: [], trackingStartedAt: "2026-08-14", profile: defaultProfile };
 
 export default function Home() {
   const [data, setData] = useState<SavedState>(defaultState);
@@ -237,8 +239,6 @@ export default function Home() {
   }, [activeRecipe]);
 
   const weekPlan = useMemo(() => baseWeek.map((item) => item.id === "padel" ? { ...item, day: data.profile.padelDay.slice(0, 3), detail: `60 min · ${data.profile.padelDay.toLowerCase()}` } : item), [data.profile.padelDay]);
-  const keyCompleted = weekPlan.filter((item) => item.key && data.completed.includes(item.id)).length;
-  const completion = Math.round((data.completed.length / weekPlan.length) * 100);
   const latest = data.progress.at(-1);
   const currentWeight = latest?.weight ?? data.profile.startWeight;
   const currentWaist = latest?.waist ?? data.profile.waist;
@@ -269,13 +269,26 @@ export default function Home() {
   const activeRecipeData = activeRecipe ? getRecipe(activeRecipe) : null;
   const now = new Date();
   const todayIso = now.getFullYear() === 2026 ? toIsoDate(2026, now.getMonth(), now.getDate()) : "2026-08-14";
-  const trackedDays = Math.max(1, Math.floor((new Date(`${todayIso}T12:00:00`).getTime() - new Date(`${data.trackingStartedAt}T12:00:00`).getTime()) / 86400000) + 1);
-  const totalHabitExceptions = Object.values(data.dietExceptions).reduce((total, exceptions) => total + exceptions.length, 0);
-  const overallHabitRate = Math.max(0, Math.round(((trackedDays * dailyDietCommitments.length - totalHabitExceptions) / (trackedDays * dailyDietCommitments.length)) * 100));
+  const weekAnchor = new Date(`${todayIso}T12:00:00`);
+  const weekMonday = new Date(weekAnchor);
+  weekMonday.setDate(weekAnchor.getDate() - ((weekAnchor.getDay() + 6) % 7));
+  const weekDates = weekPlan.map((_, index) => { const date = new Date(weekMonday); date.setDate(weekMonday.getDate() + index); return toIsoDate(date.getFullYear(), date.getMonth(), date.getDate()); });
+  const selectedPlanItem = weekPlan[mondayMealIndex(selectedDateObject.getDay())];
+  const selectedMealKeys = [0, 1, 2].map((index) => `${selectedMealDay.day}-${index}`);
+  const selectedDayArchive = data.dailyArchives[selectedDate];
+  const selectedWorkoutCompleted = data.completed.includes(selectedPlanItem.id);
+  const selectedCompletedMeals = [0, 1, 2].filter((index) => data.selectedMeals.includes(selectedMealKeys[index]));
+  const visibleWeekDone = weekPlan.map((item, index) => data.dailyArchives[weekDates[index]]?.workoutCompleted ?? data.completed.includes(item.id));
+  const keyCompleted = weekPlan.filter((item, index) => item.key && visibleWeekDone[index]).length;
+  const completion = Math.round((visibleWeekDone.filter(Boolean).length / weekPlan.length) * 100);
+  const archivedDays = Object.values(data.dailyArchives);
+  const trackedDays = archivedDays.length;
+  const totalHabitExceptions = archivedDays.reduce((total, day) => total + day.habitExceptions.length, 0);
+  const overallHabitRate = trackedDays === 0 ? 0 : Math.max(0, Math.round(((trackedDays * dailyDietCommitments.length - totalHabitExceptions) / (trackedDays * dailyDietCommitments.length)) * 100));
   const waistLost = Math.max(0, data.profile.waist - currentWaist);
   const habitHistory = dailyDietCommitments.map((habit) => {
-    const exceptions = Object.values(data.dietExceptions).filter((dayExceptions) => dayExceptions.includes(habit.id)).length;
-    return { ...habit, exceptions, rate: Math.max(0, Math.round(((trackedDays - exceptions) / trackedDays) * 100)) };
+    const exceptions = archivedDays.filter((day) => day.habitExceptions.includes(habit.id)).length;
+    return { ...habit, exceptions, rate: trackedDays === 0 ? 0 : Math.max(0, Math.round(((trackedDays - exceptions) / trackedDays) * 100)) };
   });
   const nextFreeDate = (() => {
     const cursor = new Date(selectedDateObject);
@@ -300,6 +313,19 @@ export default function Home() {
     const nextExceptions = exceptions.includes(habitId) ? exceptions.filter((id) => id !== habitId) : [...exceptions, habitId];
     return { ...current, dietExceptions: { ...current.dietExceptions, [date]: nextExceptions } };
   });
+  const archiveSelectedDay = () => setData((current) => ({
+    ...current,
+    dailyArchives: {
+      ...current.dailyArchives,
+      [selectedDate]: {
+        date: selectedDate,
+        archivedAt: Date.now(),
+        workoutCompleted: current.completed.includes(selectedPlanItem.id),
+        completedMeals: [0, 1, 2].filter((index) => current.selectedMeals.includes(selectedMealKeys[index])),
+        habitExceptions: current.dietExceptions[selectedDate] ?? [],
+      },
+    },
+  }));
   const openView = (view: ActiveView) => {
     if (view === "today") {
       const now = new Date();
@@ -320,8 +346,9 @@ export default function Home() {
       sunday.setDate(monday.getDate() + 6);
       const weekStart = toIsoDate(monday.getFullYear(), monday.getMonth(), monday.getDate());
       const weekEnd = toIsoDate(sunday.getFullYear(), sunday.getMonth(), sunday.getDate());
-      const habitExceptions = Object.entries(current.dietExceptions).filter(([date]) => date >= weekStart && date <= weekEnd).reduce((total, [, exceptions]) => total + exceptions.length, 0);
-      const snapshot: WeeklyHistoryEntry = { id: Date.now(), weekStart, weekEnd, completed: current.completed.length, keyCompleted: weekPlan.filter((item) => item.key && current.completed.includes(item.id)).length, habitExceptions, selectedMeals: current.selectedMeals.length, weight: current.progress.at(-1)?.weight ?? current.profile.startWeight, waist: current.progress.at(-1)?.waist ?? current.profile.waist };
+      const archivedWeek = Object.values(current.dailyArchives).filter((entry) => entry.date >= weekStart && entry.date <= weekEnd);
+      const habitExceptions = archivedWeek.reduce((total, entry) => total + entry.habitExceptions.length, 0);
+      const snapshot: WeeklyHistoryEntry = { id: Date.now(), weekStart, weekEnd, completed: archivedWeek.filter((entry) => entry.workoutCompleted).length, keyCompleted: weekPlan.filter((item, index) => item.key && current.dailyArchives[weekDates[index]]?.workoutCompleted).length, habitExceptions, selectedMeals: archivedWeek.reduce((total, entry) => total + entry.completedMeals.length, 0), weight: current.progress.at(-1)?.weight ?? current.profile.startWeight, waist: current.progress.at(-1)?.waist ?? current.profile.waist };
       return { ...current, completed: [], shopping: [], selectedMeals: [], weeklyHistory: [...current.weeklyHistory.filter((entry) => entry.weekStart !== weekStart), snapshot].slice(-24) };
     });
     setActiveView("history");
@@ -414,8 +441,12 @@ export default function Home() {
         <article className="today-plan-card">
           <div className="dashboard-card-heading"><div><p className="eyebrow">PLAN DEL DÍA</p><h2>{hasNoa(selectedDate) ? "Descanso y comidas" : "Tu siguiente paso"}</h2></div>{selectedHoliday && <span className="today-holiday">{selectedHoliday.name}</span>}</div>
           <div className="today-plan-list">
-            <div><span>Movimiento</span><strong>{hasNoa(selectedDate) ? "Descanso programado" : workoutForDay(selectedDateObject.getDay())}</strong></div>
-            {selectedMenu.map((dish, index) => <div key={dish}><span>{["Desayuno", "Comida", "Cena"][index]}</span><strong>{dish}</strong><button type="button" aria-label={`Ver receta de ${dish}`} onClick={() => setActiveRecipe(dish)}>💡</button></div>)}
+            <div className="today-movement"><span>Movimiento</span><strong>{hasNoa(selectedDate) ? "Descanso programado" : workoutForDay(selectedDateObject.getDay())}</strong><button className={selectedWorkoutCompleted ? "today-check checked" : "today-check"} type="button" aria-label={`${selectedWorkoutCompleted ? "Desmarcar" : "Marcar"} movimiento de hoy`} aria-pressed={selectedWorkoutCompleted} onClick={() => toggleCompleted(selectedPlanItem.id)}>{selectedWorkoutCompleted ? "✓" : ""}</button></div>
+            {selectedMenu.map((dish, index) => { const picked = selectedCompletedMeals.includes(index); return <div className="today-meal-row" key={dish}><span>{["Desayuno", "Comida", "Cena"][index]}</span><strong>{dish}</strong><button className={picked ? "today-check checked" : "today-check"} type="button" aria-label={`${picked ? "Desmarcar" : "Marcar"} ${["desayuno", "comida", "cena"][index]} de hoy`} aria-pressed={picked} onClick={() => toggleMeal(selectedMealKeys[index])}>{picked ? "✓" : ""}</button><button type="button" aria-label={`Ver receta de ${dish}`} onClick={() => setActiveRecipe(dish)}>💡</button></div>; })}
+          </div>
+          <div className={selectedDayArchive ? "daily-close archived" : "daily-close"}>
+            <div><span>{selectedDayArchive ? "DÍA ARCHIVADO" : "CIERRE DEL DÍA"}</span><strong>{selectedDayArchive ? `${selectedDayArchive.workoutCompleted ? "Movimiento hecho" : "Movimiento pendiente"} · ${selectedDayArchive.completedMeals.length}/3 comidas · ${dailyDietCommitments.length - selectedDayArchive.habitExceptions.length}/5 hábitos` : "Guarda lo que realmente ocurrió hoy."}</strong></div>
+            <button type="button" onClick={archiveSelectedDay}>{selectedDayArchive ? "Actualizar archivo" : "Archivar este día"}</button>
           </div>
         </article>
         <div className="today-side">
@@ -425,7 +456,7 @@ export default function Home() {
           </article>
           <article className="today-week-card">
             <div className="dashboard-card-heading"><div><p className="eyebrow">ESTA SEMANA</p><h2>De un vistazo</h2></div><button type="button" onClick={() => openView("calendar")}>Ver calendario</button></div>
-            <div className="today-mini-week">{weekPlan.map((item) => <button className={data.completed.includes(item.id) ? "done" : ""} type="button" onClick={() => openView("week")} key={item.id}><span>{item.day}</span><strong>{item.title}</strong></button>)}</div>
+            <div className="today-mini-week">{weekPlan.map((item, index) => { const archived = data.dailyArchives[weekDates[index]]; const done = archived?.workoutCompleted ?? data.completed.includes(item.id); return <button className={`${done ? "done" : ""} ${archived ? "archived" : ""}`} type="button" onClick={() => openView("week")} key={item.id}><span>{item.day} · {Number(weekDates[index].slice(-2))}</span><strong>{archived ? "✓ Archivado" : item.title}</strong></button>; })}</div>
           </article>
         </div>
       </section>
@@ -433,10 +464,11 @@ export default function Home() {
       <section className="week-section" id="semana" hidden={activeView !== "week"}>
         <div className="section-heading"><div><p className="eyebrow">MOVIMIENTO</p><h2>Tu semana, de un vistazo</h2></div><p><strong>{keyCompleted} de 4 sesiones clave</strong> completadas.<br />Los paseos también cuentan.</p></div>
         <div className="week-grid">
-          {weekPlan.map((item) => { const done = data.completed.includes(item.id); return (
-            <article className={`day-card ${item.tone} ${done ? "done" : ""}`} key={item.id}>
-              <div className="day-top"><span>{item.day}</span><button type="button" aria-label={`${done ? "Desmarcar" : "Marcar"} ${item.title}`} aria-pressed={done} onClick={() => toggleCompleted(item.id)}>{done ? "✓" : ""}</button></div>
+          {weekPlan.map((item, index) => { const date = weekDates[index]; const archived = data.dailyArchives[date]; const done = archived?.workoutCompleted ?? data.completed.includes(item.id); return (
+            <article className={`day-card ${item.tone} ${done ? "done" : ""} ${archived ? "archived" : ""}`} key={item.id}>
+              <div className="day-top"><span>{item.day} · {Number(date.slice(-2))}</span><button type="button" disabled={Boolean(archived)} aria-label={archived ? `${item.title}, día archivado` : `${done ? "Desmarcar" : "Marcar"} ${item.title}`} aria-pressed={done} onClick={() => toggleCompleted(item.id)}>{archived ? "◼" : done ? "✓" : ""}</button></div>
               <h3>{item.title}</h3><p>{item.detail}</p>{item.key && <small className="key-label">sesión clave</small>}
+              {archived && <div className="day-archive-summary"><strong>Día archivado</strong><span>{archived.completedMeals.length}/3 comidas · {dailyDietCommitments.length - archived.habitExceptions.length}/5 hábitos</span></div>}
             </article>
           ); })}
         </div>
@@ -475,11 +507,11 @@ export default function Home() {
                 const holiday = barcelonaHolidays2026[iso];
                 const exceptionCount = (data.dietExceptions[iso] ?? []).length;
                 const mealDay = meals[mondayMealIndex(date.getDay())];
-                const mealCount = [0, 1, 2].filter((mealIndex) => data.selectedMeals.includes(`${mealDay.day}-${mealIndex}`)).length;
+                const mealCount = data.dailyArchives[iso]?.completedMeals.length ?? [0, 1, 2].filter((mealIndex) => data.selectedMeals.includes(`${mealDay.day}-${mealIndex}`)).length;
                 return (
                   <button
                     type="button"
-                    className={`calendar-day ${custody ? "with-noa" : "free-day"} ${holiday ? "holiday" : ""} ${selectedDate === iso ? "selected" : ""}`}
+                    className={`calendar-day ${custody ? "with-noa" : "free-day"} ${holiday ? "holiday" : ""} ${data.dailyArchives[iso] ? "archived" : ""} ${selectedDate === iso ? "selected" : ""}`}
                     key={iso}
                     aria-label={`${day} de ${monthNames[calendarMonth]}${holiday ? `, festivo: ${holiday.name}` : ""}, ${custody ? "con Noa, sin entrenamiento" : workoutForDay(date.getDay())}`}
                     onClick={() => { setSelectedDate(iso); if (editingCustody) toggleCustody(iso); }}
@@ -489,6 +521,7 @@ export default function Home() {
                     <span className="custody-label">{custody ? "Noa" : workoutForDay(date.getDay()).split(" · ")[0]}</span>
                     {mealCount > 0 && <small>{mealCount} {mealCount === 1 ? "plato" : "platos"}</small>}
                     {exceptionCount > 0 && <small className="habit-misses">{exceptionCount} {exceptionCount === 1 ? "excepción" : "excepciones"}</small>}
+                    {data.dailyArchives[iso] && <small className="calendar-archived">✓ archivado</small>}
                   </button>
                 );
               })}

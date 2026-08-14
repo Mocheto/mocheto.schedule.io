@@ -779,3 +779,81 @@ footer > span { color: #aab9b7; font-size: .68rem; }
   .weekly-history-row { grid-template-columns: 1fr 76px; }
   .weekly-history-row time { grid-column: 1 / -1; }
 }
+
+/* Cierre diario: cada fecha conserva su propia fotografía de constancia. */
+.today-plan-list > .today-movement { grid-template-columns: 90px minmax(0, 1fr) 30px; }
+.today-plan-list > .today-meal-row { grid-template-columns: 90px minmax(0, 1fr) 30px 30px; }
+.today-plan-list .today-check { color: #2f6b50; background: transparent; border-color: #9eb8a6; }
+.today-plan-list .today-check.checked { color: white; background: #2f6b50; border-color: #2f6b50; font-weight: 900; }
+.daily-close {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 15px 16px;
+  color: white;
+  background: #102f38;
+  border-radius: 9px;
+}
+.daily-close > div span,
+.daily-close > div strong { display: block; }
+.daily-close > div span { color: #f48a6d; font-size: .6rem; font-weight: 900; letter-spacing: .1em; }
+.daily-close > div strong { margin-top: 5px; color: #d8e5e1; font-size: .73rem; line-height: 1.4; }
+.daily-close > button {
+  padding: 10px 12px;
+  color: #102f38;
+  background: white;
+  border: 0;
+  border-radius: 6px;
+  font-size: .7rem;
+  font-weight: 850;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.daily-close.archived { background: #2f6b50; }
+.daily-close.archived > div span { color: #cfe6ad; }
+.today-mini-week button.archived { color: #174a35; background: #dce9df; box-shadow: inset 0 -3px #2f6b50; opacity: 1; }
+.today-mini-week button.archived strong { color: #2f6b50; }
+
+.app-shell .day-card.archived {
+  position: relative;
+  min-height: 205px;
+  opacity: 1;
+  box-shadow: inset 0 -6px #2f6b50;
+}
+.app-shell .day-card.archived h3 { margin-top: 30px; text-decoration: none; }
+.app-shell .day-card.archived .day-top button { color: white; background: #102f38; border-color: #102f38; cursor: default; }
+.day-archive-summary {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  left: 16px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(16, 47, 56, .16);
+}
+.day-archive-summary strong,
+.day-archive-summary span { display: block; }
+.day-archive-summary strong { color: #2f6b50; font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
+.day-archive-summary span { margin-top: 3px; color: #536463; font-size: .58rem; }
+
+.app-shell .calendar-day.archived { border-bottom: 3px solid #2f6b50; }
+.app-shell .calendar-day .calendar-archived { color: #2f6b50; font-weight: 850; opacity: 1; }
+.app-shell .calendar-day.with-noa .calendar-archived { color: #174a35; }
+
+@media (max-width: 720px) {
+  .today-plan-list > .today-movement { grid-template-columns: 72px minmax(0, 1fr) 28px; }
+  .today-plan-list > .today-meal-row { grid-template-columns: 72px minmax(0, 1fr) 28px 28px; }
+  .daily-close { grid-template-columns: 1fr; }
+  .daily-close > button { width: 100%; }
+  .app-shell .calendar-day.archived::after {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    width: 7px;
+    height: 7px;
+    background: #2f6b50;
+    border-radius: 50%;
+    content: "";
+  }
+}
