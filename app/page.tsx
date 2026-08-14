@@ -9,6 +9,10 @@ type Profile = { age: number; height: number; startWeight: number; goalWeight: n
 type ProgressEntry = { id: number; date: string; weight: number; waist: number };
 type Exercise = { id: string; name: string; prescription: string; image: string; cues: string[]; routine: string; category: "Fuerza" | "HIIT" | "Casa"; muscle: string };
 type ExerciseGroup = { id: string; name: string; exerciseIds: string[]; builtIn?: boolean };
+type MealCategory = "Desayuno" | "Comida" | "Cena";
+type Dish = { id: string; name: string; category: MealCategory; protein: number; carbs: number; fat: number; builtIn?: boolean };
+type MealPlan = { id: string; name: string; days: Record<string, string[]>; builtIn?: boolean };
+type NutritionTargets = { kcal: number; protein: number; carbs: number; fat: number };
 type DailyArchiveEntry = { date: string; archivedAt: number; workoutCompleted: boolean; completedMeals: number[]; habitExceptions: string[] };
 type WeeklyHistoryEntry = { id: number; weekStart: string; weekEnd: string; completed: number; keyCompleted: number; keyTotal?: number; habitExceptions: number; selectedMeals: number; weight: number; waist: number };
 type ActiveView = "today" | "week" | "calendar" | "exercises" | "meals" | "progress" | "history";
@@ -24,6 +28,12 @@ type SavedState = {
   dailyArchives: Record<string, DailyArchiveEntry>;
   exerciseGroups: ExerciseGroup[];
   exerciseSchedule: Record<string, string>;
+  dishOverrides: Record<string, Partial<Dish>>;
+  customDishes: Dish[];
+  mealPlans: MealPlan[];
+  activeMealPlanId: string;
+  mealPlanAssignments: Record<string, string>;
+  nutritionTargets: NutritionTargets;
   weeklyHistory: WeeklyHistoryEntry[];
   trackingStartedAt: string;
   profile: Profile;
@@ -194,6 +204,13 @@ const workoutByDay: Record<number, string> = { 0: "Paseo en familia · 40 min", 
 
 const toIsoDate = (year: number, month: number, day: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 const mondayMealIndex = (jsDay: number) => (jsDay + 6) % 7;
+const dishId = (name: string) => `dish-${name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+const nutritionKcal = (dish: Pick<Dish, "protein" | "carbs" | "fat">) => Math.round(dish.protein * 4 + dish.carbs * 4 + dish.fat * 9);
+const weekStartIso = (iso: string) => {
+  const date = new Date(`${iso}T12:00:00`);
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return toIsoDate(date.getFullYear(), date.getMonth(), date.getDate());
+};
 
 function getRecipe(dish: string) {
   const simple = /yogur|kéfir|tostada|huevos revueltos|tortilla francesa|avena nocturna/i.test(dish);
@@ -227,7 +244,35 @@ function getRecipe(dish: string) {
   return { dish, simple, time, icon, image, steps, ingredients: ingredients.length > 0 ? ingredients : ["Ingredientes principales del plato", "AOVE", "Sal y especias"] };
 }
 
-const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], dietExceptions: {}, custodyOverrides: {}, progress: [], dailyArchives: {}, exerciseGroups: defaultExerciseGroups, exerciseSchedule: { "2": "strength-a", "5": "strength-b" }, weeklyHistory: [], trackingStartedAt: "2026-08-14", profile: defaultProfile };
+function estimateDish(name: string, category: MealCategory): Omit<Dish, "id" | "name"> {
+  let protein = category === "Desayuno" ? 32 : category === "Comida" ? 48 : 42;
+  let carbs = category === "Desayuno" ? 68 : category === "Comida" ? 88 : 64;
+  let fat = category === "Desayuno" ? 20 : category === "Comida" ? 27 : 24;
+  if (/lenteja|garbanzo|frijol|judía|quinoa|tofu/i.test(name)) { protein += 5; carbs += 8; fat -= 3; }
+  if (/salmón|aguacate|nueces|almendras|semillas|chía|AOVE|queso|mozzarella/i.test(name)) fat += 6;
+  if (/ensalada|crema|puré|sopa|tortilla|frittata/i.test(name)) carbs -= 14;
+  if (/arroz|pasta|pizza|poke|sushi|cuscús|patata|boniato|avena/i.test(name)) carbs += 10;
+  if (/pollo|pavo|ternera|atún|merluza|dorada|salmón|huevo/i.test(name)) protein += 6;
+  return { category, protein: Math.max(10, protein), carbs: Math.max(15, carbs), fat: Math.max(8, fat), builtIn: true };
+}
+
+const baseDishCatalog: Dish[] = (() => {
+  const catalog = new Map<string, Dish>();
+  meals.forEach((meal) => meal.options.forEach((week) => week.forEach((name, index) => {
+    const id = dishId(name);
+    if (!catalog.has(id)) catalog.set(id, { id, name, ...estimateDish(name, ["Desayuno", "Comida", "Cena"][index] as MealCategory) });
+  })));
+  return [...catalog.values()];
+})();
+const defaultMealPlans: MealPlan[] = menuWeekIndexes.map((week) => ({
+  id: `base-week-${week + 1}`,
+  name: `Semana ${week + 1}`,
+  builtIn: true,
+  days: Object.fromEntries(meals.map((meal) => [meal.day, meal.options[week].map(dishId)])),
+}));
+const defaultNutritionTargets: NutritionTargets = { kcal: 2200, protein: 130, carbs: 230, fat: 75 };
+
+const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], dietExceptions: {}, custodyOverrides: {}, progress: [], dailyArchives: {}, exerciseGroups: defaultExerciseGroups, exerciseSchedule: { "2": "strength-a", "5": "strength-b" }, dishOverrides: {}, customDishes: [], mealPlans: defaultMealPlans, activeMealPlanId: "base-week-1", mealPlanAssignments: {}, nutritionTargets: defaultNutritionTargets, weeklyHistory: [], trackingStartedAt: "2026-08-14", profile: defaultProfile };
 
 export default function Home() {
   const [data, setData] = useState<SavedState>(defaultState);
@@ -241,6 +286,9 @@ export default function Home() {
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>("today");
   const [activeMealDay, setActiveMealDay] = useState("Lunes");
+  const [mealGrouping, setMealGrouping] = useState<"category" | "macro">("category");
+  const [activeDishId, setActiveDishId] = useState<string | null>(null);
+  const [newMealPlanName, setNewMealPlanName] = useState("");
   const [activeExerciseGroupId, setActiveExerciseGroupId] = useState("strength-a");
   const [exerciseGrouping, setExerciseGrouping] = useState<"category" | "muscle">("category");
   const [newGroupName, setNewGroupName] = useState("");
@@ -256,6 +304,9 @@ export default function Home() {
           setData({
             ...defaultState,
             ...parsed,
+            mealPlans: parsed.mealPlans?.length ? parsed.mealPlans : defaultMealPlans,
+            activeMealPlanId: parsed.activeMealPlanId ?? `base-week-${(parsed.mealWeek ?? 0) + 1}`,
+            nutritionTargets: { ...defaultNutritionTargets, ...parsed.nutritionTargets },
             profile: { ...defaultProfile, ...parsed.profile, padelDay: firstRecipeVersion ? "Lunes" : (parsed.profile?.padelDay ?? "Lunes") },
           });
         }
@@ -278,6 +329,14 @@ export default function Home() {
   }, [activeExercise, activeRecipe]);
 
   const exerciseGroupById = useMemo(() => new Map(data.exerciseGroups.map((group) => [group.id, group])), [data.exerciseGroups]);
+  const dishCatalog = useMemo(() => [
+    ...baseDishCatalog.map((dish) => ({ ...dish, ...(data.dishOverrides[dish.id] ?? {}) })),
+    ...data.customDishes,
+  ], [data.customDishes, data.dishOverrides]);
+  const dishById = useMemo(() => new Map(dishCatalog.map((dish) => [dish.id, dish])), [dishCatalog]);
+  const mealPlanById = useMemo(() => new Map(data.mealPlans.map((plan) => [plan.id, plan])), [data.mealPlans]);
+  const activeMealPlan = mealPlanById.get(data.activeMealPlanId) ?? data.mealPlans[0] ?? defaultMealPlans[0];
+  const planForDate = (iso: string) => mealPlanById.get(data.mealPlanAssignments[weekStartIso(iso)]) ?? activeMealPlan;
   const weekPlan = useMemo(() => baseWeek.map((item, index) => {
     const jsDay = [1, 2, 3, 4, 5, 6, 0][index];
     const assignedGroup = exerciseGroupById.get(data.exerciseSchedule[String(jsDay)]);
@@ -296,10 +355,7 @@ export default function Home() {
     if (assignedGroup) return `${assignedGroup.name} · ${assignedGroup.exerciseIds.length} ejercicios`;
     return dayNames[jsDay] === data.profile.padelDay ? "Pádel · 60 min" : workoutByDay[jsDay];
   };
-  const selectedDishes = meals.flatMap((meal) => {
-    const choice = data.mealChoices[meal.day] ?? data.mealWeek;
-    return meal.options[choice].map((dish, index) => ({ key: `${meal.day}-${index}`, dish })).filter((entry) => data.selectedMeals.includes(entry.key));
-  });
+  const selectedDishes = meals.flatMap((meal) => (activeMealPlan.days[meal.day] ?? []).map((id, index) => ({ key: `${meal.day}-${index}`, dish: dishById.get(id)?.name ?? "Plato sin definir" })).filter((entry) => data.selectedMeals.includes(entry.key)));
   const shoppingItems = ingredientCatalog.map((ingredient) => {
     const matches = selectedDishes.filter(({ dish }) => ingredient.match.test(dish)).length;
     return { ...ingredient, matches, total: ingredient.amount * matches };
@@ -315,7 +371,8 @@ export default function Home() {
   const selectedHoliday = barcelonaHolidays2026[selectedDate];
   const selectedDietExceptions = data.dietExceptions[selectedDate] ?? [];
   const selectedMealDay = meals[mondayMealIndex(selectedDateObject.getDay())];
-  const selectedMenu = selectedMealDay.options[data.mealChoices[selectedMealDay.day] ?? data.mealWeek];
+  const selectedDateMealPlan = planForDate(selectedDate);
+  const selectedMenu = (selectedDateMealPlan.days[selectedMealDay.day] ?? []).map((id) => dishById.get(id)?.name ?? "Plato sin definir");
   const activeRecipeData = activeRecipe ? getRecipe(activeRecipe) : null;
   const now = new Date();
   const todayIso = now.getFullYear() === 2026 ? toIsoDate(2026, now.getMonth(), now.getDate()) : "2026-08-14";
@@ -341,6 +398,29 @@ export default function Home() {
     return { ...habit, exceptions, rate: trackedDays === 0 ? 0 : Math.max(0, Math.round(((trackedDays - exceptions) / trackedDays) * 100)) };
   });
   const activeExerciseGroup = data.exerciseGroups.find((group) => group.id === activeExerciseGroupId) ?? data.exerciseGroups[0];
+  const activeDayDishIds = activeMealPlan.days[activeMealDay] ?? [];
+  const activeDayDishes = activeDayDishIds.map((id) => dishById.get(id)).filter((dish): dish is Dish => Boolean(dish));
+  const activeDayTotals = activeDayDishes.reduce((totals, dish) => ({ kcal: totals.kcal + nutritionKcal(dish), protein: totals.protein + dish.protein, carbs: totals.carbs + dish.carbs, fat: totals.fat + dish.fat }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  const targetChecks = {
+    kcal: activeDayTotals.kcal >= data.nutritionTargets.kcal * 0.85 && activeDayTotals.kcal <= data.nutritionTargets.kcal * 1.15,
+    protein: activeDayTotals.protein >= data.nutritionTargets.protein * 0.85 && activeDayTotals.protein <= data.nutritionTargets.protein * 1.4,
+    carbs: activeDayTotals.carbs >= data.nutritionTargets.carbs * 0.7 && activeDayTotals.carbs <= data.nutritionTargets.carbs * 1.3,
+    fat: activeDayTotals.fat >= data.nutritionTargets.fat * 0.7 && activeDayTotals.fat <= data.nutritionTargets.fat * 1.3,
+  };
+  const activeDayOk = activeDayDishes.length === 3 && Object.values(targetChecks).every(Boolean);
+  const dominantMacro = (dish: Dish) => {
+    const shares = { Proteína: dish.protein * 4, Hidratos: dish.carbs * 4, Grasas: dish.fat * 9 };
+    return Object.entries(shares).sort((a, b) => b[1] - a[1])[0][0];
+  };
+  const mealCatalogSections = useMemo(() => {
+    const sections = new Map<string, Dish[]>();
+    dishCatalog.forEach((dish) => {
+      const key = mealGrouping === "category" ? dish.category : dominantMacro(dish);
+      sections.set(key, [...(sections.get(key) ?? []), dish]);
+    });
+    return [...sections.entries()];
+  }, [dishCatalog, mealGrouping]);
+  const activeDish = activeDishId ? dishById.get(activeDishId) : undefined;
   const exerciseCatalogSections = useMemo(() => {
     const sections = new Map<string, Exercise[]>();
     allExercises.forEach((exercise) => {
@@ -362,10 +442,6 @@ export default function Home() {
   const toggleCompleted = (id: string) => setData((current) => ({ ...current, completed: current.completed.includes(id) ? current.completed.filter((item) => item !== id) : [...current.completed, id] }));
   const toggleShopping = (item: string) => setData((current) => ({ ...current, shopping: current.shopping.includes(item) ? current.shopping.filter((value) => value !== item) : [...current.shopping, item] }));
   const toggleMeal = (key: string) => setData((current) => ({ ...current, selectedMeals: current.selectedMeals.includes(key) ? current.selectedMeals.filter((item) => item !== key) : [...current.selectedMeals, key] }));
-  const swapMeal = (day: string) => {
-    const optionCount = meals.find((meal) => meal.day === day)?.options.length ?? 1;
-    setData((current) => ({ ...current, mealChoices: { ...current.mealChoices, [day]: ((current.mealChoices[day] ?? current.mealWeek) + 1) % optionCount } }));
-  };
   const toggleCustody = (date: string) => setData((current) => ({ ...current, custodyOverrides: { ...current.custodyOverrides, [date]: !(current.custodyOverrides[date] ?? noaDateSet.has(date)) } }));
   const toggleDietException = (date: string, habitId: string) => setData((current) => {
     const exceptions = current.dietExceptions[date] ?? [];
@@ -401,6 +477,46 @@ export default function Home() {
     else delete nextSchedule[String(jsDay)];
     return { ...current, exerciseSchedule: nextSchedule };
   });
+  const updateNutritionTarget = (field: keyof NutritionTargets, value: string) => setData((current) => ({ ...current, nutritionTargets: { ...current.nutritionTargets, [field]: Math.max(0, Number(value)) } }));
+  const updateDish = (id: string, patch: Partial<Dish>) => setData((current) => {
+    const custom = current.customDishes.some((dish) => dish.id === id);
+    return custom
+      ? { ...current, customDishes: current.customDishes.map((dish) => dish.id === id ? { ...dish, ...patch } : dish) }
+      : { ...current, dishOverrides: { ...current.dishOverrides, [id]: { ...(current.dishOverrides[id] ?? {}), ...patch } } };
+  });
+  const createDish = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const name = String(form.get("dish-name") ?? "").trim();
+    if (!name) return;
+    const dish: Dish = { id: `custom-dish-${Date.now()}`, name, category: String(form.get("dish-category")) as MealCategory, protein: Number(form.get("dish-protein")) || 0, carbs: Number(form.get("dish-carbs")) || 0, fat: Number(form.get("dish-fat")) || 0 };
+    setData((current) => ({ ...current, customDishes: [...current.customDishes, dish] }));
+    setActiveDishId(dish.id);
+    event.currentTarget.reset();
+  };
+  const deleteDish = (id: string) => {
+    setData((current) => ({ ...current, customDishes: current.customDishes.filter((dish) => dish.id !== id) }));
+    setActiveDishId(null);
+  };
+  const updateMealSlot = (day: string, index: number, dish: string) => setData((current) => ({
+    ...current,
+    mealPlans: current.mealPlans.map((plan) => plan.id === activeMealPlan.id ? { ...plan, days: { ...plan.days, [day]: [0, 1, 2].map((slot) => slot === index ? dish : (plan.days[day]?.[slot] ?? "")) } } : plan),
+  }));
+  const renameMealPlan = (name: string) => setData((current) => ({ ...current, mealPlans: current.mealPlans.map((plan) => plan.id === activeMealPlan.id ? { ...plan, name } : plan) }));
+  const createMealPlan = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const id = `custom-menu-${Date.now()}`;
+    const name = newMealPlanName.trim() || `Mi semana ${data.mealPlans.length + 1}`;
+    const plan: MealPlan = { id, name, days: Object.fromEntries(Object.entries(activeMealPlan.days).map(([day, ids]) => [day, [...ids]])) };
+    setData((current) => ({ ...current, mealPlans: [...current.mealPlans, plan], activeMealPlanId: id }));
+    setNewMealPlanName("");
+  };
+  const deleteMealPlan = (id: string) => {
+    if (activeMealPlan.builtIn) return;
+    const fallback = data.mealPlans.find((plan) => plan.id !== id) ?? defaultMealPlans[0];
+    setData((current) => ({ ...current, mealPlans: current.mealPlans.filter((plan) => plan.id !== id), activeMealPlanId: fallback.id, mealPlanAssignments: Object.fromEntries(Object.entries(current.mealPlanAssignments).filter(([, planId]) => planId !== id)) }));
+  };
+  const assignMealPlanToWeek = (iso: string, planId: string) => setData((current) => ({ ...current, mealPlanAssignments: { ...current.mealPlanAssignments, [weekStartIso(iso)]: planId } }));
   const archiveSelectedDay = () => setData((current) => ({
     ...current,
     dailyArchives: {
@@ -470,7 +586,10 @@ export default function Home() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      try { setData({ ...defaultState, ...JSON.parse(String(reader.result)) }); }
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        setData({ ...defaultState, ...parsed, mealPlans: parsed.mealPlans?.length ? parsed.mealPlans : defaultMealPlans, activeMealPlanId: parsed.activeMealPlanId ?? `base-week-${(parsed.mealWeek ?? 0) + 1}`, nutritionTargets: { ...defaultNutritionTargets, ...parsed.nutritionTargets } });
+      }
       catch { window.alert("No se ha podido leer el archivo de Brújula."); }
     };
     reader.readAsText(file);
@@ -626,7 +745,7 @@ export default function Home() {
               <p>{hasNoa(selectedDate) ? `No se asigna ejercicio. Si pierdes una sesión clave, prueba a moverla al ${nextFreeDate}.` : "La sesión cabe en el plan semanal. Márcala en Mi semana cuando la completes."}</p>
             </div>
             <div className="focus-block">
-              <span>COMIDAS DEL DÍA</span>
+              <span>COMIDAS DEL DÍA · {selectedDateMealPlan.name.toUpperCase()}</span>
               {selectedMenu.map((dish, index) => {
                 const key = `${selectedMealDay.day}-${index}`;
                 return <div className="focus-meal" key={key}><input id={`focus-${key}`} type="checkbox" checked={data.selectedMeals.includes(key)} onChange={() => toggleMeal(key)} /><label htmlFor={`focus-${key}`}>{dish}</label><button type="button" aria-label={`Ver receta de ${dish}`} onClick={() => setActiveRecipe(dish)}>💡</button></div>;
@@ -689,33 +808,69 @@ export default function Home() {
 
       <section className="meals-section" id="comidas" hidden={activeView !== "meals"}>
         <div className="section-heading light"><div><p className="eyebrow">COMER BIEN, SIN VIVIR A DIETA</p><h2>Una semana con sabor</h2></div><p>Sirve primero <strong>½ plato de verdura</strong>, después proteína y completa con hidrato. Ajusta la cantidad a tu hambre y entrenamiento.</p></div>
-        <div className="recipe-visual">
-          <img src="./recipes/recipe-contact-sheet.webp" alt="Doce platos rápidos y equilibrados vistos desde arriba" />
-          <div className="week-switcher">
-            <p className="eyebrow">ROTACIÓN DE MENÚS</p>
-            <h3>Cinco semanas, sin empezar de cero.</h3>
-            <p>Cambia la semana completa o sustituye solo un día. La selección y la lista de compra se actualizan al momento.</p>
-            <div role="group" aria-label="Elegir semana de menú">{menuWeekIndexes.map((week) => <button className={data.mealWeek === week ? "active" : ""} type="button" key={week} onClick={() => setData((current) => ({ ...current, mealWeek: week, mealChoices: {} }))}>Semana {week + 1}</button>)}</div>
-          </div>
-        </div>
         <div className="meal-rules"><span>3 comidas principales</span><span>Proteína en cada comida</span><span>Agua como bebida habitual</span><span>Sin alcachofa</span></div>
         <aside className="strict-rules" aria-label="Compromiso estricto de alimentación">
           <div><p className="eyebrow">MODO ESTRICTO · OBJETIVOS ELEGIDOS</p><h3>Reglas visibles, día a día.</h3><p>Márcalas en el calendario. Son compromisos personales para favorecer la constancia, no alimentos médicamente prohibidos para toda la población.</p></div>
           <ul><li>0 alcohol</li><li>0 refrescos y zumos</li><li>0 bollería y dulces con azúcar añadido</li><li>0 pan y pasta refinados</li><li>Ayuno nocturno de 12 h</li><li>Vinagre solo diluido</li></ul>
         </aside>
-        <div className="meal-day-tabs" role="tablist" aria-label="Elegir día del menú">
-          {meals.map((meal) => <button role="tab" aria-selected={activeMealDay === meal.day} className={activeMealDay === meal.day ? "active" : ""} type="button" onClick={() => setActiveMealDay(meal.day)} key={meal.day}>{meal.day.slice(0, 3)}</button>)}
+        <div className="nutrition-targets">
+          <div><p className="eyebrow">OBJETIVO DIARIO</p><h3>Tu referencia, editable</h3><p>Las kcal se calculan con 4 kcal/g para proteína e hidratos y 9 kcal/g para grasas.</p></div>
+          <div className="target-inputs">
+            {([['kcal', 'kcal'], ['protein', 'Proteína g'], ['carbs', 'Hidratos g'], ['fat', 'Grasas g']] as [keyof NutritionTargets, string][]).map(([field, label]) => <label key={field}><span>{label}</span><input type="number" min="0" value={data.nutritionTargets[field]} onChange={(event) => updateNutritionTarget(field, event.target.value)} /></label>)}
+          </div>
         </div>
-        <div className="meal-days">
-          {meals.filter((meal) => meal.day === activeMealDay).map((meal) => { const choice = data.mealChoices[meal.day] ?? data.mealWeek; const selected = meal.options[choice]; return (
-            <article className="meal-day" key={meal.day}>
-              <div className="meal-title"><h3>{meal.day}</h3><button type="button" onClick={() => swapMeal(meal.day)}>Cambiar menú ↻</button><button type="button" onClick={() => { const keys = [0, 1, 2].map((index) => `${meal.day}-${index}`); const allSelected = keys.every((key) => data.selectedMeals.includes(key)); setData((current) => ({ ...current, selectedMeals: allSelected ? current.selectedMeals.filter((key) => !keys.includes(key)) : [...new Set([...current.selectedMeals, ...keys])] })); }}>{[0, 1, 2].every((index) => data.selectedMeals.includes(`${meal.day}-${index}`)) ? "Quitar día" : "Preparar todo"}</button></div>
-              <div className="meal-lines">
-                {["Desayuno", "Comida", "Cena"].map((label, index) => { const key = `${meal.day}-${index}`; const picked = data.selectedMeals.includes(key); const inputId = `meal-${meal.day}-${index}`; return <div className={`meal-row ${picked ? "picked" : ""}`} key={label}><input id={inputId} type="checkbox" checked={picked} onChange={() => toggleMeal(key)} /><span>{label}</span><label className="dish-name" htmlFor={inputId}>{selected[index]}</label><button className="recipe-button" type="button" aria-label={`Ver receta de ${selected[index]}`} title="Ver receta rápida" onClick={() => setActiveRecipe(selected[index])}>💡</button></div>; })}
-              </div>
-            </article>
-          ); })}
+
+        <div className="meal-workbench">
+          <aside className="meal-plan-rail">
+            <div><p className="eyebrow">PROPUESTAS</p><h3>Semanas</h3></div>
+            <div className="meal-plan-list">{data.mealPlans.map((plan) => <button className={activeMealPlan.id === plan.id ? "active" : ""} type="button" onClick={() => setData((current) => ({ ...current, activeMealPlanId: plan.id }))} key={plan.id}><span>{plan.name}</span><small>{plan.builtIn ? "base editable" : "personal"}</small></button>)}</div>
+            <form className="new-meal-plan" onSubmit={createMealPlan}><input aria-label="Nombre de la nueva semana" value={newMealPlanName} onChange={(event) => setNewMealPlanName(event.target.value)} placeholder="Mi semana…" /><button type="submit">Duplicar actual +</button></form>
+          </aside>
+
+          <article className="day-builder">
+            <div className="day-builder-head">
+              <div><p className="eyebrow">CONSTRUCTOR SEMANAL</p><input aria-label="Nombre de la semana" value={activeMealPlan.name} onChange={(event) => renameMealPlan(event.target.value)} /></div>
+              {!activeMealPlan.builtIn && <button className="danger-link" type="button" onClick={() => deleteMealPlan(activeMealPlan.id)}>Eliminar semana</button>}
+            </div>
+            <div className="meal-day-tabs" role="tablist" aria-label="Elegir día del menú">{meals.map((meal) => <button role="tab" aria-selected={activeMealDay === meal.day} className={activeMealDay === meal.day ? "active" : ""} type="button" onClick={() => setActiveMealDay(meal.day)} key={meal.day}>{meal.day.slice(0, 3)}</button>)}</div>
+            <div className={activeDayOk ? "day-verdict ok" : "day-verdict adjust"}>
+              <div><span>{activeDayOk ? "DÍA OK" : "REVISAR DÍA"}</span><strong>{activeDayOk ? "Encaja con tus objetivos" : "Hay valores fuera de tu rango"}</strong></div>
+              <div className="daily-total"><strong>{activeDayTotals.kcal}</strong><span>/ {data.nutritionTargets.kcal} kcal</span></div>
+            </div>
+            <div className="macro-meter">
+              {([['protein', 'Proteína'], ['carbs', 'Hidratos'], ['fat', 'Grasas']] as [keyof Omit<NutritionTargets, 'kcal'>, string][]).map(([field, label]) => <div className={targetChecks[field] ? "within" : "outside"} key={field}><span>{label}</span><strong>{activeDayTotals[field]} g</strong><i><b style={{ width: `${Math.min(100, Math.round((activeDayTotals[field] / Math.max(1, data.nutritionTargets[field])) * 100))}%` }} /></i><small>meta {data.nutritionTargets[field]} g</small></div>)}
+            </div>
+            <div className="meal-slots">
+              {(["Desayuno", "Comida", "Cena"] as MealCategory[]).map((label, index) => { const dish = activeDayDishes[index]; const key = `${activeMealDay}-${index}`; const picked = data.selectedMeals.includes(key); return <article key={label}>
+                <div className="slot-label"><span>{label}</span><label><input type="checkbox" checked={picked} onChange={() => toggleMeal(key)} /> preparar</label></div>
+                {dish && <img src={getRecipe(dish.name).image} alt="" />}
+                <select aria-label={`${label} del ${activeMealDay}`} value={activeDayDishIds[index] ?? ""} onChange={(event) => updateMealSlot(activeMealDay, index, event.target.value)}><option value="">Elige un plato</option>{dishCatalog.filter((item) => item.category === label).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select>
+                {dish && <><div className="slot-macros"><span>{nutritionKcal(dish)} kcal</span><span>P {dish.protein}</span><span>HC {dish.carbs}</span><span>G {dish.fat}</span></div><div className="slot-actions"><button type="button" onClick={() => setActiveRecipe(dish.name)}>Ver receta</button><button type="button" onClick={() => setActiveDishId(dish.id)}>Editar valores</button></div></>}
+              </article>; })}
+            </div>
+            <button className={activeDayOk ? "prepare-day ok" : "prepare-day"} type="button" onClick={() => { const keys = [0, 1, 2].map((index) => `${activeMealDay}-${index}`); const allSelected = keys.every((key) => data.selectedMeals.includes(key)); setData((current) => ({ ...current, selectedMeals: allSelected ? current.selectedMeals.filter((key) => !keys.includes(key)) : [...new Set([...current.selectedMeals, ...keys])] })); }}>{[0, 1, 2].every((index) => data.selectedMeals.includes(`${activeMealDay}-${index}`)) ? "Quitar día de la preparación" : activeDayOk ? "Preparar este día" : "Preparar igualmente"}</button>
+          </article>
         </div>
+
+        <section className="meal-assignment">
+          <div><p className="eyebrow">LLEVAR AL CALENDARIO</p><h3>Asigna una propuesta a una semana</h3><p>La fecha se ajusta automáticamente al lunes de esa semana.</p></div>
+          <label><span>Una fecha de la semana</span><input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></label>
+          <label><span>Propuesta</span><select value={data.mealPlanAssignments[weekStartIso(selectedDate)] ?? activeMealPlan.id} onChange={(event) => assignMealPlanToWeek(selectedDate, event.target.value)}>{data.mealPlans.map((plan) => <option value={plan.id} key={plan.id}>{plan.name}</option>)}</select></label>
+          <button type="button" onClick={() => assignMealPlanToWeek(selectedDate, activeMealPlan.id)}>Asignar {activeMealPlan.name}</button>
+        </section>
+
+        <section className="dish-library">
+          <div className="catalog-toolbar"><div><p className="eyebrow">BIBLIOTECA DE PLATOS</p><h3>Recetas y estimaciones modificables</h3></div><div role="group" aria-label="Agrupar platos"><button className={mealGrouping === "category" ? "active" : ""} type="button" onClick={() => setMealGrouping("category")}>Por comida</button><button className={mealGrouping === "macro" ? "active" : ""} type="button" onClick={() => setMealGrouping("macro")}>Por nutriente</button></div></div>
+          {activeDish && <div className="dish-editor">
+            <div><p className="eyebrow">EDITANDO PLATO</p><input aria-label="Nombre del plato" value={activeDish.name} onChange={(event) => updateDish(activeDish.id, { name: event.target.value })} /></div>
+            <label>Tipo<select value={activeDish.category} onChange={(event) => updateDish(activeDish.id, { category: event.target.value as MealCategory })}>{["Desayuno", "Comida", "Cena"].map((category) => <option key={category}>{category}</option>)}</select></label>
+            {([['protein', 'Proteína'], ['carbs', 'Hidratos'], ['fat', 'Grasas']] as [keyof Pick<Dish, 'protein' | 'carbs' | 'fat'>, string][]).map(([field, label]) => <label key={field}>{label} (g)<input type="number" min="0" value={activeDish[field]} onChange={(event) => updateDish(activeDish.id, { [field]: Math.max(0, Number(event.target.value)) })} /></label>)}
+            <div className="editor-kcal"><strong>{nutritionKcal(activeDish)}</strong><span>kcal calculadas</span></div>
+            <button type="button" onClick={() => setActiveDishId(null)}>Cerrar</button>{!activeDish.builtIn && <button className="danger-link" type="button" onClick={() => deleteDish(activeDish.id)}>Eliminar</button>}
+          </div>}
+          <form className="new-dish-form" onSubmit={createDish}><input name="dish-name" placeholder="Nombre del nuevo plato" required /><select name="dish-category" aria-label="Tipo de comida"><option>Desayuno</option><option>Comida</option><option>Cena</option></select><label>P<input name="dish-protein" type="number" min="0" placeholder="g" required /></label><label>HC<input name="dish-carbs" type="number" min="0" placeholder="g" required /></label><label>G<input name="dish-fat" type="number" min="0" placeholder="g" required /></label><button type="submit">Añadir plato +</button></form>
+          <div className="dish-catalog-sections">{mealCatalogSections.map(([section, dishes], sectionIndex) => <details open={sectionIndex === 0} key={section}><summary><span>{section}</span><small>{dishes.length} platos</small></summary><div className="dish-grid">{dishes.map((dish) => <article key={dish.id}><img src={getRecipe(dish.name).image} alt="" /><div><strong>{dish.name}</strong><small>{dish.category} · predomina {dominantMacro(dish).toLowerCase()}</small><span>{nutritionKcal(dish)} kcal · P {dish.protein} · HC {dish.carbs} · G {dish.fat}</span></div><button type="button" onClick={() => setActiveDishId(dish.id)}>Editar</button><button type="button" onClick={() => setActiveRecipe(dish.name)}>Receta</button></article>)}</div></details>)}</div>
+        </section>
         <div className="food-footer">
           <div><p className="eyebrow">COMPRA SOLO LO QUE VAS A COCINAR</p><p>Marca arriba los desayunos, comidas y cenas que prepararás. Brújula agrupa automáticamente sus ingredientes y calcula una cantidad orientativa para una persona.</p></div>
           <button className="primary-button" type="button" onClick={() => setShoppingOpen(!shoppingOpen)}>{shoppingOpen ? "Cerrar lista" : `Generar lista · ${selectedDishes.length} platos`} <span>→</span></button>
