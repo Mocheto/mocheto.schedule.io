@@ -8,6 +8,7 @@ Brújula es un planificador personal de alimentación, entrenamiento y progreso.
 - cinco alternativas de menú para cada día, con recetas rápidas;
 - selección de comidas y lista de compra calculada por ingredientes;
 - calendario mensual de custodia, festivos de Barcelona, comidas y entrenamiento;
+- panel compacto con vistas separadas para hoy, semana, calendario, comidas y progreso;
 - seguimiento diario de ayuno nocturno, vinagre diluido y compromisos alimentarios estrictos;
 - registro de peso y perímetro de cintura;
 - ajuste de los datos personales y del día de pádel;

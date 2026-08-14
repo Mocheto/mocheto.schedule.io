@@ -222,13 +222,18 @@ h1 em { color: var(--leaf); font-weight: 400; }
 .focus-block > p { margin: 8px 0 0; color: var(--muted); font-size: .73rem; line-height: 1.55; }
 .holiday-focus { margin: 0 -10px; padding: 16px 10px; border-top: 0; background: var(--orange-soft); }
 .habit-checklist { display: grid; gap: 8px; margin-top: 10px; }
-.focus-habit { display: grid; grid-template-columns: 18px 1fr; gap: 8px; padding: 9px; border: 1px solid var(--line); background: var(--paper); cursor: pointer; }
-.focus-habit.checked { border-color: var(--leaf); background: #edf3dd; }
-.focus-habit input { margin: 2px 0 0; accent-color: var(--leaf); }
-.focus-habit label { display: grid; gap: 3px; cursor: pointer; }
+.focus-block .habit-instruction { margin-top: 0; }
+.focus-habit { display: grid; grid-template-columns: 22px 1fr; gap: 8px; width: 100%; padding: 9px; border: 1px solid var(--line); color: var(--ink); background: var(--paper); text-align: left; cursor: pointer; }
+.focus-habit.met { border-color: var(--leaf); background: #edf3dd; }
+.focus-habit.missed { color: #7c231d; border-color: #c94d43; background: #f9d9d5; }
+.focus-habit > span:last-child { display: grid; gap: 3px; }
+.habit-state { display: grid; width: 20px; height: 20px; place-items: center; border-radius: 50%; color: white; background: var(--leaf); font-size: .75rem; font-weight: 900; }
+.focus-habit.missed .habit-state { background: #c94d43; }
 .focus-habit strong { font-size: .73rem; }
 .focus-habit small { color: var(--muted); font-size: .63rem; line-height: 1.35; }
-.focus-block .habit-safety { padding: 9px; color: #70402e; background: #f5d9cc; font-size: .65rem; }
+.focus-habit.missed small { color: #7c231d; font-weight: 800; }
+.calendar-day .habit-misses { color: #a4211a; opacity: 1; font-weight: 900; }
+.calendar-day.with-noa .habit-misses { color: white; }
 .focus-meal { display: grid; grid-template-columns: 17px 1fr 32px; align-items: start; gap: 8px; margin-top: 9px; color: var(--ink); font-size: .75rem; line-height: 1.4; }
 .focus-meal label { cursor: pointer; }
 .focus-meal button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); cursor: pointer; }
@@ -387,4 +392,148 @@ footer > span { color: #aab9b7; font-size: .68rem; }
   .shopping-list { grid-template-columns: 1fr; }
   .progress-panel form { grid-template-columns: 1fr; }
   .reset-week { align-items: flex-start; flex-direction: column; }
+}
+
+/* Panel de navegación compacto: dirección visual A. */
+[hidden] { display: none !important; }
+
+.app-shell { padding-left: 196px; overflow-x: clip; }
+.app-shell .topbar {
+  position: fixed; z-index: 20; inset: 0 auto 0 0;
+  width: 196px; height: 100vh; margin: 0; padding: 24px 18px;
+  flex-direction: column; align-items: stretch; justify-content: flex-start;
+  color: #f4faf7; background: #102f38; border: 0;
+}
+.app-shell .topbar .brand { padding: 0; color: white; background: transparent; border: 0; cursor: pointer; }
+.app-shell .topbar .brand-mark { border-color: #f48a6d; color: white; background: #d9673d; }
+.app-shell .topbar nav { display: flex; width: 100%; margin-top: 34px; flex-direction: column; gap: 5px; }
+.app-shell .topbar nav button { width: 100%; padding: 11px 12px; color: #c5d8d5; background: transparent; border: 0; border-left: 3px solid transparent; text-align: left; cursor: pointer; }
+.app-shell .topbar nav button:hover { color: white; background: rgba(255,255,255,.06); }
+.app-shell .topbar nav button.active { color: white; background: rgba(255,255,255,.08); border-left-color: #f48a6d; }
+.app-shell .topbar .quiet-button { margin-top: auto; color: #d9e7e4; border-color: rgba(255,255,255,.25); border-radius: 4px; }
+.app-shell .settings-panel { width: min(1080px, calc(100% - 48px)); margin: 24px auto 0; }
+
+.app-shell .hero,
+.app-shell .signal-grid,
+.today-dashboard { width: min(1080px, calc(100% - 48px)); }
+.app-shell .hero { grid-template-columns: minmax(0, 1fr) minmax(360px, .85fr); gap: 28px; padding: 42px 0 22px; align-items: stretch; }
+.app-shell .hero-copy { align-self: center; }
+.app-shell .hero h1 { font-size: clamp(3.2rem, 6vw, 5.3rem); }
+.app-shell .hero .intro { margin: 20px 0; font-size: 1rem; line-height: 1.55; }
+.app-shell .hero .primary-button { border: 0; cursor: pointer; }
+.app-shell .route-card { padding: 26px; color: white; background: #102f38; border: 0; border-radius: 14px; box-shadow: none; transform: none; overflow: hidden; }
+.app-shell .route-card::before { display: none; }
+.app-shell .route-card::after { position: absolute; right: -65px; bottom: -90px; width: 220px; height: 220px; border: 28px solid rgba(217,103,61,.76); border-radius: 50%; content: ""; }
+.app-shell .route-card > * { position: relative; z-index: 1; }
+.app-shell .route-head strong { color: #b7d58b; }
+.app-shell .route-dot { border-color: #102f38; box-shadow: 0 0 0 2px white; background: white; }
+.app-shell .route-dot.waypoint { box-shadow: 0 0 0 2px #f48a6d; background: #f48a6d; }
+.app-shell .route-dot.goal { background: #102f38; }
+.app-shell .route-path { background: white; }
+.app-shell .route-path.future { background: repeating-linear-gradient(90deg, white 0 5px, transparent 5px 10px); }
+.app-shell .route-labels span, .app-shell .route-card > p { color: #c5d8d5; }
+.app-shell .route-card > p { margin-top: 28px; border-color: rgba(255,255,255,.18); }
+
+.app-shell .signal-grid { gap: 12px; margin: 0 auto 18px; border: 0; }
+.app-shell .signal-grid article { padding: 18px 20px; background: var(--white); border: 1px solid var(--line); border-radius: 12px; }
+.app-shell .signal-grid article:last-child { border: 1px solid var(--line); }
+.app-shell .signal-grid .success-card { background: var(--leaf-soft); }
+.app-shell .signal-grid strong { font-size: 1.65rem; }
+
+.today-dashboard { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 16px; margin: 0 auto 30px; }
+.today-plan-card, .today-habits-card, .today-week-card { padding: 22px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; }
+.today-side { display: grid; gap: 16px; }
+.dashboard-card-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.dashboard-card-heading .eyebrow { margin-bottom: 7px; }
+.dashboard-card-heading h2 { font-size: 1.55rem; line-height: 1.05; }
+.dashboard-card-heading > button { padding: 0; color: var(--leaf); background: transparent; border: 0; font-size: .72rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.today-holiday { padding: 5px 8px; color: white; background: var(--orange); border-radius: 99px; font-size: .65rem; font-weight: 800; }
+.today-plan-list { display: grid; margin-top: 18px; }
+.today-plan-list > div { display: grid; grid-template-columns: 90px minmax(0, 1fr) 30px; gap: 12px; align-items: center; min-height: 54px; border-top: 1px solid var(--line); }
+.today-plan-list > div:first-child { grid-template-columns: 90px minmax(0, 1fr); }
+.today-plan-list span { color: var(--orange); font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.today-plan-list strong { font-size: .83rem; }
+.today-plan-list button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); cursor: pointer; }
+.today-habits-list { display: grid; gap: 7px; margin-top: 16px; }
+.today-habit { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; align-items: center; width: 100%; padding: 8px; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 8px; text-align: left; cursor: pointer; }
+.today-habit span { display: grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; color: white; background: var(--leaf); font-weight: 900; }
+.today-habit strong { font-size: .73rem; }
+.today-habit.missed { color: #7c231d; background: #f9d9d5; border-color: #c94d43; }
+.today-habit.missed span { background: #c94d43; }
+.today-mini-week { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 14px; }
+.today-mini-week button { min-width: 0; padding: 8px 6px; color: var(--ink); background: var(--paper); border: 0; border-radius: 8px; text-align: left; cursor: pointer; }
+.today-mini-week button.done { color: var(--muted); opacity: .62; }
+.today-mini-week span, .today-mini-week strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.today-mini-week span { color: var(--orange); font-size: .62rem; font-weight: 800; }
+.today-mini-week strong { margin-top: 4px; font-size: .66rem; }
+
+.app-shell .week-section,
+.app-shell .agenda-section,
+.app-shell .meals-section,
+.app-shell .progress-section,
+.app-shell .reset-week { padding: 42px clamp(20px, 4vw, 56px); }
+.app-shell .section-heading { margin-bottom: 28px; }
+.app-shell .section-heading h2, .app-shell .progress-copy h2, .app-shell .reset-week h2 { font-size: clamp(2.2rem, 4vw, 3.5rem); }
+.app-shell .week-grid { grid-template-columns: repeat(4, 1fr); }
+.app-shell .day-card { min-height: 160px; border-radius: 10px; }
+.app-shell .day-card:nth-child(2n) { transform: none; }
+.app-shell .training-detail { margin-top: 28px; }
+
+.app-shell .agenda-section { min-height: 100vh; background: #e7efec; }
+.app-shell .calendar-layout { grid-template-columns: minmax(0, 1.45fr) minmax(290px, .55fr); }
+.app-shell .calendar-card, .app-shell .day-focus { border-radius: 12px; }
+.app-shell .calendar-card { overflow: hidden; }
+.app-shell .calendar-day { min-width: 0; }
+.app-shell .calendar-day.selected { outline-width: 2px; }
+.app-shell .calendar-day:hover { background: #f0f4ed; }
+.app-shell .calendar-day.with-noa:hover { background: #148fbd; }
+
+.app-shell .meals-section { background: #f2e5dc; }
+.app-shell .recipe-visual, .app-shell .strict-rules, .app-shell .shopping-panel { border-radius: 12px; overflow: hidden; }
+.app-shell .meal-day { grid-template-columns: 160px minmax(0, 1fr); }
+.app-shell .progress-section { min-height: calc(100vh - 120px); }
+.app-shell footer { grid-template-columns: 150px 1fr; padding: 24px clamp(20px, 4vw, 56px); }
+.app-shell footer > span { display: none; }
+
+@media (max-width: 1050px) {
+  .today-dashboard { grid-template-columns: 1fr; }
+  .app-shell .hero { grid-template-columns: 1fr; }
+  .app-shell .route-card { max-width: none; }
+  .app-shell .week-grid { grid-template-columns: repeat(2, 1fr); }
+  .app-shell .calendar-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .app-shell { padding-left: 0; }
+  .app-shell .topbar { position: static; width: 100%; height: auto; padding: 14px 15px; display: grid; grid-template-columns: 1fr auto; gap: 12px; }
+  .app-shell .topbar nav { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 2px; }
+  .app-shell .topbar nav button { padding: 9px 6px; border: 1px solid rgba(255,255,255,.12); border-left-width: 1px; border-radius: 5px; text-align: center; font-size: .7rem; }
+  .app-shell .topbar nav button.active { border-color: #f48a6d; }
+  .app-shell .topbar .quiet-button { display: block; margin: 0; padding: 8px 10px; font-size: .7rem; }
+  .app-shell .settings-panel, .app-shell .hero, .app-shell .signal-grid, .today-dashboard { width: calc(100% - 28px); }
+  .app-shell .hero { padding-top: 26px; }
+  .app-shell .hero h1 { font-size: 3.35rem; }
+  .app-shell .hero-actions { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .app-shell .signal-grid { grid-template-columns: 1fr; }
+  .today-plan-card, .today-habits-card, .today-week-card { padding: 17px; }
+  .today-plan-list > div { grid-template-columns: 72px minmax(0, 1fr) 28px; gap: 7px; }
+  .today-plan-list > div:first-child { grid-template-columns: 72px minmax(0, 1fr); }
+  .today-mini-week { grid-template-columns: repeat(2, 1fr); }
+  .app-shell .week-grid { grid-template-columns: 1fr; }
+  .app-shell .calendar-toolbar { grid-template-columns: 1fr; }
+  .app-shell .calendar-legend { grid-column: auto; grid-row: auto; flex-wrap: wrap; }
+  .app-shell .calendar-card { padding: 6px; overflow: visible; }
+  .app-shell .calendar-weekdays, .app-shell .calendar-grid { min-width: 0; }
+  .app-shell .calendar-weekdays span { padding: 0 1px 7px; font-size: .55rem; }
+  .app-shell .calendar-day, .app-shell .calendar-empty { min-height: 66px; }
+  .app-shell .calendar-day { padding: 5px 4px; }
+  .app-shell .date-number { font-size: .86rem; }
+  .app-shell .custody-label { font-size: .5rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app-shell .holiday-badge { top: 5px; right: 4px; width: 7px; height: 7px; padding: 0; border-radius: 50%; color: transparent; overflow: hidden; }
+  .app-shell .calendar-day small:not(.habit-misses) { display: none; }
+  .app-shell .calendar-day .habit-misses { font-size: 0; }
+  .app-shell .calendar-day .habit-misses::after { color: #a4211a; content: "!"; font-size: .62rem; }
+  .app-shell .calendar-day.with-noa .habit-misses::after { color: white; }
+  .app-shell .meal-day { grid-template-columns: 1fr; }
+  .app-shell footer { grid-template-columns: 1fr; }
 }
