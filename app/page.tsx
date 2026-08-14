@@ -748,21 +748,19 @@ export default function Home() {
             <button type="button" onClick={archiveSelectedDay}>{selectedDayArchive ? "Actualizar archivo" : "Archivar este día"}</button>
           </div>
         </article>
-        <div className="today-side">
-          <article className="today-habits-card">
-            <div className="dashboard-card-heading"><div><p className="eyebrow">COMPROMISOS</p><h2>{dailyDietCommitments.length - selectedDietExceptions.length}/{dailyDietCommitments.length} cumplidos</h2></div></div>
-            <div className="today-habits-list">{dailyDietCommitments.map((habit) => { const missed = selectedDietExceptions.includes(habit.id); return <button className={missed ? "today-habit missed" : "today-habit met"} type="button" aria-pressed={missed} onClick={() => toggleDietException(selectedDate, habit.id)} key={habit.id}><span aria-hidden="true">{missed ? "×" : "✓"}</span><strong>{habit.title}</strong></button>; })}</div>
-          </article>
-          <article className="today-water-card">
-            <div className="water-copy"><div><p className="eyebrow">HIDRATACIÓN</p><h2>{selectedWaterMl.toLocaleString("es-ES")} <small>ml</small></h2></div><div className="water-ring" style={{ "--water-level": `${selectedWaterPercent}%` } as React.CSSProperties}><span>{selectedWaterPercent}%</span></div></div>
-            <div className="water-glasses" role="group" aria-label="Vasos de agua del día">{Array.from({ length: Math.max(1, Math.ceil(data.nutritionTargets.waterMl / 250)) }, (_, index) => { const amount = (index + 1) * 250; const filled = selectedWaterMl >= amount; return <button className={filled ? "filled" : ""} type="button" aria-label={`${filled ? "Quitar" : "Registrar"} vaso ${index + 1}, ${amount} mililitros`} aria-pressed={filled} onClick={() => setWater(selectedDate, filled && selectedWaterMl === amount ? amount - 250 : amount)} key={amount}><span>◆</span></button>; })}</div>
-            <div className="water-controls"><button type="button" onClick={() => setWater(selectedDate, selectedWaterMl - 250)} disabled={selectedWaterMl === 0}>− 250 ml</button><span>Meta {data.nutritionTargets.waterMl.toLocaleString("es-ES")} ml</span><button type="button" onClick={() => setWater(selectedDate, selectedWaterMl + 250)}>+ 250 ml</button></div>
-          </article>
-          <article className="today-week-card">
-            <div className="dashboard-card-heading"><div><p className="eyebrow">ESTA SEMANA</p><h2>De un vistazo</h2></div><button type="button" onClick={() => openView("calendar")}>Ver calendario</button></div>
-            <div className="today-mini-week">{weekPlan.map((item, index) => { const archived = data.dailyArchives[weekDates[index]]; const done = archived?.workoutCompleted ?? data.completed.includes(item.id); return <button className={`${done ? "done" : ""} ${archived ? "archived" : ""}`} type="button" onClick={() => openView("week")} key={item.id}><span>{item.day} · {Number(weekDates[index].slice(-2))}</span><strong>{archived ? "✓ Archivado" : item.title}</strong></button>; })}</div>
-          </article>
-        </div>
+        <article className="today-habits-card">
+          <div className="dashboard-card-heading"><div><p className="eyebrow">COMPROMISOS</p><h2>{dailyDietCommitments.length - selectedDietExceptions.length}/{dailyDietCommitments.length} cumplidos</h2></div></div>
+          <div className="today-habits-list">{dailyDietCommitments.map((habit) => { const missed = selectedDietExceptions.includes(habit.id); return <button className={missed ? "today-habit missed" : "today-habit met"} type="button" aria-pressed={missed} onClick={() => toggleDietException(selectedDate, habit.id)} key={habit.id}><span aria-hidden="true">{missed ? "×" : "✓"}</span><strong>{habit.title}</strong></button>; })}</div>
+        </article>
+        <article className="today-water-card">
+          <div className="water-copy"><div><p className="eyebrow">HIDRATACIÓN</p><h2>{selectedWaterMl.toLocaleString("es-ES")} <small>ml</small></h2></div><div className="water-ring" style={{ "--water-level": `${selectedWaterPercent}%` } as React.CSSProperties}><span>{selectedWaterPercent}%</span></div></div>
+          <div className="water-glasses" role="group" aria-label="Vasos de agua del día">{Array.from({ length: Math.max(1, Math.ceil(data.nutritionTargets.waterMl / 250)) }, (_, index) => { const amount = (index + 1) * 250; const filled = selectedWaterMl >= amount; return <button className={filled ? "filled" : ""} type="button" aria-label={`${filled ? "Quitar" : "Registrar"} vaso ${index + 1}, ${amount} mililitros`} aria-pressed={filled} onClick={() => setWater(selectedDate, filled && selectedWaterMl === amount ? amount - 250 : amount)} key={amount}><span>◆</span></button>; })}</div>
+          <div className="water-controls"><button type="button" onClick={() => setWater(selectedDate, selectedWaterMl - 250)} disabled={selectedWaterMl === 0}>− 250 ml</button><span>Meta {data.nutritionTargets.waterMl.toLocaleString("es-ES")} ml</span><button type="button" onClick={() => setWater(selectedDate, selectedWaterMl + 250)}>+ 250 ml</button></div>
+        </article>
+        <article className="today-week-card">
+          <div className="dashboard-card-heading"><div><p className="eyebrow">ESTA SEMANA</p><h2>De un vistazo</h2></div><button type="button" onClick={() => openView("calendar")}>Ver calendario</button></div>
+          <div className="today-mini-week">{weekPlan.map((item, index) => { const archived = data.dailyArchives[weekDates[index]]; const done = archived?.workoutCompleted ?? data.completed.includes(item.id); return <button className={`${done ? "done" : ""} ${archived ? "archived" : ""}`} type="button" onClick={() => openView("week")} key={item.id}><span>{item.day} · {Number(weekDates[index].slice(-2))}</span><strong>{archived ? "✓ Archivado" : item.title}</strong></button>; })}</div>
+        </article>
       </section>
 
       <section className="week-section" id="semana" hidden={activeView !== "week"}>

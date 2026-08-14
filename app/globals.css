@@ -444,9 +444,8 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 .app-shell .signal-grid .success-card { background: var(--leaf-soft); }
 .app-shell .signal-grid strong { font-size: 1.65rem; }
 
-.today-dashboard { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 16px; margin: 0 auto 30px; }
+.today-dashboard { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 16px; align-items: start; margin: 0 auto 30px; }
 .today-plan-card, .today-habits-card, .today-water-card, .today-week-card { padding: 22px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; }
-.today-side { display: grid; gap: 16px; }
 .dashboard-card-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
 .dashboard-card-heading .eyebrow { margin-bottom: 7px; }
 .dashboard-card-heading h2 { font-size: 1.55rem; line-height: 1.05; }
@@ -454,7 +453,6 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 .today-holiday { padding: 5px 8px; color: white; background: var(--orange); border-radius: 99px; font-size: .65rem; font-weight: 800; }
 .today-plan-list { display: grid; margin-top: 18px; }
 .today-plan-list > div { display: grid; grid-template-columns: 90px minmax(0, 1fr) 30px; gap: 12px; align-items: center; min-height: 54px; border-top: 1px solid var(--line); }
-.today-plan-list > div:first-child { grid-template-columns: 90px minmax(0, 1fr); }
 .today-plan-list span { color: var(--orange); font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: .68rem; font-weight: 800; text-transform: uppercase; }
 .today-plan-list strong { font-size: .83rem; }
 .today-plan-list button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); cursor: pointer; }
@@ -547,7 +545,6 @@ footer > span { color: #aab9b7; font-size: .68rem; }
   .app-shell .signal-grid { grid-template-columns: 1fr; }
   .today-plan-card, .today-habits-card, .today-water-card, .today-week-card { padding: 17px; }
   .today-plan-list > div { grid-template-columns: 72px minmax(0, 1fr) 28px; gap: 7px; }
-  .today-plan-list > div:first-child { grid-template-columns: 72px minmax(0, 1fr); }
   .today-mini-week { grid-template-columns: repeat(2, 1fr); }
   .app-shell .week-grid { grid-template-columns: 1fr; }
   .app-shell .calendar-toolbar { grid-template-columns: 1fr; }
