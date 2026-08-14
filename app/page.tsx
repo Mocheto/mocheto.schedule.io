@@ -7,9 +7,11 @@ import { noaDateSet, noaDates } from "./noa-calendar";
 
 type Profile = { age: number; height: number; startWeight: number; goalWeight: number; waist: number; padelDay: string };
 type ProgressEntry = { id: number; date: string; weight: number; waist: number };
+type Exercise = { id: string; name: string; prescription: string; image: string; cues: string[]; routine: string; category: "Fuerza" | "HIIT" | "Casa"; muscle: string };
+type ExerciseGroup = { id: string; name: string; exerciseIds: string[]; builtIn?: boolean };
 type DailyArchiveEntry = { date: string; archivedAt: number; workoutCompleted: boolean; completedMeals: number[]; habitExceptions: string[] };
-type WeeklyHistoryEntry = { id: number; weekStart: string; weekEnd: string; completed: number; keyCompleted: number; habitExceptions: number; selectedMeals: number; weight: number; waist: number };
-type ActiveView = "today" | "week" | "calendar" | "meals" | "progress" | "history";
+type WeeklyHistoryEntry = { id: number; weekStart: string; weekEnd: string; completed: number; keyCompleted: number; keyTotal?: number; habitExceptions: number; selectedMeals: number; weight: number; waist: number };
+type ActiveView = "today" | "week" | "calendar" | "exercises" | "meals" | "progress" | "history";
 type SavedState = {
   completed: string[];
   mealWeek: number;
@@ -20,6 +22,8 @@ type SavedState = {
   custodyOverrides: Record<string, boolean>;
   progress: ProgressEntry[];
   dailyArchives: Record<string, DailyArchiveEntry>;
+  exerciseGroups: ExerciseGroup[];
+  exerciseSchedule: Record<string, string>;
   weeklyHistory: WeeklyHistoryEntry[];
   trackingStartedAt: string;
   profile: Profile;
@@ -151,8 +155,39 @@ const ingredientCatalog = [
   { id: "olive-oil", label: "AOVE", category: "Despensa", match: /AOVE|mediterráneo|ensalada|horno/i, amount: 1, unit: "botella si falta" },
 ];
 
-const strengthA = ["Sentadilla con mancuerna · 3×8–12", "Press de pecho · 3×8–12", "Remo en máquina · 3×8–12", "Peso muerto rumano · 2×8–12", "Plancha · 2×20–40 s"];
-const strengthB = ["Zancada asistida · 3×8/lado", "Jalón al pecho · 3×8–12", "Press de hombro · 3×8–12", "Puente de glúteo · 3×10–15", "Paseo del granjero · 3×30 s"];
+const strengthA: Exercise[] = [
+  { id: "goblet-squat", name: "Sentadilla con mancuerna", prescription: "3×8–12", image: "./exercises/goblet-squat.webp", routine: "Fuerza A", category: "Fuerza", muscle: "Piernas", cues: ["Mancuerna pegada al pecho.", "Rodillas en la dirección de los pies.", "Sube empujando el suelo."] },
+  { id: "chest-press", name: "Press de pecho", prescription: "3×8–12", image: "./exercises/chest-press.webp", routine: "Fuerza A", category: "Fuerza", muscle: "Pecho", cues: ["Pies firmes y escápulas apoyadas.", "Codos a unos 45° del torso.", "Termina sobre el pecho, sin chocar mancuernas."] },
+  { id: "seated-row", name: "Remo en máquina", prescription: "3×8–12", image: "./exercises/seated-row.webp", routine: "Fuerza A", category: "Fuerza", muscle: "Espalda", cues: ["Torso alto y hombros lejos de las orejas.", "Lleva los codos hacia atrás.", "Acerca el agarre a las costillas sin balancearte."] },
+  { id: "romanian-deadlift", name: "Peso muerto rumano", prescription: "2×8–12", image: "./exercises/romanian-deadlift.webp", routine: "Fuerza A", category: "Fuerza", muscle: "Cadena posterior", cues: ["Rodillas ligeramente flexionadas.", "Lleva la cadera atrás con espalda larga.", "Mantén las mancuernas cerca de las piernas."] },
+  { id: "plank", name: "Plancha", prescription: "2×20–40 s", image: "./exercises/plank.webp", routine: "Fuerza A", category: "Fuerza", muscle: "Core", cues: ["Codos debajo de los hombros.", "Aprieta abdomen y glúteos.", "Forma una línea de cabeza a talones."] },
+];
+const strengthB: Exercise[] = [
+  { id: "assisted-lunge", name: "Zancada asistida", prescription: "3×8/lado", image: "./exercises/assisted-lunge.webp", routine: "Fuerza B", category: "Fuerza", muscle: "Piernas", cues: ["Usa el apoyo solo para equilibrarte.", "Da el paso hacia atrás.", "Mantén la rodilla delantera alineada con el pie."] },
+  { id: "lat-pulldown", name: "Jalón al pecho", prescription: "3×8–12", image: "./exercises/lat-pulldown.webp", routine: "Fuerza B", category: "Fuerza", muscle: "Espalda", cues: ["Pecho alto y hombros abajo.", "Lleva la barra hacia la parte alta del pecho.", "Evita balancear el torso."] },
+  { id: "shoulder-press", name: "Press de hombro", prescription: "3×8–12", image: "./exercises/shoulder-press.webp", routine: "Fuerza B", category: "Fuerza", muscle: "Hombros", cues: ["Pies firmes y costillas controladas.", "Empieza con antebrazos verticales.", "Sube sin arquear la espalda."] },
+  { id: "glute-bridge", name: "Puente de glúteo", prescription: "3×10–15", image: "./exercises/glute-bridge.webp", routine: "Fuerza B", category: "Fuerza", muscle: "Glúteos", cues: ["Pies apoyados cerca de los glúteos.", "Eleva la cadera apretando glúteos.", "Termina en línea sin hiperextender la espalda."] },
+  { id: "farmers-carry", name: "Paseo del granjero", prescription: "3×30 s", image: "./exercises/farmers-carry.webp", routine: "Fuerza B", category: "Fuerza", muscle: "Cuerpo completo", cues: ["Crece hacia arriba y baja los hombros.", "Mancuernas quietas junto al cuerpo.", "Camina con pasos cortos y controlados."] },
+];
+const hiitExercises: Exercise[] = [
+  { id: "step-jack", name: "Step jack", prescription: "30 s · 20 s pausa", image: "./exercises/step-jack.webp", routine: "HIIT", category: "HIIT", muscle: "Cuerpo completo", cues: ["Abre una pierna cada vez.", "Lleva los brazos por encima de la cabeza.", "Mantén un ritmo que puedas repetir."] },
+  { id: "high-knees", name: "Rodillas altas", prescription: "30 s · 20 s pausa", image: "./exercises/high-knees.webp", routine: "HIIT", category: "HIIT", muscle: "Piernas", cues: ["Crece hacia arriba.", "Alterna rodilla y brazo contrario.", "Aterriza suave sobre el antepié."] },
+  { id: "mountain-climber", name: "Escalador", prescription: "30 s · 20 s pausa", image: "./exercises/mountain-climber.webp", routine: "HIIT", category: "HIIT", muscle: "Core", cues: ["Manos debajo de los hombros.", "Mantén la cadera estable.", "Alterna rodillas sin perder la línea del tronco."] },
+  { id: "squat-thrust", name: "Squat thrust sin salto", prescription: "30 s · 30 s pausa", image: "./exercises/squat-thrust.webp", routine: "HIIT", category: "HIIT", muscle: "Cuerpo completo", cues: ["Apoya las manos antes de llevar los pies atrás.", "Llega a una plancha firme.", "Vuelve de forma controlada y levántate."] },
+];
+const homeExercises: Exercise[] = [
+  { id: "chair-squat", name: "Sentadilla a silla", prescription: "3×10–15", image: "./exercises/chair-squat.webp", routine: "Casa", category: "Casa", muscle: "Piernas", cues: ["Usa una silla estable.", "Lleva la cadera hacia atrás.", "Toca el asiento y vuelve a subir."] },
+  { id: "incline-pushup", name: "Flexión inclinada", prescription: "3×8–12", image: "./exercises/incline-pushup.webp", routine: "Casa", category: "Casa", muscle: "Pecho", cues: ["Apoya las manos en una superficie firme.", "Mantén el cuerpo en una línea.", "Baja el pecho con los codos a unos 45°."] },
+  { id: "dead-bug", name: "Dead bug", prescription: "3×8/lado", image: "./exercises/dead-bug.webp", routine: "Casa", category: "Casa", muscle: "Core", cues: ["Mantén la zona lumbar apoyada.", "Extiende brazo y pierna contrarios.", "Recorta el recorrido si pierdes el control."] },
+  { id: "bird-dog", name: "Bird dog", prescription: "3×8/lado", image: "./exercises/bird-dog.webp", routine: "Casa", category: "Casa", muscle: "Core", cues: ["Manos bajo hombros y rodillas bajo caderas.", "Extiende brazo y pierna contrarios.", "Mantén la pelvis nivelada."] },
+];
+const allExercises = [...strengthA, ...strengthB, ...hiitExercises, ...homeExercises];
+const defaultExerciseGroups: ExerciseGroup[] = [
+  { id: "strength-a", name: "Fuerza A", exerciseIds: strengthA.map((exercise) => exercise.id), builtIn: true },
+  { id: "strength-b", name: "Fuerza B", exerciseIds: strengthB.map((exercise) => exercise.id), builtIn: true },
+  { id: "hiit-short", name: "HIIT corto", exerciseIds: hiitExercises.map((exercise) => exercise.id), builtIn: true },
+  { id: "home-full", name: "Casa · cuerpo completo", exerciseIds: homeExercises.map((exercise) => exercise.id), builtIn: true },
+];
 const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const workoutByDay: Record<number, string> = { 0: "Paseo en familia · 40 min", 1: "Paseo suave · 20 min", 2: "Fuerza A · 30 min", 3: "Correr / andar · 30 min", 4: "Movilidad · 10 min", 5: "Fuerza B · 30 min", 6: "Paseo largo · 40 min" };
@@ -192,7 +227,7 @@ function getRecipe(dish: string) {
   return { dish, simple, time, icon, image, steps, ingredients: ingredients.length > 0 ? ingredients : ["Ingredientes principales del plato", "AOVE", "Sal y especias"] };
 }
 
-const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], dietExceptions: {}, custodyOverrides: {}, progress: [], dailyArchives: {}, weeklyHistory: [], trackingStartedAt: "2026-08-14", profile: defaultProfile };
+const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], dietExceptions: {}, custodyOverrides: {}, progress: [], dailyArchives: {}, exerciseGroups: defaultExerciseGroups, exerciseSchedule: { "2": "strength-a", "5": "strength-b" }, weeklyHistory: [], trackingStartedAt: "2026-08-14", profile: defaultProfile };
 
 export default function Home() {
   const [data, setData] = useState<SavedState>(defaultState);
@@ -203,8 +238,12 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState("2026-08-14");
   const [editingCustody, setEditingCustody] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState<string | null>(null);
+  const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>("today");
   const [activeMealDay, setActiveMealDay] = useState("Lunes");
+  const [activeExerciseGroupId, setActiveExerciseGroupId] = useState("strength-a");
+  const [exerciseGrouping, setExerciseGrouping] = useState<"category" | "muscle">("category");
+  const [newGroupName, setNewGroupName] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -231,21 +270,32 @@ export default function Home() {
   }, [data, ready]);
 
   useEffect(() => {
-    if (!activeRecipe) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setActiveRecipe(null); };
+    if (!activeRecipe && !activeExercise) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") { setActiveRecipe(null); setActiveExercise(null); } };
     document.addEventListener("keydown", closeOnEscape);
     document.body.style.overflow = "hidden";
     return () => { document.removeEventListener("keydown", closeOnEscape); document.body.style.overflow = ""; };
-  }, [activeRecipe]);
+  }, [activeExercise, activeRecipe]);
 
-  const weekPlan = useMemo(() => baseWeek.map((item) => item.id === "padel" ? { ...item, day: data.profile.padelDay.slice(0, 3), detail: `60 min · ${data.profile.padelDay.toLowerCase()}` } : item), [data.profile.padelDay]);
+  const exerciseGroupById = useMemo(() => new Map(data.exerciseGroups.map((group) => [group.id, group])), [data.exerciseGroups]);
+  const weekPlan = useMemo(() => baseWeek.map((item, index) => {
+    const jsDay = [1, 2, 3, 4, 5, 6, 0][index];
+    const assignedGroup = exerciseGroupById.get(data.exerciseSchedule[String(jsDay)]);
+    if (assignedGroup) return { ...item, title: assignedGroup.name, detail: `${assignedGroup.exerciseIds.length} ejercicios · rutina asignada`, tone: "strength", key: true };
+    if (dayNames[jsDay] === data.profile.padelDay) return { ...item, title: "Pádel", detail: `60 min · ${data.profile.padelDay.toLowerCase()}`, tone: "padel", key: true };
+    return item;
+  }), [data.exerciseSchedule, data.profile.padelDay, exerciseGroupById]);
   const latest = data.progress.at(-1);
   const currentWeight = latest?.weight ?? data.profile.startWeight;
   const currentWaist = latest?.waist ?? data.profile.waist;
   const lost = Math.max(0, data.profile.startWeight - currentWeight);
   const goalProgress = Math.min(100, Math.max(0, Math.round((lost / (data.profile.startWeight - data.profile.goalWeight)) * 100)));
   const hasNoa = (date: string) => data.custodyOverrides[date] ?? noaDateSet.has(date);
-  const workoutForDay = (jsDay: number) => dayNames[jsDay] === data.profile.padelDay ? "Pádel · 60 min" : workoutByDay[jsDay];
+  const workoutForDay = (jsDay: number) => {
+    const assignedGroup = exerciseGroupById.get(data.exerciseSchedule[String(jsDay)]);
+    if (assignedGroup) return `${assignedGroup.name} · ${assignedGroup.exerciseIds.length} ejercicios`;
+    return dayNames[jsDay] === data.profile.padelDay ? "Pádel · 60 min" : workoutByDay[jsDay];
+  };
   const selectedDishes = meals.flatMap((meal) => {
     const choice = data.mealChoices[meal.day] ?? data.mealWeek;
     return meal.options[choice].map((dish, index) => ({ key: `${meal.day}-${index}`, dish })).filter((entry) => data.selectedMeals.includes(entry.key));
@@ -290,6 +340,15 @@ export default function Home() {
     const exceptions = archivedDays.filter((day) => day.habitExceptions.includes(habit.id)).length;
     return { ...habit, exceptions, rate: trackedDays === 0 ? 0 : Math.max(0, Math.round(((trackedDays - exceptions) / trackedDays) * 100)) };
   });
+  const activeExerciseGroup = data.exerciseGroups.find((group) => group.id === activeExerciseGroupId) ?? data.exerciseGroups[0];
+  const exerciseCatalogSections = useMemo(() => {
+    const sections = new Map<string, Exercise[]>();
+    allExercises.forEach((exercise) => {
+      const key = exerciseGrouping === "category" ? exercise.category : exercise.muscle;
+      sections.set(key, [...(sections.get(key) ?? []), exercise]);
+    });
+    return [...sections.entries()];
+  }, [exerciseGrouping]);
   const nextFreeDate = (() => {
     const cursor = new Date(selectedDateObject);
     for (let offset = 1; offset <= 7; offset += 1) {
@@ -312,6 +371,35 @@ export default function Home() {
     const exceptions = current.dietExceptions[date] ?? [];
     const nextExceptions = exceptions.includes(habitId) ? exceptions.filter((id) => id !== habitId) : [...exceptions, habitId];
     return { ...current, dietExceptions: { ...current.dietExceptions, [date]: nextExceptions } };
+  });
+  const renameExerciseGroup = (groupId: string, name: string) => setData((current) => ({ ...current, exerciseGroups: current.exerciseGroups.map((group) => group.id === groupId ? { ...group, name } : group) }));
+  const toggleExerciseInGroup = (groupId: string, exerciseId: string) => setData((current) => ({
+    ...current,
+    exerciseGroups: current.exerciseGroups.map((group) => group.id === groupId ? { ...group, exerciseIds: group.exerciseIds.includes(exerciseId) ? group.exerciseIds.filter((id) => id !== exerciseId) : [...group.exerciseIds, exerciseId] } : group),
+  }));
+  const createExerciseGroup = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const fallbackLetter = String.fromCharCode(65 + data.exerciseGroups.filter((group) => /^Fuerza [A-Z]/.test(group.name)).length);
+    const name = newGroupName.trim() || `Fuerza ${fallbackLetter}`;
+    const id = `custom-${Date.now()}`;
+    setData((current) => ({ ...current, exerciseGroups: [...current.exerciseGroups, { id, name, exerciseIds: [] }] }));
+    setActiveExerciseGroupId(id);
+    setNewGroupName("");
+  };
+  const deleteExerciseGroup = (groupId: string) => {
+    const fallback = data.exerciseGroups.find((group) => group.id !== groupId)?.id ?? "strength-a";
+    setData((current) => ({
+      ...current,
+      exerciseGroups: current.exerciseGroups.filter((group) => group.id !== groupId),
+      exerciseSchedule: Object.fromEntries(Object.entries(current.exerciseSchedule).filter(([, assignedId]) => assignedId !== groupId)),
+    }));
+    setActiveExerciseGroupId(fallback);
+  };
+  const assignExerciseGroup = (jsDay: number, groupId: string) => setData((current) => {
+    const nextSchedule = { ...current.exerciseSchedule };
+    if (groupId) nextSchedule[String(jsDay)] = groupId;
+    else delete nextSchedule[String(jsDay)];
+    return { ...current, exerciseSchedule: nextSchedule };
   });
   const archiveSelectedDay = () => setData((current) => ({
     ...current,
@@ -348,7 +436,7 @@ export default function Home() {
       const weekEnd = toIsoDate(sunday.getFullYear(), sunday.getMonth(), sunday.getDate());
       const archivedWeek = Object.values(current.dailyArchives).filter((entry) => entry.date >= weekStart && entry.date <= weekEnd);
       const habitExceptions = archivedWeek.reduce((total, entry) => total + entry.habitExceptions.length, 0);
-      const snapshot: WeeklyHistoryEntry = { id: Date.now(), weekStart, weekEnd, completed: archivedWeek.filter((entry) => entry.workoutCompleted).length, keyCompleted: weekPlan.filter((item, index) => item.key && current.dailyArchives[weekDates[index]]?.workoutCompleted).length, habitExceptions, selectedMeals: archivedWeek.reduce((total, entry) => total + entry.completedMeals.length, 0), weight: current.progress.at(-1)?.weight ?? current.profile.startWeight, waist: current.progress.at(-1)?.waist ?? current.profile.waist };
+      const snapshot: WeeklyHistoryEntry = { id: Date.now(), weekStart, weekEnd, completed: archivedWeek.filter((entry) => entry.workoutCompleted).length, keyCompleted: weekPlan.filter((item, index) => item.key && current.dailyArchives[weekDates[index]]?.workoutCompleted).length, keyTotal: weekPlan.filter((item) => item.key).length, habitExceptions, selectedMeals: archivedWeek.reduce((total, entry) => total + entry.completedMeals.length, 0), weight: current.progress.at(-1)?.weight ?? current.profile.startWeight, waist: current.progress.at(-1)?.waist ?? current.profile.waist };
       return { ...current, completed: [], shopping: [], selectedMeals: [], weeklyHistory: [...current.weeklyHistory.filter((entry) => entry.weekStart !== weekStart), snapshot].slice(-24) };
     });
     setActiveView("history");
@@ -396,6 +484,7 @@ export default function Home() {
           <button className={activeView === "today" ? "active" : ""} type="button" aria-current={activeView === "today" ? "page" : undefined} onClick={() => openView("today")}>Hoy</button>
           <button className={activeView === "week" ? "active" : ""} type="button" aria-current={activeView === "week" ? "page" : undefined} onClick={() => openView("week")}>Semana</button>
           <button className={activeView === "calendar" ? "active" : ""} type="button" aria-current={activeView === "calendar" ? "page" : undefined} onClick={() => openView("calendar")}>Calendario</button>
+          <button className={activeView === "exercises" ? "active" : ""} type="button" aria-current={activeView === "exercises" ? "page" : undefined} onClick={() => openView("exercises")}>Ejercicios</button>
           <button className={activeView === "meals" ? "active" : ""} type="button" aria-current={activeView === "meals" ? "page" : undefined} onClick={() => openView("meals")}>Comidas</button>
           <button className={activeView === "progress" ? "active" : ""} type="button" aria-current={activeView === "progress" ? "page" : undefined} onClick={() => openView("progress")}>Progreso</button>
           <button className={activeView === "history" ? "active" : ""} type="button" aria-current={activeView === "history" ? "page" : undefined} onClick={() => openView("history")}>Histórico</button>
@@ -462,7 +551,7 @@ export default function Home() {
       </section>
 
       <section className="week-section" id="semana" hidden={activeView !== "week"}>
-        <div className="section-heading"><div><p className="eyebrow">MOVIMIENTO</p><h2>Tu semana, de un vistazo</h2></div><p><strong>{keyCompleted} de 4 sesiones clave</strong> completadas.<br />Los paseos también cuentan.</p></div>
+        <div className="section-heading"><div><p className="eyebrow">MOVIMIENTO</p><h2>Tu semana, de un vistazo</h2></div><p><strong>{keyCompleted} de {weekPlan.filter((item) => item.key).length} sesiones clave</strong> completadas.<br />Los paseos también cuentan.</p></div>
         <div className="week-grid">
           {weekPlan.map((item, index) => { const date = weekDates[index]; const archived = data.dailyArchives[date]; const done = archived?.workoutCompleted ?? data.completed.includes(item.id); return (
             <article className={`day-card ${item.tone} ${done ? "done" : ""} ${archived ? "archived" : ""}`} key={item.id}>
@@ -474,8 +563,8 @@ export default function Home() {
         </div>
 
         <div className="training-detail">
-          <article><p className="eyebrow">FUERZA A</p><h3>Base y empuje</h3><ol>{strengthA.map((exercise) => <li key={exercise}>{exercise}</li>)}</ol></article>
-          <article><p className="eyebrow">FUERZA B</p><h3>Tirón y estabilidad</h3><ol>{strengthB.map((exercise) => <li key={exercise}>{exercise}</li>)}</ol></article>
+          <article><p className="eyebrow">FUERZA A</p><h3>Base y empuje</h3><ol className="exercise-list">{strengthA.map((exercise) => <li key={exercise.id}><span><strong>{exercise.name}</strong><small>{exercise.prescription}</small></span><button type="button" aria-label={`Ver ilustración de ${exercise.name}`} title={`Ver ${exercise.name}`} onClick={() => setActiveExercise(exercise)}>🏋</button></li>)}</ol></article>
+          <article><p className="eyebrow">FUERZA B</p><h3>Tirón y estabilidad</h3><ol className="exercise-list">{strengthB.map((exercise) => <li key={exercise.id}><span><strong>{exercise.name}</strong><small>{exercise.prescription}</small></span><button type="button" aria-label={`Ver ilustración de ${exercise.name}`} title={`Ver ${exercise.name}`} onClick={() => setActiveExercise(exercise)}>🏋</button></li>)}</ol></article>
           <aside><p className="eyebrow">PROGRESIÓN</p><h3>Hazlo sostenible</h3><p><strong>Semanas 1–2:</strong> una sesión de fuerza basta.</p><p><strong>Semanas 3–6:</strong> intenta completar las dos.</p><p><strong>Semanas 7–12:</strong> añade peso solo si terminas con 2 repeticiones “en reserva”.</p></aside>
         </div>
       </section>
@@ -557,6 +646,47 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="exercises-section" id="ejercicios" hidden={activeView !== "exercises"}>
+        <div className="section-heading light exercises-heading"><div><p className="eyebrow">TU TALLER DE MOVIMIENTO</p><h2>Ejercicios</h2></div><p>Construye grupos que puedas repetir. <strong>A y B siguen asignados por defecto</strong>; HIIT y Casa quedan listos como alternativas.</p></div>
+
+        <div className="exercise-workbench">
+          <aside className="routine-rail">
+            <div><p className="eyebrow">GRUPOS</p><h3>Tus rutinas</h3></div>
+            <div className="routine-tabs" role="tablist" aria-label="Elegir grupo de ejercicios">
+              {data.exerciseGroups.map((group) => <button role="tab" aria-selected={activeExerciseGroup?.id === group.id} className={activeExerciseGroup?.id === group.id ? "active" : ""} type="button" onClick={() => setActiveExerciseGroupId(group.id)} key={group.id}><strong>{group.name}</strong><span>{group.exerciseIds.length} ejercicios</span></button>)}
+            </div>
+            <form className="new-routine" onSubmit={createExerciseGroup}>
+              <label htmlFor="new-routine-name">Nuevo grupo</label>
+              <div><input id="new-routine-name" value={newGroupName} onChange={(event) => setNewGroupName(event.target.value)} placeholder="Fuerza C" /><button type="submit">Añadir</button></div>
+            </form>
+          </aside>
+
+          <article className="routine-editor">
+            {activeExerciseGroup && <>
+              <div className="routine-editor-head">
+                <label>Nombre del grupo<input value={activeExerciseGroup.name} onChange={(event) => renameExerciseGroup(activeExerciseGroup.id, event.target.value)} /></label>
+                {!activeExerciseGroup.builtIn && <button className="delete-routine" type="button" onClick={() => deleteExerciseGroup(activeExerciseGroup.id)}>Eliminar grupo</button>}
+              </div>
+              <div className="routine-summary">
+                <span>{activeExerciseGroup.exerciseIds.length} ejercicios seleccionados</span>
+                <div>{activeExerciseGroup.exerciseIds.length === 0 ? <small>Elige movimientos de la biblioteca.</small> : activeExerciseGroup.exerciseIds.map((id) => { const exercise = allExercises.find((item) => item.id === id); return exercise && <button type="button" onClick={() => toggleExerciseInGroup(activeExerciseGroup.id, id)} key={id}>{exercise.name} ×</button>; })}</div>
+              </div>
+              <div className="catalog-toolbar"><div><p className="eyebrow">BIBLIOTECA</p><h3>Agrupa para decidir mejor</h3></div><div role="group" aria-label="Agrupar ejercicios"><button className={exerciseGrouping === "category" ? "active" : ""} type="button" onClick={() => setExerciseGrouping("category")}>Por tipo</button><button className={exerciseGrouping === "muscle" ? "active" : ""} type="button" onClick={() => setExerciseGrouping("muscle")}>Por músculo</button></div></div>
+              <div className="exercise-catalog">
+                {exerciseCatalogSections.map(([section, exercises]) => <section key={section}><div className="catalog-section-title"><h4>{section}</h4><span>{exercises.length}</span></div><div className="catalog-grid">{exercises.map((exercise) => { const selected = activeExerciseGroup.exerciseIds.includes(exercise.id); return <article className={selected ? "catalog-exercise selected" : "catalog-exercise"} key={exercise.id}><button className="catalog-select" type="button" aria-pressed={selected} onClick={() => toggleExerciseInGroup(activeExerciseGroup.id, exercise.id)}><img src={exercise.image} alt="" /><span><strong>{exercise.name}</strong><small>{exercise.prescription} · {exercise.muscle}</small></span><i>{selected ? "✓" : "+"}</i></button><button className="catalog-preview" type="button" aria-label={`Ver técnica de ${exercise.name}`} onClick={() => setActiveExercise(exercise)}>🏋</button></article>; })}</div></section>)}
+              </div>
+            </>}
+          </article>
+        </div>
+
+        <section className="schedule-builder">
+          <div><p className="eyebrow">CALENDARIO SEMANAL</p><h3>¿Cuándo toca cada grupo?</h3><p>Deja un día sin grupo para conservar su actividad habitual. Asignar una rutina sustituye el movimiento de ese día.</p></div>
+          <div className="schedule-days">
+            {[{ label: "Lun", jsDay: 1 }, { label: "Mar", jsDay: 2 }, { label: "Mié", jsDay: 3 }, { label: "Jue", jsDay: 4 }, { label: "Vie", jsDay: 5 }, { label: "Sáb", jsDay: 6 }, { label: "Dom", jsDay: 0 }].map(({ label, jsDay }) => <label key={jsDay}><span>{label}</span><select aria-label={`Rutina del ${dayNames[jsDay]}`} value={data.exerciseSchedule[String(jsDay)] ?? ""} onChange={(event) => assignExerciseGroup(jsDay, event.target.value)}><option value="">Actividad habitual</option>{data.exerciseGroups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label>)}
+          </div>
+        </section>
+      </section>
+
       <section className="meals-section" id="comidas" hidden={activeView !== "meals"}>
         <div className="section-heading light"><div><p className="eyebrow">COMER BIEN, SIN VIVIR A DIETA</p><h2>Una semana con sabor</h2></div><p>Sirve primero <strong>½ plato de verdura</strong>, después proteína y completa con hidrato. Ajusta la cantidad a tu hambre y entrenamiento.</p></div>
         <div className="recipe-visual">
@@ -624,11 +754,27 @@ export default function Home() {
           </article>
           <article className="weekly-history">
             <div className="history-card-heading"><p className="eyebrow">HITOS SEMANALES</p><h3>Semanas cerradas</h3></div>
-            {data.weeklyHistory.length === 0 ? <div className="history-empty"><strong>Aún no hay semanas archivadas.</strong><p>Cuando pulses “Cerrar semana y archivar”, aquí aparecerá el resumen antes de comenzar la siguiente.</p></div> : <div className="weekly-history-list">{data.weeklyHistory.slice().reverse().map((entry) => <div className="weekly-history-row" key={entry.id}><time>{new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(new Date(`${entry.weekStart}T12:00:00`))}–{new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(new Date(`${entry.weekEnd}T12:00:00`))}</time><div><strong>{entry.keyCompleted}/4 sesiones clave</strong><span>{entry.completed}/7 actividades · {entry.selectedMeals} platos</span></div><div className={entry.habitExceptions > 0 ? "week-exceptions has-errors" : "week-exceptions"}><strong>{entry.habitExceptions}</strong><span>excepciones</span></div><div><strong>{entry.weight.toFixed(1)} kg</strong><span>{entry.waist.toFixed(1)} cm</span></div></div>)}</div>}
+            {data.weeklyHistory.length === 0 ? <div className="history-empty"><strong>Aún no hay semanas archivadas.</strong><p>Cuando pulses “Cerrar semana y archivar”, aquí aparecerá el resumen antes de comenzar la siguiente.</p></div> : <div className="weekly-history-list">{data.weeklyHistory.slice().reverse().map((entry) => <div className="weekly-history-row" key={entry.id}><time>{new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(new Date(`${entry.weekStart}T12:00:00`))}–{new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(new Date(`${entry.weekEnd}T12:00:00`))}</time><div><strong>{entry.keyCompleted}/{entry.keyTotal ?? 4} sesiones clave</strong><span>{entry.completed}/7 actividades · {entry.selectedMeals} platos</span></div><div className={entry.habitExceptions > 0 ? "week-exceptions has-errors" : "week-exceptions"}><strong>{entry.habitExceptions}</strong><span>excepciones</span></div><div><strong>{entry.weight.toFixed(1)} kg</strong><span>{entry.waist.toFixed(1)} cm</span></div></div>)}</div>}
           </article>
         </div>
         {data.progress.length > 0 && <article className="measurement-timeline"><div className="history-card-heading"><p className="eyebrow">MEDICIONES</p><h3>Hitos de peso y cintura</h3></div><div>{data.progress.map((entry) => <span key={entry.id}><time>{new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short" }).format(new Date(`${entry.date}T12:00:00`))}</time><strong>{entry.weight.toFixed(1)} kg</strong><small>{entry.waist.toFixed(1)} cm</small></span>)}</div></article>}
       </section>
+
+      {activeExercise && (
+        <div className="exercise-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveExercise(null); }}>
+          <section className="exercise-viewer" role="dialog" aria-modal="true" aria-labelledby="exercise-title">
+            <button className="exercise-close" type="button" aria-label="Cerrar ilustración" onClick={() => setActiveExercise(null)}>×</button>
+            <figure><img src={activeExercise.image} alt={`Ilustración técnica de ${activeExercise.name}: posición inicial y final`} /></figure>
+            <div className="exercise-copy">
+              <p className="eyebrow">{activeExercise.routine.toUpperCase()} · TÉCNICA</p>
+              <h2 id="exercise-title">{activeExercise.name}</h2>
+              <strong className="exercise-dose">{activeExercise.prescription}</strong>
+              <p>Mira la posición inicial y final antes de cargar peso. El movimiento debe sentirse estable y controlado.</p>
+              <ul>{activeExercise.cues.map((cue) => <li key={cue}>{cue}</li>)}</ul>
+            </div>
+          </section>
+        </div>
+      )}
 
       {activeRecipeData && (
         <div className="recipe-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveRecipe(null); }}>

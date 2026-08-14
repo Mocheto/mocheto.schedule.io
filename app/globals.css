@@ -469,6 +469,7 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 
 .app-shell .week-section,
 .app-shell .agenda-section,
+.app-shell .exercises-section,
 .app-shell .meals-section,
 .app-shell .progress-section,
 .app-shell .reset-week { padding: 42px clamp(20px, 4vw, 56px); }
@@ -856,4 +857,231 @@ footer > span { color: #aab9b7; font-size: .68rem; }
     border-radius: 50%;
     content: "";
   }
+}
+
+/* Fichas técnicas de fuerza. */
+.training-detail .exercise-list {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: exercise;
+}
+.training-detail .exercise-list li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 34px;
+  gap: 9px;
+  align-items: center;
+  min-height: 50px;
+  padding: 7px 0;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  counter-increment: exercise;
+}
+.training-detail .exercise-list li::before {
+  color: #f48a6d;
+  content: counter(exercise, decimal-leading-zero);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: .58rem;
+  font-weight: 850;
+}
+.training-detail .exercise-list li > span,
+.training-detail .exercise-list strong,
+.training-detail .exercise-list small { display: block; }
+.training-detail .exercise-list strong { color: #eef5f2; font-size: .75rem; }
+.training-detail .exercise-list small { margin-top: 2px; color: #93aaa6; font-size: .62rem; }
+.training-detail .exercise-list button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  color: #102f38;
+  background: #f7f5ef;
+  border: 0;
+  border-radius: 50%;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease;
+}
+.training-detail .exercise-list button:hover { background: #f48a6d; transform: translateY(-2px) rotate(-4deg); }
+.training-detail .exercise-list button:focus-visible { outline: 3px solid #f48a6d; outline-offset: 3px; }
+
+.exercise-backdrop {
+  position: fixed;
+  z-index: 55;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(7, 27, 31, .84);
+  backdrop-filter: blur(6px);
+}
+.exercise-viewer {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+  width: min(960px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: #f7f5ef;
+  border-radius: 14px;
+  box-shadow: 18px 22px 0 rgba(0, 0, 0, .2);
+}
+.exercise-viewer figure { min-height: 520px; margin: 0; overflow: hidden; background: #ebe8df; }
+.exercise-viewer figure img { width: 100%; height: 100%; object-fit: cover; }
+.exercise-copy { align-self: center; padding: 48px 42px; }
+.exercise-copy h2 { margin-top: 9px; font-size: clamp(2.1rem, 4vw, 3.5rem); line-height: .98; }
+.exercise-dose { display: inline-block; margin-top: 18px; padding: 8px 11px; color: white; background: #2f6b50; border-radius: 5px; font-size: .78rem; }
+.exercise-copy > p:not(.eyebrow) { margin: 22px 0; color: #536463; font-size: .82rem; line-height: 1.6; }
+.exercise-copy ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.exercise-copy li { position: relative; padding-left: 20px; color: #102f38; font-size: .78rem; font-weight: 750; line-height: 1.4; }
+.exercise-copy li::before { position: absolute; left: 0; color: #d9673d; content: "→"; }
+.exercise-close {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  color: white;
+  background: #102f38;
+  border: 0;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .exercise-backdrop { align-items: end; padding: 0; }
+  .exercise-viewer { grid-template-columns: 1fr; width: 100%; max-height: 94vh; border-radius: 14px 14px 0 0; box-shadow: none; }
+  .exercise-viewer figure { min-height: 0; height: min(52vh, 390px); }
+  .exercise-copy { padding: 28px 22px 34px; }
+  .exercise-copy h2 { padding-right: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .training-detail .exercise-list button { transition: none; }
+}
+
+/* Taller de rutinas: biblioteca, grupos y asignación semanal. */
+.app-shell .exercises-section {
+  min-height: 100vh;
+  background:
+    linear-gradient(90deg, rgba(95, 156, 164, .09) 1px, transparent 1px) 0 0 / 42px 42px,
+    linear-gradient(rgba(95, 156, 164, .09) 1px, transparent 1px) 0 0 / 42px 42px,
+    #edf2ee;
+}
+.exercises-heading strong { color: #102f38; }
+.exercise-workbench {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.routine-rail,
+.routine-editor,
+.schedule-builder {
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(16, 47, 56, .12);
+  border-radius: 12px;
+  box-shadow: 0 18px 45px rgba(16, 47, 56, .07);
+}
+.routine-rail { position: sticky; top: 24px; padding: 20px; }
+.routine-rail h3,
+.routine-editor h3,
+.schedule-builder h3 { margin-top: 5px; font-size: 1.45rem; }
+.routine-tabs { display: grid; gap: 6px; margin-top: 18px; }
+.routine-tabs > button {
+  display: block;
+  width: 100%;
+  padding: 11px;
+  color: #456067;
+  background: #f4f6f2;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  text-align: left;
+  cursor: pointer;
+}
+.routine-tabs > button strong,
+.routine-tabs > button span { display: block; }
+.routine-tabs > button strong { color: #102f38; font-size: .75rem; }
+.routine-tabs > button span { margin-top: 3px; font-size: .61rem; }
+.routine-tabs > button.active { color: #d6e5e1; background: #102f38; border-color: #102f38; box-shadow: inset 4px 0 #d9673d; }
+.routine-tabs > button.active strong { color: white; }
+.new-routine { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.new-routine > label { color: #536463; font-size: .64rem; font-weight: 850; text-transform: uppercase; }
+.new-routine > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin-top: 7px; }
+.new-routine input { min-width: 0; padding: 9px; border: 1px solid var(--line); border-radius: 6px 0 0 6px; }
+.new-routine button { padding: 9px 10px; color: white; background: #d9673d; border: 0; border-radius: 0 6px 6px 0; cursor: pointer; }
+
+.routine-editor { min-width: 0; padding: 24px; }
+.routine-editor-head { display: flex; justify-content: space-between; gap: 18px; align-items: end; }
+.routine-editor-head label { display: grid; gap: 7px; width: min(440px, 100%); color: #536463; font-size: .64rem; font-weight: 850; text-transform: uppercase; }
+.routine-editor-head input { width: 100%; padding: 10px 0; color: #102f38; background: transparent; border: 0; border-bottom: 2px solid #102f38; font-family: Georgia, serif; font-size: 1.8rem; }
+.delete-routine { padding: 8px 10px; color: #8d2a23; background: #f9d9d5; border: 0; border-radius: 6px; cursor: pointer; }
+.routine-summary { margin-top: 18px; padding: 14px; background: #e4eee8; border-radius: 8px; }
+.routine-summary > span { color: #2f6b50; font-size: .64rem; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; }
+.routine-summary > div { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+.routine-summary button { padding: 6px 8px; color: #102f38; background: white; border: 1px solid #b8cdc0; border-radius: 99px; font-size: .62rem; cursor: pointer; }
+.routine-summary small { color: #536463; }
+.catalog-toolbar { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin: 26px 0 16px; }
+.catalog-toolbar > div:last-child { display: flex; padding: 3px; background: #e4e9e5; border-radius: 7px; }
+.catalog-toolbar > div:last-child button { padding: 8px 10px; color: #536463; background: transparent; border: 0; border-radius: 5px; font-size: .68rem; font-weight: 800; cursor: pointer; }
+.catalog-toolbar > div:last-child button.active { color: white; background: #102f38; }
+.exercise-catalog { display: grid; gap: 24px; }
+.catalog-section-title { display: flex; gap: 8px; align-items: center; margin-bottom: 9px; }
+.catalog-section-title h4 { font-family: Georgia, serif; font-size: 1.08rem; font-weight: 500; }
+.catalog-section-title span { display: grid; width: 22px; height: 22px; place-items: center; color: white; background: #5f9ca4; border-radius: 50%; font-size: .58rem; }
+.catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.catalog-exercise { position: relative; min-width: 0; }
+.catalog-select {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 24px;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  min-height: 76px;
+  padding: 6px 42px 6px 6px;
+  color: #102f38;
+  background: #f7f5ef;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.catalog-select img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
+.catalog-select > span,
+.catalog-select strong,
+.catalog-select small { display: block; min-width: 0; }
+.catalog-select strong { overflow: hidden; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.catalog-select small { margin-top: 4px; color: #687a78; font-size: .57rem; line-height: 1.25; }
+.catalog-select i { display: grid; width: 22px; height: 22px; place-items: center; color: #2f6b50; border: 1px solid #9eb8a6; border-radius: 50%; font-style: normal; font-weight: 900; }
+.catalog-exercise.selected .catalog-select { background: #e4eee8; border-color: #9eb8a6; }
+.catalog-exercise.selected .catalog-select i { color: white; background: #2f6b50; border-color: #2f6b50; }
+.catalog-preview { position: absolute; top: 23px; right: 8px; display: grid; width: 28px; height: 28px; place-items: center; padding: 0; color: white; background: #102f38; border: 0; border-radius: 50%; cursor: pointer; }
+
+.schedule-builder { display: grid; grid-template-columns: minmax(240px, .48fr) minmax(0, 1.52fr); gap: 26px; margin-top: 14px; padding: 24px; }
+.schedule-builder > div:first-child p:last-child { margin: 12px 0 0; color: #536463; font-size: .72rem; line-height: 1.55; }
+.schedule-days { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.schedule-days label { display: grid; gap: 6px; min-width: 0; padding: 10px; background: #f7f5ef; border-radius: 7px; }
+.schedule-days label > span { color: #d9673d; font-size: .64rem; font-weight: 900; text-transform: uppercase; }
+.schedule-days select { min-width: 0; width: 100%; padding: 8px 5px; color: #102f38; background: white; border: 1px solid var(--line); border-radius: 5px; font-size: .64rem; }
+
+@media (max-width: 1100px) {
+  .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .schedule-builder { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 780px) {
+  .exercise-workbench { grid-template-columns: 1fr; }
+  .routine-rail { position: static; }
+  .routine-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .routine-editor { padding: 17px; }
+  .routine-editor-head { align-items: stretch; flex-direction: column; }
+  .catalog-toolbar { align-items: stretch; flex-direction: column; }
+  .catalog-toolbar > div:last-child { align-self: flex-start; }
+  .catalog-grid { grid-template-columns: 1fr; }
+  .schedule-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
