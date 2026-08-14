@@ -2,7 +2,7 @@
 
 ## Propósito y arquitectura
 
-Brújula es una aplicación React de cliente. La interfaz y el estado principal están en `app/page.tsx`; el calendario de custodia vive en `app/noa-calendar.ts`, los festivos oficiales en `app/barcelona-holidays.ts` y los estilos globales en `app/globals.css`.
+Brújula es una aplicación React de cliente. La interfaz y el estado principal están en `app/page.tsx`; el calendario de custodia vive en `app/noa-calendar.ts`, los festivos oficiales en `app/barcelona-holidays.ts`, los estilos globales en `app/globals.css` y los assets específicos de platos en `public/recipes/dishes/`.
 
 Hay dos rutas de compilación:
 
@@ -16,6 +16,10 @@ El workflow `.github/workflows/dieta-pages.yml` publica `dist-pages/` en GitHub 
 - Mantén la interfaz, los textos y los mensajes al usuario en español.
 - La app se publica tanto con dominio propio como bajo una subruta de GitHub Pages. Conserva rutas relativas para recursos estáticos (por ejemplo, `./recipes/...`) y comprueba la compilación `build:pages` después de cambiar enlaces, imágenes o rutas.
 - Los datos de usuario se guardan localmente con la clave `brujula-plan-v1`. Conserva la compatibilidad con datos ya guardados: al ampliar el estado, añade valores por defecto y migraciones tolerantes a campos ausentes.
+- `nutritionTargets` contiene los objetivos de kcal, macros y agua; `waterIntake` registra mililitros por fecha. `DailyArchiveEntry.waterMl` es opcional para poder abrir archivos anteriores a la hidratación.
+- Las semanas base también son propuestas editables. No sustituyas sus identificadores ni los identificadores de platos existentes porque se usan en asignaciones persistidas.
+- Los nombres de los WebP de recetas se generan con la misma normalización que `dishId()` en `app/page.tsx`. Si se añaden platos base, crea su asset correspondiente y comprueba que no haya imágenes rotas en la biblioteca, el constructor ni el modal.
+- `scripts/build-recipe-assets.mjs` recorta nueve láminas fuente en 104 WebP de 480×480. Las ocho primeras deben ser cuadrículas 4×3 y la novena 4×2.
 - Contrasta los cambios del calendario de festivos con una fuente oficial del Ayuntamiento, la Generalitat o el BOE e incluye el enlace de procedencia junto a los datos.
 - No introduzcas servicios externos, cuentas, analítica ni envío de información sin una solicitud explícita.
 - Trata el calendario de custodia como información familiar sensible. No lo exportes a servicios externos ni lo dupliques en documentación pública sin autorización expresa.
@@ -35,6 +39,8 @@ Usa `npm test` cuando quieras ejecutar ambas comprobaciones de una vez. Para rev
 ```bash
 npm run preview:pages
 ```
+
+Después de modificar el estado diario, verifica como mínimo: registro de agua, archivo y actualización del día, reapertura desde Semana/Histórico, exportación/importación y compatibilidad con datos sin `waterIntake` o `waterMl`.
 
 ## Cambios de despliegue
 
