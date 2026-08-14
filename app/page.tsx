@@ -241,7 +241,8 @@ function getRecipe(dish: string) {
   else if (/lentejas|garbanzos|judías|frijoles/i.test(dish)) { time = 18; icon = "🥘"; image = "./recipes/recipe-03.webp"; steps = ["Enjuaga la legumbre cocida si es de bote.", "Saltea verduras picadas con especias suaves.", "Añade la legumbre y una proteína ligera; calienta hasta que quede meloso."]; }
 
   const ingredients = ingredientCatalog.filter((ingredient) => ingredient.match.test(dish)).map((ingredient) => ingredient.label);
-  return { dish, simple, time, icon, image, steps, ingredients: ingredients.length > 0 ? ingredients : ["Ingredientes principales del plato", "AOVE", "Sal y especias"] };
+  const generatedImage = baseDishCatalog.some((item) => item.name === dish) ? `./recipes/dishes/${dishId(dish)}.webp` : image;
+  return { dish, simple, time, icon, image: generatedImage, steps, ingredients: ingredients.length > 0 ? ingredients : ["Ingredientes principales del plato", "AOVE", "Sal y especias"] };
 }
 
 function estimateDish(name: string, category: MealCategory): Omit<Dish, "id" | "name"> {
