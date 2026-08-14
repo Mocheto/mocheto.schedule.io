@@ -7,6 +7,7 @@ Brújula es un planificador personal de alimentación, entrenamiento y progreso.
 - planificación semanal de fuerza, carrera/paseo y pádel;
 - cinco semanas base de menús, duplicables, editables y asignables al calendario;
 - biblioteca de 104 platos con fotografía, receta rápida y valores nutricionales modificables;
+- badges múltiples por receta, leyenda y filtros combinables por características o exclusión de alérgenos;
 - constructor diario con cálculo de kcal, proteína, hidratos y grasas, diagnóstico y diagrama circular;
 - selección de comidas y lista de compra calculada por ingredientes;
 - calendario mensual de custodia, festivos de Barcelona, comidas y entrenamiento;
@@ -68,6 +69,12 @@ node scripts/build-recipe-assets.mjs lamina-1.png lamina-2.png lamina-3.png lami
 ```
 
 Las ocho primeras láminas contienen una cuadrícula 4×3 y la última una cuadrícula 4×2.
+
+## Badges y alérgenos
+
+Los badges se calculan a partir del nombre, los ingredientes propuestos, el tiempo y los macros estimados. Incluyen características como vegetariano, vegano, con legumbre, integral, pescado azul, preparación rápida o proteína alta, además de los 14 alérgenos de declaración obligatoria en la UE.
+
+El filtro **Sin gluten*** significa que la receta propuesta no contiene un ingrediente evidente con gluten. No certifica el producto final: en celiaquía hay que revisar el etiquetado de cada envase, las salsas, la avena y la contaminación cruzada. La Comisión Europea mantiene la [lista oficial de alérgenos](https://food.ec.europa.eu/food-safety/campaign-2026/allergies_en) y las [condiciones legales de la mención «sin gluten»](https://food.ec.europa.eu/food-safety/labelling-and-nutrition/specific-groups/gluten-free-food_en).
 
 > El calendario contiene información familiar. Si Pages está disponible públicamente, cualquier persona que conozca la URL podrá verlo. Revisa la visibilidad del repositorio y de Pages antes de compartirlo.
 

@@ -13,6 +13,7 @@ type MealCategory = "Desayuno" | "Comida" | "Cena";
 type Dish = { id: string; name: string; category: MealCategory; protein: number; carbs: number; fat: number; builtIn?: boolean };
 type MealPlan = { id: string; name: string; days: Record<string, string[]>; builtIn?: boolean };
 type NutritionTargets = { kcal: number; protein: number; carbs: number; fat: number; waterMl: number };
+type RecipeBadge = { id: string; label: string; symbol: string; description: string; kind: "trait" | "allergen" };
 type DailyArchiveEntry = { date: string; archivedAt: number; workoutCompleted: boolean; completedMeals: number[]; habitExceptions: string[]; waterMl?: number };
 type WeeklyHistoryEntry = { id: number; weekStart: string; weekEnd: string; completed: number; keyCompleted: number; keyTotal?: number; habitExceptions: number; selectedMeals: number; weight: number; waist: number };
 type ActiveView = "today" | "week" | "calendar" | "exercises" | "meals" | "progress" | "history";
@@ -246,6 +247,72 @@ function getRecipe(dish: string) {
   return { dish, simple, time, icon, image: generatedImage, steps, ingredients: ingredients.length > 0 ? ingredients : ["Ingredientes principales del plato", "AOVE", "Sal y especias"] };
 }
 
+const traitBadgeDefinitions: RecipeBadge[] = [
+  { id: "gluten-free", label: "Sin gluten*", symbol: "SG", description: "La receta propuesta no incluye ingredientes evidentes con gluten; revisa etiquetas y contaminación cruzada.", kind: "trait" },
+  { id: "vegetarian", label: "Vegetariano", symbol: "V", description: "Sin carne ni pescado en el nombre de la receta.", kind: "trait" },
+  { id: "vegan", label: "Vegano", symbol: "VG", description: "Sin ingredientes animales evidentes en la propuesta.", kind: "trait" },
+  { id: "high-protein", label: "Proteína alta*", symbol: "P+", description: "Aporta al menos 45 g según la estimación editable del plato.", kind: "trait" },
+  { id: "wholegrain", label: "Integral", symbol: "IN", description: "Incluye cereal integral, avena o quinoa.", kind: "trait" },
+  { id: "legumes", label: "Con legumbre", symbol: "LG", description: "Incluye lentejas, garbanzos, judías o frijoles.", kind: "trait" },
+  { id: "omega3", label: "Pescado azul", symbol: "Ω3", description: "Incluye salmón, sardina o caballa.", kind: "trait" },
+  { id: "quick", label: "≤ 10 min", symbol: "10′", description: "Preparación estimada de diez minutos o menos.", kind: "trait" },
+  { id: "vegetable-rich", label: "Con verdura", symbol: "½", description: "La propuesta incluye verdura o ensalada de forma explícita.", kind: "trait" },
+  { id: "batch", label: "Cocina por lotes", symbol: "×2", description: "Plato fácil de preparar en más de una ración.", kind: "trait" },
+];
+
+const allergenBadgeDefinitions: RecipeBadge[] = [
+  { id: "gluten", label: "Gluten", symbol: "GL", description: "Cereales con gluten o una salsa/producto que requiere comprobación.", kind: "allergen" },
+  { id: "crustaceans", label: "Crustáceos", symbol: "CR", description: "Crustáceos o derivados.", kind: "allergen" },
+  { id: "eggs", label: "Huevo", symbol: "HU", description: "Huevo o derivados.", kind: "allergen" },
+  { id: "fish", label: "Pescado", symbol: "PE", description: "Pescado o derivados.", kind: "allergen" },
+  { id: "peanuts", label: "Cacahuete", symbol: "CA", description: "Cacahuete o derivados.", kind: "allergen" },
+  { id: "soy", label: "Soja", symbol: "SO", description: "Soja o derivados.", kind: "allergen" },
+  { id: "milk", label: "Leche", symbol: "LE", description: "Leche o derivados, incluida lactosa.", kind: "allergen" },
+  { id: "nuts", label: "Frutos de cáscara", symbol: "FC", description: "Almendra, nuez u otros frutos de cáscara.", kind: "allergen" },
+  { id: "celery", label: "Apio", symbol: "AP", description: "Apio o derivados.", kind: "allergen" },
+  { id: "mustard", label: "Mostaza", symbol: "MO", description: "Mostaza o derivados.", kind: "allergen" },
+  { id: "sesame", label: "Sésamo", symbol: "SE", description: "Sésamo o derivados.", kind: "allergen" },
+  { id: "sulphites", label: "Sulfitos", symbol: "SU", description: "Dióxido de azufre o sulfitos en concentración declarable.", kind: "allergen" },
+  { id: "lupin", label: "Altramuz", symbol: "AL", description: "Altramuz o derivados.", kind: "allergen" },
+  { id: "molluscs", label: "Moluscos", symbol: "ML", description: "Moluscos o derivados.", kind: "allergen" },
+];
+
+const allergenPatterns: Record<string, RegExp> = {
+  gluten: /tostada|\bpan\b|pasta|cusc[uú]s|pizza|burrit|taco|fajita|quesadilla|avena|teriyaki|miso|sushi|poke/i,
+  crustaceans: /gamba|langostino|cangrejo|bogavante|crust[aá]ceo/i,
+  eggs: /huevo|tortilla|frittata/i,
+  fish: /salm[oó]n|merluza|dorada|sardina|caballa|at[uú]n|pescado|sushi/i,
+  peanuts: /cacahuete/i,
+  soy: /soja|tofu|miso|edamame|teriyaki|sushi/i,
+  milk: /yogur|k[eé]fir|leche|queso|mozzarella|caprese|avena caliente/i,
+  nuts: /nueces|almendras|frutos secos/i,
+  celery: /apio/i,
+  mustard: /mostaza/i,
+  sesame: /s[eé]samo|tahini/i,
+  sulphites: /sulfitos/i,
+  lupin: /altramuz/i,
+  molluscs: /mejill[oó]n|ostra|calamar|pulpo|molusco/i,
+};
+
+function getRecipeBadges(dish: Dish, time: number) {
+  const name = dish.name;
+  const allergens = allergenBadgeDefinitions.filter((badge) => allergenPatterns[badge.id].test(name));
+  const animalProtein = /pollo|pavo|ternera|jam[oó]n|salm[oó]n|merluza|dorada|sardina|caballa|at[uú]n|pescado/i.test(name);
+  const animalIngredient = animalProtein || /huevo|tortilla|frittata|yogur|k[eé]fir|leche|queso|mozzarella|caprese|avena caliente/i.test(name);
+  const traitIds = new Set<string>();
+  if (!allergens.some((badge) => badge.id === "gluten")) traitIds.add("gluten-free");
+  if (!animalProtein) traitIds.add("vegetarian");
+  if (!animalIngredient) traitIds.add("vegan");
+  if (dish.protein >= 45) traitIds.add("high-protein");
+  if (/integral|avena|quinoa/i.test(name)) traitIds.add("wholegrain");
+  if (/lenteja|garbanzo|jud[ií]a|frijol|hummus/i.test(name)) traitIds.add("legumes");
+  if (/salm[oó]n|sardina|caballa/i.test(name)) traitIds.add("omega3");
+  if (time <= 10) traitIds.add("quick");
+  if (/verdura|ensalada|tomate|espinaca|br[oó]coli|calabac[ií]n|pepino|pimiento|coliflor|calabaza|r[uú]cula|kale/i.test(name)) traitIds.add("vegetable-rich");
+  if (/lenteja|curry|chili|crema|pur[eé]|pasta|arroz|paella|alb[oó]ndiga|boloñesa/i.test(name)) traitIds.add("batch");
+  return { traits: traitBadgeDefinitions.filter((badge) => traitIds.has(badge.id)), allergens };
+}
+
 function estimateDish(name: string, category: MealCategory): Omit<Dish, "id" | "name"> {
   let protein = category === "Desayuno" ? 32 : category === "Comida" ? 48 : 42;
   let carbs = category === "Desayuno" ? 68 : category === "Comida" ? 88 : 64;
@@ -289,6 +356,8 @@ export default function Home() {
   const [activeView, setActiveView] = useState<ActiveView>("today");
   const [activeMealDay, setActiveMealDay] = useState("Lunes");
   const [mealGrouping, setMealGrouping] = useState<"category" | "macro">("category");
+  const [dishTraitFilters, setDishTraitFilters] = useState<string[]>([]);
+  const [excludedAllergens, setExcludedAllergens] = useState<string[]>([]);
   const [activeDishId, setActiveDishId] = useState<string | null>(null);
   const [newMealPlanName, setNewMealPlanName] = useState("");
   const [activeExerciseGroupId, setActiveExerciseGroupId] = useState("strength-a");
@@ -380,6 +449,8 @@ export default function Home() {
   const selectedWaterMl = data.waterIntake[selectedDate] ?? 0;
   const selectedWaterPercent = Math.min(100, Math.round((selectedWaterMl / Math.max(1, data.nutritionTargets.waterMl)) * 100));
   const activeRecipeData = activeRecipe ? getRecipe(activeRecipe) : null;
+  const activeRecipeDish = activeRecipe ? dishCatalog.find((dish) => dish.name === activeRecipe) : undefined;
+  const activeRecipeBadges = activeRecipeDish && activeRecipeData ? getRecipeBadges(activeRecipeDish, activeRecipeData.time) : { traits: [], allergens: [] };
   const now = new Date();
   const todayIso = now.getFullYear() === 2026 ? toIsoDate(2026, now.getMonth(), now.getDate()) : "2026-08-14";
   const weekAnchor = new Date(`${todayIso}T12:00:00`);
@@ -428,11 +499,15 @@ export default function Home() {
   const mealCatalogSections = useMemo(() => {
     const sections = new Map<string, Dish[]>();
     dishCatalog.forEach((dish) => {
+      const badges = getRecipeBadges(dish, getRecipe(dish.name).time);
+      if (!dishTraitFilters.every((filter) => badges.traits.some((badge) => badge.id === filter))) return;
+      if (badges.allergens.some((badge) => excludedAllergens.includes(badge.id))) return;
       const key = mealGrouping === "category" ? dish.category : dominantMacro(dish);
       sections.set(key, [...(sections.get(key) ?? []), dish]);
     });
     return [...sections.entries()];
-  }, [dishCatalog, mealGrouping]);
+  }, [dishCatalog, dishTraitFilters, excludedAllergens, mealGrouping]);
+  const filteredDishCount = mealCatalogSections.reduce((total, [, dishes]) => total + dishes.length, 0);
   const activeDish = activeDishId ? dishById.get(activeDishId) : undefined;
   const exerciseCatalogSections = useMemo(() => {
     const sections = new Map<string, Exercise[]>();
@@ -455,6 +530,7 @@ export default function Home() {
   const toggleCompleted = (id: string) => setData((current) => ({ ...current, completed: current.completed.includes(id) ? current.completed.filter((item) => item !== id) : [...current.completed, id] }));
   const toggleShopping = (item: string) => setData((current) => ({ ...current, shopping: current.shopping.includes(item) ? current.shopping.filter((value) => value !== item) : [...current.shopping, item] }));
   const toggleMeal = (key: string) => setData((current) => ({ ...current, selectedMeals: current.selectedMeals.includes(key) ? current.selectedMeals.filter((item) => item !== key) : [...current.selectedMeals, key] }));
+  const toggleListFilter = (value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => setter((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
   const setWater = (date: string, value: number) => setData((current) => ({ ...current, waterIntake: { ...current.waterIntake, [date]: Math.min(5000, Math.max(0, value)) } }));
   const toggleCustody = (date: string) => setData((current) => ({ ...current, custodyOverrides: { ...current.custodyOverrides, [date]: !(current.custodyOverrides[date] ?? noaDateSet.has(date)) } }));
   const toggleDietException = (date: string, habitId: string) => setData((current) => {
@@ -864,11 +940,11 @@ export default function Home() {
               </div>
             </div>
             <div className="meal-slots">
-              {(["Desayuno", "Comida", "Cena"] as MealCategory[]).map((label, index) => { const dish = activeDayDishes[index]; const key = `${activeMealDay}-${index}`; const picked = data.selectedMeals.includes(key); return <article key={label}>
+              {(["Desayuno", "Comida", "Cena"] as MealCategory[]).map((label, index) => { const dish = activeDayDishes[index]; const key = `${activeMealDay}-${index}`; const picked = data.selectedMeals.includes(key); const badges = dish ? getRecipeBadges(dish, getRecipe(dish.name).time) : { traits: [], allergens: [] }; return <article key={label}>
                 <div className="slot-label"><span>{label}</span><label><input type="checkbox" checked={picked} onChange={() => toggleMeal(key)} /> preparar</label></div>
                 {dish && <img src={getRecipe(dish.name).image} alt="" />}
                 <select aria-label={`${label} del ${activeMealDay}`} value={activeDayDishIds[index] ?? ""} onChange={(event) => updateMealSlot(activeMealDay, index, event.target.value)}><option value="">Elige un plato</option>{dishCatalog.filter((item) => item.category === label).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select>
-                {dish && <><div className="slot-macros"><span>{nutritionKcal(dish)} kcal</span><span>P {dish.protein}</span><span>HC {dish.carbs}</span><span>G {dish.fat}</span></div><div className="slot-actions"><button type="button" onClick={() => setActiveRecipe(dish.name)}>Ver receta</button><button type="button" onClick={() => setActiveDishId(dish.id)}>Editar valores</button></div></>}
+                {dish && <><div className="slot-macros"><span>{nutritionKcal(dish)} kcal</span><span>P {dish.protein}</span><span>HC {dish.carbs}</span><span>G {dish.fat}</span></div><div className="dish-badges compact">{[...badges.traits, ...badges.allergens].map((badge) => <span className={badge.kind} title={badge.description} key={badge.id}><i>{badge.symbol}</i>{badge.label}</span>)}</div><div className="slot-actions"><button type="button" onClick={() => setActiveRecipe(dish.name)}>Ver receta</button><button type="button" onClick={() => setActiveDishId(dish.id)}>Editar valores</button></div></>}
               </article>; })}
             </div>
             <button className={activeDayOk ? "prepare-day ok" : "prepare-day"} type="button" onClick={() => { const keys = [0, 1, 2].map((index) => `${activeMealDay}-${index}`); const allSelected = keys.every((key) => data.selectedMeals.includes(key)); setData((current) => ({ ...current, selectedMeals: allSelected ? current.selectedMeals.filter((key) => !keys.includes(key)) : [...new Set([...current.selectedMeals, ...keys])] })); }}>{[0, 1, 2].every((index) => data.selectedMeals.includes(`${activeMealDay}-${index}`)) ? "Quitar día de la preparación" : activeDayOk ? "Preparar este día" : "Preparar igualmente"}</button>
@@ -884,6 +960,12 @@ export default function Home() {
 
         <section className="dish-library">
           <div className="catalog-toolbar"><div><p className="eyebrow">BIBLIOTECA DE PLATOS</p><h3>Recetas y estimaciones modificables</h3></div><div role="group" aria-label="Agrupar platos"><button className={mealGrouping === "category" ? "active" : ""} type="button" onClick={() => setMealGrouping("category")}>Por comida</button><button className={mealGrouping === "macro" ? "active" : ""} type="button" onClick={() => setMealGrouping("macro")}>Por nutriente</button></div></div>
+          <div className="badge-filter-panel">
+            <div className="badge-filter-head"><div><p className="eyebrow">FILTROS DE RECETAS</p><h4>{filteredDishCount} de {dishCatalog.length} platos visibles</h4></div>{(dishTraitFilters.length > 0 || excludedAllergens.length > 0) && <button type="button" onClick={() => { setDishTraitFilters([]); setExcludedAllergens([]); }}>Limpiar filtros</button>}</div>
+            <div className="badge-filter-row"><strong>Mostrar solo</strong><div>{traitBadgeDefinitions.map((badge) => <button className={dishTraitFilters.includes(badge.id) ? "active trait" : "trait"} type="button" aria-pressed={dishTraitFilters.includes(badge.id)} title={badge.description} onClick={() => toggleListFilter(badge.id, setDishTraitFilters)} key={badge.id}><i>{badge.symbol}</i>{badge.label}</button>)}</div></div>
+            <div className="badge-filter-row allergens"><strong>Excluir alérgenos</strong><div>{allergenBadgeDefinitions.map((badge) => <button className={excludedAllergens.includes(badge.id) ? "active allergen" : "allergen"} type="button" aria-pressed={excludedAllergens.includes(badge.id)} title={badge.description} onClick={() => toggleListFilter(badge.id, setExcludedAllergens)} key={badge.id}><i>{badge.symbol}</i>Sin {badge.label.toLowerCase()}</button>)}</div></div>
+            <details className="badge-legend"><summary><span>Leyenda de badges</span><small>Ver significado y alcance</small></summary><div><section><h5>Características</h5>{traitBadgeDefinitions.map((badge) => <p key={badge.id}><i>{badge.symbol}</i><span><strong>{badge.label}</strong><small>{badge.description}</small></span></p>)}</section><section><h5>Alérgenos UE</h5>{allergenBadgeDefinitions.map((badge) => <p key={badge.id}><i>{badge.symbol}</i><span><strong>{badge.label}</strong><small>{badge.description}</small></span></p>)}</section></div><aside><strong>* Filtro orientativo.</strong> En celiaquía o alergia, comprueba siempre la etiqueta de cada producto, las salsas y la contaminación cruzada de la cocina.</aside></details>
+          </div>
           {activeDish && <div className="dish-editor">
             <div><p className="eyebrow">EDITANDO PLATO</p><input aria-label="Nombre del plato" value={activeDish.name} onChange={(event) => updateDish(activeDish.id, { name: event.target.value })} /></div>
             <label>Tipo<select value={activeDish.category} onChange={(event) => updateDish(activeDish.id, { category: event.target.value as MealCategory })}>{["Desayuno", "Comida", "Cena"].map((category) => <option key={category}>{category}</option>)}</select></label>
@@ -892,7 +974,7 @@ export default function Home() {
             <button type="button" onClick={() => setActiveDishId(null)}>Cerrar</button>{!activeDish.builtIn && <button className="danger-link" type="button" onClick={() => deleteDish(activeDish.id)}>Eliminar</button>}
           </div>}
           <form className="new-dish-form" onSubmit={createDish}><input name="dish-name" placeholder="Nombre del nuevo plato" required /><select name="dish-category" aria-label="Tipo de comida"><option>Desayuno</option><option>Comida</option><option>Cena</option></select><label>P<input name="dish-protein" type="number" min="0" placeholder="g" required /></label><label>HC<input name="dish-carbs" type="number" min="0" placeholder="g" required /></label><label>G<input name="dish-fat" type="number" min="0" placeholder="g" required /></label><button type="submit">Añadir plato +</button></form>
-          <div className="dish-catalog-sections">{mealCatalogSections.map(([section, dishes], sectionIndex) => <details open={sectionIndex === 0} key={section}><summary><span>{section}</span><small>{dishes.length} platos</small></summary><div className="dish-grid">{dishes.map((dish) => <article key={dish.id}><img src={getRecipe(dish.name).image} alt="" /><div><strong>{dish.name}</strong><small>{dish.category} · predomina {dominantMacro(dish).toLowerCase()}</small><span>{nutritionKcal(dish)} kcal · P {dish.protein} · HC {dish.carbs} · G {dish.fat}</span></div><button type="button" onClick={() => setActiveDishId(dish.id)}>Editar</button><button type="button" onClick={() => setActiveRecipe(dish.name)}>Receta</button></article>)}</div></details>)}</div>
+          <div className="dish-catalog-sections">{mealCatalogSections.length === 0 ? <div className="dish-filter-empty"><strong>No hay platos con esta combinación.</strong><p>Quita algún filtro o crea una receta que encaje.</p><button type="button" onClick={() => { setDishTraitFilters([]); setExcludedAllergens([]); }}>Mostrar todos</button></div> : mealCatalogSections.map(([section, dishes], sectionIndex) => <details open={sectionIndex === 0} key={section}><summary><span>{section}</span><small>{dishes.length} platos</small></summary><div className="dish-grid">{dishes.map((dish) => { const badges = getRecipeBadges(dish, getRecipe(dish.name).time); return <article key={dish.id}><img src={getRecipe(dish.name).image} alt="" /><div><strong>{dish.name}</strong><small>{dish.category} · predomina {dominantMacro(dish).toLowerCase()}</small><span>{nutritionKcal(dish)} kcal · P {dish.protein} · HC {dish.carbs} · G {dish.fat}</span><div className="dish-badges">{[...badges.traits, ...badges.allergens].map((badge) => <span className={badge.kind} title={badge.description} key={badge.id}><i>{badge.symbol}</i>{badge.label}</span>)}</div></div><button type="button" onClick={() => setActiveDishId(dish.id)}>Editar</button><button type="button" onClick={() => setActiveRecipe(dish.name)}>Receta</button></article>; })}</div></details>)}</div>
         </section>
         <div className="food-footer">
           <div><p className="eyebrow">COMPRA SOLO LO QUE VAS A COCINAR</p><p>Marca arriba los desayunos, comidas y cenas que prepararás. Brújula agrupa automáticamente sus ingredientes y calcula una cantidad orientativa para una persona.</p></div>
@@ -959,11 +1041,12 @@ export default function Home() {
         <div className="recipe-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveRecipe(null); }}>
           <section className="recipe-drawer" role="dialog" aria-modal="true" aria-labelledby="recipe-title">
             <button className="recipe-close" type="button" aria-label="Cerrar receta" onClick={() => setActiveRecipe(null)}>×</button>
-            <div className="recipe-photo"><img src={activeRecipeData.image} alt={`Foto representativa de ${activeRecipeData.dish}`} /><span>{activeRecipeData.icon}</span></div>
+            <div className="recipe-photo"><img src={activeRecipeData.image} alt={`Foto representativa de ${activeRecipeData.dish}`} /><span className="recipe-photo-icon">{activeRecipeData.icon}</span></div>
             <div className="recipe-content">
               <p className="eyebrow">{activeRecipeData.simple ? "MONTAJE RÁPIDO" : "RECETA RÁPIDA"}</p>
               <h2 id="recipe-title">{activeRecipeData.dish}</h2>
               <div className="recipe-time"><strong>{activeRecipeData.time}</strong><span>minutos<br />aprox.</span></div>
+              <div className="recipe-badge-panel"><div className="dish-badges">{[...activeRecipeBadges.traits, ...activeRecipeBadges.allergens].map((badge) => <span className={badge.kind} title={badge.description} key={badge.id}><i>{badge.symbol}</i>{badge.label}</span>)}</div>{(activeRecipeBadges.allergens.length > 0 || activeRecipeBadges.traits.some((badge) => badge.id === "gluten-free")) && <small>Estimación por ingredientes del nombre. Comprueba envases, salsas y contaminación cruzada.</small>}</div>
               <div className="recipe-columns">
                 <div><h3>Necesitas</h3><ul>{activeRecipeData.ingredients.map((ingredient) => <li key={ingredient}>{ingredient}</li>)}<li>AOVE, sal y especias</li></ul></div>
                 <div><h3>Cómo hacerlo</h3><ol>{activeRecipeData.steps.map((step) => <li key={step}>{step}</li>)}</ol></div>
