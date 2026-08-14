@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- relative static asset must also work under a GitHub Pages subpath */
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { barcelonaHolidays2026 } from "./barcelona-holidays";
 import { noaDateSet, noaDates } from "./noa-calendar";
 
 type Profile = { age: number; height: number; startWeight: number; goalWeight: number; waist: number; padelDay: string };
@@ -12,12 +13,21 @@ type SavedState = {
   mealChoices: Record<string, number>;
   selectedMeals: string[];
   shopping: string[];
+  dietHabits: Record<string, string[]>;
   custodyOverrides: Record<string, boolean>;
   progress: ProgressEntry[];
   profile: Profile;
 };
 
 const defaultProfile: Profile = { age: 42, height: 192, startWeight: 100, goalWeight: 87, waist: 108, padelDay: "Lunes" };
+
+const dailyDietCommitments = [
+  { id: "fast-12", title: "Ayuno nocturno de 12 h", detail: "Desde que terminas de cenar hasta el desayuno; agua e infusiones sin azúcar sí cuentan como hidratación." },
+  { id: "vinegar", title: "Vinagre siempre diluido", detail: "15 ml en al menos 300 ml de agua con o antes de una comida. Nunca solo y detente si causa molestias." },
+  { id: "no-alcohol", title: "0 alcohol", detail: "Incluye cerveza, vino y combinados." },
+  { id: "no-sugary-drinks", title: "0 refrescos ni zumos", detail: "Agua, café o infusiones sin azúcar como bebidas habituales." },
+  { id: "no-refined", title: "0 bollería y harinas refinadas", detail: "Evita dulces, pan blanco y pasta blanca; elige fruta entera y versiones integrales." },
+];
 
 const baseWeek = [
   { id: "padel", day: "Lun", title: "Pádel", detail: "60 min · sesión fija", tone: "padel", key: true },
@@ -35,44 +45,53 @@ const meals = [
     ["Yogur natural, avena, plátano y nueces", "Burrito bowl de pavo y frijoles", "Crema de calabacín y tortilla francesa"],
     ["Avena caliente con manzana y almendras", "Ensalada de quinoa, pollo y verduras", "Tortilla de calabacín con tomate"],
     ["Tostada integral con pavo y tomate", "Chili rápido de ternera y frijoles", "Dorada en papillote con patata"],
+    ["Kéfir natural, frutos rojos, avena y chía", "Ensalada de quinoa, salmón, espinacas y aguacate", "Crema de calabacín y jengibre con 2 huevos"],
   ]},
   { day: "Martes", options: [
     ["Yogur griego natural, fruta y avena", "Pasta integral con atún, tomate y rúcula", "Pollo al limón, verduras y arroz"],
     ["Tostada de aguacate y queso fresco", "Ensalada de garbanzos, huevo y pimientos", "Salmón, brócoli y boniato"],
     ["Huevos revueltos, espinacas y tostada", "Curry ligero de pollo con arroz", "Ensalada caprese con atún y pan integral"],
     ["Yogur natural, kiwi y nueces", "Tacos de merluza con col y yogur", "Pavo salteado con verduras y cuscús"],
+    ["Tostada integral con aguacate y 2 huevos", "Lentejas estofadas con zanahoria, apio y cúrcuma", "Merluza al horno con brócoli y boniato"],
   ]},
   { day: "Miércoles", options: [
     ["Tortilla, pan integral y naranja", "Salmón teriyaki ligero, arroz y edamame", "Tacos de pollo, pico de gallo y col"],
     ["Avena nocturna con yogur y frutos rojos", "Arroz con pavo y verduras", "Sopa miso, tofu y ensalada de pepino"],
     ["Tostada integral, queso fresco y fruta", "Pasta boloñesa rápida de pavo", "Salmón a la plancha con ensalada"],
     ["Avena con plátano y canela", "Poke de pollo, arroz y aguacate", "Quesadillas de frijoles y pimientos"],
+    ["Yogur natural, pera, nueces y canela", "Pollo al curry con arroz integral y verduras", "Puré de coliflor y tortilla con espárragos"],
   ]},
   { day: "Jueves", options: [
     ["Avena con leche, manzana y canela", "Ensalada templada de patata, judías y atún", "Albóndigas de pavo con tomate y calabacín"],
     ["Pan integral, tomate y jamón serrano", "Cuscús con garbanzos y verduras", "Dorada, ensalada y pan integral"],
     ["Yogur, pera, avena y almendras", "Bowl mexicano de pollo y frijoles", "Crema de verduras y tostada de atún"],
     ["Tortilla francesa, tomate y pan integral", "Salmón con patata y brócoli", "Pasta integral con verduras y mozzarella"],
+    ["Avena nocturna con kéfir, manzana y chía", "Ensalada de garbanzos, pepino, tomate y aceitunas", "Sardinas o caballa con puré de calabaza"],
   ]},
   { day: "Viernes", options: [
     ["Yogur, pera, almendras y avena", "Pollo mediterráneo, cuscús y ensalada", "Pizza casera fina de verduras y mozzarella"],
     ["Huevos revueltos, tomate y tostada", "Poke de atún, arroz, pepino y aguacate", "Fajitas de ternera y pimientos"],
     ["Tostada de aguacate, huevo y tomate", "Lentejas rápidas con pavo y verduras", "Sushi bowl de salmón y pepino"],
     ["Yogur natural, plátano y nueces", "Pasta integral con pollo y rúcula", "Tacos de pavo con pico de gallo"],
+    ["Tortilla de espinacas y tostada integral", "Tacos de lechuga con pavo, aguacate y lima", "Salteado de setas y tofu con arroz de coliflor"],
   ]},
   { day: "Sábado", options: [
     ["Tostada con queso fresco, tomate y fruta", "Poke de salmón, arroz y verduras", "Fajitas de ternera, pimientos y guacamole"],
     ["Yogur, avena, kiwi y nueces", "Paella de pollo y verduras con ensalada", "Sushi casero sencillo y edamame"],
     ["Huevos, tostada integral y naranja", "Pizza casera de atún y verduras", "Pollo teriyaki rápido con arroz"],
     ["Avena nocturna con manzana y canela", "Burritos de ternera y frijoles", "Merluza a la plancha con boniato"],
+    ["Yogur natural, plátano, avena y semillas", "Tabulé de quinoa con hummus, tomate y pepino", "Sopa de miso con tofu y ensalada de zanahoria y remolacha"],
   ]},
   { day: "Domingo", options: [
     ["Huevos, tostada, tomate y fruta", "Arroz de pollo y verduras + ensalada", "Crema de verduras y tostada de atún"],
     ["Yogur natural, fruta y almendras", "Pasta boloñesa de pavo + ensalada", "Tortilla de patata ligera y tomate"],
     ["Tostada integral con pavo y aguacate", "Salmón al horno con patata y verduras", "Ensalada de garbanzos y huevo"],
     ["Yogur, avena y frutos rojos", "Arroz mexicano con pollo y frijoles", "Frittata rápida de verduras"],
+    ["Tostada integral con queso fresco, tomate y fruta", "Arroz integral con pollo, judías verdes y pimientos", "Crema de calabaza con ensalada de kale, nueces y atún"],
   ]},
 ];
+
+const menuWeekIndexes = meals[0].options.map((_, index) => index);
 
 const ingredientCatalog = [
   { id: "eggs", label: "Huevos", category: "Proteínas", match: /huevo|tortilla/i, amount: 2, unit: "ud" },
@@ -80,19 +99,28 @@ const ingredientCatalog = [
   { id: "turkey", label: "Pavo", category: "Proteínas", match: /pavo/i, amount: 200, unit: "g" },
   { id: "beef", label: "Ternera", category: "Proteínas", match: /ternera/i, amount: 200, unit: "g" },
   { id: "salmon", label: "Salmón", category: "Proteínas", match: /salmón/i, amount: 220, unit: "g" },
+  { id: "blue-fish", label: "Sardinas o caballa", category: "Proteínas", match: /sardinas|caballa/i, amount: 1, unit: "lata o ración" },
   { id: "white-fish", label: "Merluza o dorada", category: "Proteínas", match: /merluza|dorada/i, amount: 220, unit: "g" },
   { id: "tuna", label: "Atún", category: "Proteínas", match: /atún/i, amount: 1, unit: "lata" },
   { id: "tofu", label: "Tofu", category: "Proteínas", match: /tofu/i, amount: 180, unit: "g" },
   { id: "ham", label: "Jamón serrano", category: "Proteínas", match: /jamón serrano/i, amount: 80, unit: "g" },
-  { id: "yogurt", label: "Yogur natural", category: "Proteínas", match: /yogur/i, amount: 1, unit: "ud" },
+  { id: "yogurt", label: "Yogur natural o kéfir", category: "Proteínas", match: /yogur|kéfir/i, amount: 1, unit: "ud" },
   { id: "milk", label: "Leche", category: "Proteínas", match: /con leche|avena caliente/i, amount: 500, unit: "ml" },
   { id: "fresh-cheese", label: "Queso fresco o mozzarella", category: "Proteínas", match: /queso fresco|mozzarella/i, amount: 125, unit: "g" },
   { id: "legumes", label: "Lentejas, garbanzos, judías o frijoles", category: "Proteínas", match: /lentejas|garbanzos|judías|frijoles/i, amount: 1, unit: "bote" },
+  { id: "hummus", label: "Hummus", category: "Proteínas", match: /hummus/i, amount: 100, unit: "g" },
   { id: "tomato", label: "Tomate", category: "Verdura y fruta", match: /tomate|pico de gallo/i, amount: 2, unit: "ud" },
-  { id: "greens", label: "Hojas verdes", category: "Verdura y fruta", match: /ensalada|rúcula/i, amount: 1, unit: "bolsa" },
+  { id: "greens", label: "Hojas verdes", category: "Verdura y fruta", match: /ensalada|rúcula|kale/i, amount: 1, unit: "bolsa" },
   { id: "pepper", label: "Pimientos", category: "Verdura y fruta", match: /pimiento/i, amount: 2, unit: "ud" },
   { id: "zucchini", label: "Calabacín", category: "Verdura y fruta", match: /calabacín/i, amount: 1, unit: "ud" },
   { id: "broccoli", label: "Brócoli", category: "Verdura y fruta", match: /brócoli/i, amount: 1, unit: "ud" },
+  { id: "cauliflower", label: "Coliflor", category: "Verdura y fruta", match: /coliflor/i, amount: 1, unit: "ud" },
+  { id: "pumpkin", label: "Calabaza", category: "Verdura y fruta", match: /calabaza/i, amount: 400, unit: "g" },
+  { id: "mushrooms", label: "Setas", category: "Verdura y fruta", match: /setas/i, amount: 200, unit: "g" },
+  { id: "carrot", label: "Zanahoria", category: "Verdura y fruta", match: /zanahoria/i, amount: 2, unit: "ud" },
+  { id: "celery", label: "Apio", category: "Verdura y fruta", match: /apio/i, amount: 1, unit: "manojo" },
+  { id: "beetroot", label: "Remolacha", category: "Verdura y fruta", match: /remolacha/i, amount: 2, unit: "ud" },
+  { id: "asparagus", label: "Espárragos", category: "Verdura y fruta", match: /espárragos/i, amount: 1, unit: "manojo" },
   { id: "spinach", label: "Espinacas", category: "Verdura y fruta", match: /espinacas/i, amount: 1, unit: "bolsa" },
   { id: "cabbage", label: "Col", category: "Verdura y fruta", match: /\bcol\b/i, amount: 0.5, unit: "ud" },
   { id: "cucumber", label: "Pepino", category: "Verdura y fruta", match: /pepino/i, amount: 1, unit: "ud" },
@@ -107,6 +135,9 @@ const ingredientCatalog = [
   { id: "couscous", label: "Cuscús", category: "Despensa", match: /cuscús/i, amount: 90, unit: "g" },
   { id: "potato", label: "Patata o boniato", category: "Despensa", match: /patata|boniato/i, amount: 300, unit: "g" },
   { id: "nuts", label: "Frutos secos", category: "Despensa", match: /nueces|almendras|frutos secos/i, amount: 30, unit: "g" },
+  { id: "seeds", label: "Chía o semillas", category: "Despensa", match: /chía|semillas/i, amount: 30, unit: "g" },
+  { id: "olives", label: "Aceitunas", category: "Despensa", match: /aceitunas/i, amount: 1, unit: "tarro" },
+  { id: "citrus", label: "Limón o lima", category: "Despensa", match: /limón|lima/i, amount: 1, unit: "ud" },
   { id: "edamame", label: "Edamame", category: "Despensa", match: /edamame/i, amount: 120, unit: "g" },
   { id: "tortillas", label: "Tortillas de maíz o trigo", category: "Despensa", match: /tacos|fajitas|burrito/i, amount: 4, unit: "ud" },
   { id: "pizza-base", label: "Base fina integral", category: "Despensa", match: /pizza/i, amount: 1, unit: "ud" },
@@ -124,7 +155,7 @@ const toIsoDate = (year: number, month: number, day: number) => `${year}-${Strin
 const mondayMealIndex = (jsDay: number) => (jsDay + 6) % 7;
 
 function getRecipe(dish: string) {
-  const simple = /yogur|tostada|huevos revueltos|tortilla francesa|avena nocturna/i.test(dish);
+  const simple = /yogur|kéfir|tostada|huevos revueltos|tortilla francesa|avena nocturna/i.test(dish);
   let time = simple ? 5 : 18;
   let icon = "🍳";
   let image = "./recipes/recipe-02.webp";
@@ -134,17 +165,18 @@ function getRecipe(dish: string) {
     "Añade el hidrato ya cocido, ajusta sal y especias, y sirve.",
   ];
 
-  if (/yogur|avena nocturna|avena caliente|avena con/i.test(dish)) { time = 3; icon = "🥣"; image = "./recipes/recipe-00.webp"; steps = ["Pon el yogur o la leche en un bol.", "Añade avena y fruta troceada.", "Termina con frutos secos o canela; deja reposar si es avena nocturna."]; }
+  if (/yogur|kéfir|avena nocturna|avena caliente|avena con/i.test(dish)) { time = 3; icon = "🥣"; image = "./recipes/recipe-00.webp"; steps = ["Pon el yogur, el kéfir o la leche en un bol.", "Añade avena y fruta troceada.", "Termina con frutos secos, semillas o canela; deja reposar si es avena nocturna."]; }
   else if (/tostada|pan integral, tomate|pan integral con/i.test(dish)) { time = 5; icon = "🍞"; image = "./recipes/recipe-01.webp"; steps = ["Tuesta el pan integral.", "Prepara el tomate, aguacate o queso mientras se tuesta.", "Monta la tostada y añade la proteína al final."]; }
-  else if (/ensalada|caprese/i.test(dish)) { time = 10; icon = "🥗"; image = /garbanzo|lenteja|judía/i.test(dish) ? "./recipes/recipe-03.webp" : "./recipes/recipe-04.webp"; steps = ["Lava y corta las verduras.", "Añade la proteína y el hidrato cocido si lo lleva.", "Aliña con AOVE, limón o vinagre justo antes de comer."]; }
+  else if (/ensalada|caprese|tabulé/i.test(dish)) { time = 10; icon = "🥗"; image = /garbanzo|lenteja|judía|hummus/i.test(dish) ? "./recipes/recipe-03.webp" : "./recipes/recipe-04.webp"; steps = ["Lava y corta las verduras.", "Añade la proteína y el hidrato cocido si lo lleva.", "Aliña con AOVE, limón o vinagre justo antes de comer."]; }
   else if (/poke|sushi bowl|sushi casero/i.test(dish)) { time = 15; icon = "🍚"; image = "./recipes/recipe-06.webp"; steps = ["Cuece el arroz o usa una ración ya preparada.", "Cocina la proteína si no se consume lista y corta las verduras.", "Monta el bol por secciones y aliña ligeramente."]; }
   else if (/bowl/i.test(dish)) { time = 15; icon = "🍚"; image = /mexicano|frijoles|burrito/i.test(dish) ? "./recipes/recipe-09.webp" : "./recipes/recipe-06.webp"; steps = ["Cuece el arroz o usa una ración ya preparada.", "Cocina la proteína si no se consume lista y corta las verduras.", "Monta el bol por secciones y aliña ligeramente."]; }
+  else if (/tacos de lechuga/i.test(dish)) { time = 15; icon = "🥬"; image = "./recipes/recipe-08.webp"; steps = ["Separa, lava y seca hojas grandes de lechuga.", "Saltea el pavo con cebolla y especias.", "Rellena las hojas y termina con aguacate y lima."]; }
   else if (/taco|fajita|burrito|quesadilla/i.test(dish)) { time = 15; icon = "🌮"; image = "./recipes/recipe-08.webp"; steps = ["Saltea la proteína y los pimientos a fuego fuerte.", "Calienta las tortillas en una sartén seca.", "Rellena con verduras, pico de gallo o yogur y sirve."]; }
   else if (/chili/i.test(dish)) { time = 18; icon = "🌶️"; image = "./recipes/recipe-09.webp"; steps = ["Dora la carne o el pavo con especias.", "Añade tomate y frijoles ya cocidos.", "Cuece 10–12 minutos hasta que espese y sirve con una ración medida de arroz o pan."]; }
   else if (/pasta|boloñesa/i.test(dish)) { time = 18; icon = "🍝"; image = "./recipes/recipe-10.webp"; steps = ["Cuece la pasta integral al dente y reserva un poco de agua.", "Saltea tomate, verduras y proteína en otra sartén.", "Mezcla todo durante un minuto y ajusta la textura con el agua reservada."]; }
-  else if (/crema|sopa miso/i.test(dish)) { time = 20; icon = "🍲"; image = /miso/i.test(dish) ? "./recipes/recipe-07.webp" : "./recipes/recipe-03.webp"; steps = ["Trocea las verduras pequeñas para que se hagan antes.", "Cuece 12–15 minutos con el agua justa.", "Tritura la crema o añade miso y tofu al final sin hervir fuerte."]; }
+  else if (/crema|puré|sopa de miso/i.test(dish)) { time = 20; icon = "🍲"; image = /miso/i.test(dish) ? "./recipes/recipe-07.webp" : "./recipes/recipe-03.webp"; steps = ["Trocea las verduras pequeñas para que se hagan antes.", "Cuece 12–15 minutos con el agua justa.", "Tritura la crema o el puré; si lleva miso y tofu, añádelos al final sin hervir fuerte."]; }
   else if (/salmón/i.test(dish)) { time = 20; icon = "🐟"; image = "./recipes/recipe-05.webp"; steps = ["Calienta horno o sartén y seca bien el pescado.", "Cocina 3–4 minutos por lado, o 12–15 minutos al horno.", "Sirve con verdura y la ración de patata, arroz o boniato."]; }
-  else if (/merluza|dorada/i.test(dish)) { time = 20; icon = "🐟"; image = "./recipes/recipe-04.webp"; steps = ["Calienta horno o sartén y seca bien el pescado.", "Cocina 3–4 minutos por lado, o 12–15 minutos al horno.", "Sirve con verdura y la ración de patata, arroz o boniato."]; }
+  else if (/merluza|dorada|sardinas|caballa/i.test(dish)) { time = 20; icon = "🐟"; image = "./recipes/recipe-04.webp"; steps = ["Calienta horno o sartén y seca bien el pescado.", "Cocina 3–4 minutos por lado, o 12–15 minutos al horno.", "Sirve con verdura y la ración de patata, arroz o boniato."]; }
   else if (/tortilla|frittata|huevos revueltos|huevos,/i.test(dish)) { time = 12; icon = "🥚"; image = "./recipes/recipe-01.webp"; steps = ["Saltea primero las verduras hasta que pierdan agua.", "Bate los huevos, mezcla y vierte en la sartén.", "Cuaja a fuego medio y termina tapada para no usar más aceite."]; }
   else if (/pizza/i.test(dish)) { time = 20; icon = "🍕"; image = "./recipes/recipe-11.webp"; steps = ["Usa una base fina integral y extiende tomate triturado.", "Reparte verduras, proteína y poca mozzarella.", "Hornea fuerte 10–12 minutos hasta que los bordes estén crujientes."]; }
   else if (/arroz|paella/i.test(dish)) { time = 22; icon = "🥘"; image = "./recipes/recipe-02.webp"; steps = ["Saltea proteína y verduras en una sartén amplia.", "Añade el arroz y el doble de caldo o agua.", "Cocina sin remover hasta que el arroz esté tierno y deja reposar 3 minutos."]; }
@@ -154,7 +186,7 @@ function getRecipe(dish: string) {
   return { dish, simple, time, icon, image, steps, ingredients: ingredients.length > 0 ? ingredients : ["Ingredientes principales del plato", "AOVE", "Sal y especias"] };
 }
 
-const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], custodyOverrides: {}, progress: [], profile: defaultProfile };
+const defaultState: SavedState = { completed: [], mealWeek: 0, mealChoices: {}, selectedMeals: [], shopping: [], dietHabits: {}, custodyOverrides: {}, progress: [], profile: defaultProfile };
 
 export default function Home() {
   const [data, setData] = useState<SavedState>(defaultState);
@@ -224,6 +256,8 @@ export default function Home() {
     return [...Array(leading).fill(null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
   }, [calendarMonth]);
   const selectedDateObject = new Date(`${selectedDate}T12:00:00`);
+  const selectedHoliday = barcelonaHolidays2026[selectedDate];
+  const selectedDietHabits = data.dietHabits[selectedDate] ?? [];
   const selectedMealDay = meals[mondayMealIndex(selectedDateObject.getDay())];
   const selectedMenu = selectedMealDay.options[data.mealChoices[selectedMealDay.day] ?? data.mealWeek];
   const activeRecipeData = activeRecipe ? getRecipe(activeRecipe) : null;
@@ -240,8 +274,16 @@ export default function Home() {
   const toggleCompleted = (id: string) => setData((current) => ({ ...current, completed: current.completed.includes(id) ? current.completed.filter((item) => item !== id) : [...current.completed, id] }));
   const toggleShopping = (item: string) => setData((current) => ({ ...current, shopping: current.shopping.includes(item) ? current.shopping.filter((value) => value !== item) : [...current.shopping, item] }));
   const toggleMeal = (key: string) => setData((current) => ({ ...current, selectedMeals: current.selectedMeals.includes(key) ? current.selectedMeals.filter((item) => item !== key) : [...current.selectedMeals, key] }));
-  const swapMeal = (day: string) => setData((current) => ({ ...current, mealChoices: { ...current.mealChoices, [day]: ((current.mealChoices[day] ?? current.mealWeek) + 1) % 4 } }));
+  const swapMeal = (day: string) => {
+    const optionCount = meals.find((meal) => meal.day === day)?.options.length ?? 1;
+    setData((current) => ({ ...current, mealChoices: { ...current.mealChoices, [day]: ((current.mealChoices[day] ?? current.mealWeek) + 1) % optionCount } }));
+  };
   const toggleCustody = (date: string) => setData((current) => ({ ...current, custodyOverrides: { ...current.custodyOverrides, [date]: !(current.custodyOverrides[date] ?? noaDateSet.has(date)) } }));
+  const toggleDietHabit = (date: string, habitId: string) => setData((current) => {
+    const completedHabits = current.dietHabits[date] ?? [];
+    const nextHabits = completedHabits.includes(habitId) ? completedHabits.filter((id) => id !== habitId) : [...completedHabits, habitId];
+    return { ...current, dietHabits: { ...current.dietHabits, [date]: nextHabits } };
+  });
 
   const addProgress = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -339,7 +381,7 @@ export default function Home() {
       <section className="agenda-section" id="agenda">
         <div className="section-heading light agenda-heading">
           <div><p className="eyebrow">TU TIEMPO REAL</p><h2>Calendario con Noa</h2></div>
-          <p>Los <strong>{noaDates.length} días azules</strong> del Excel quedan libres de entrenamiento. Selecciona una fecha para ver juntos custodia, menú y movimiento.</p>
+          <p>Los <strong>{noaDates.length} días azules</strong> del Excel quedan libres de entrenamiento. Los festivos oficiales de Barcelona aparecen en naranja para anticipar horarios, deporte y comidas.</p>
         </div>
         <div className="calendar-toolbar">
           <div className="month-navigation">
@@ -347,7 +389,7 @@ export default function Home() {
             <strong>{monthNames[calendarMonth]} 2026</strong>
             <button type="button" aria-label="Mes siguiente" onClick={() => { const month = Math.min(11, calendarMonth + 1); setCalendarMonth(month); setSelectedDate(toIsoDate(2026, month, 1)); }} disabled={calendarMonth === 11}>→</button>
           </div>
-          <div className="calendar-legend"><span><i className="noa-swatch" /> Con Noa · sin entreno</span><span><i className="free-swatch" /> Disponible</span></div>
+          <div className="calendar-legend"><span><i className="noa-swatch" /> Con Noa · sin entreno</span><span><i className="holiday-swatch" /> Festivo</span><span><i className="free-swatch" /> Disponible</span></div>
           <button className={editingCustody ? "edit-custody active" : "edit-custody"} type="button" onClick={() => setEditingCustody(!editingCustody)}>{editingCustody ? "Terminar edición" : "Corregir días"}</button>
         </div>
         {editingCustody && <p className="edit-hint">Modo edición activo: pulsa cualquier día para añadirlo o quitarlo del calendario de Noa. Los cambios se guardan en este navegador.</p>}
@@ -360,19 +402,23 @@ export default function Home() {
                 const iso = toIsoDate(2026, calendarMonth, day);
                 const date = new Date(2026, calendarMonth, day);
                 const custody = hasNoa(iso);
+                const holiday = barcelonaHolidays2026[iso];
+                const habitCount = (data.dietHabits[iso] ?? []).length;
                 const mealDay = meals[mondayMealIndex(date.getDay())];
                 const mealCount = [0, 1, 2].filter((mealIndex) => data.selectedMeals.includes(`${mealDay.day}-${mealIndex}`)).length;
                 return (
                   <button
                     type="button"
-                    className={`calendar-day ${custody ? "with-noa" : "free-day"} ${selectedDate === iso ? "selected" : ""}`}
+                    className={`calendar-day ${custody ? "with-noa" : "free-day"} ${holiday ? "holiday" : ""} ${selectedDate === iso ? "selected" : ""}`}
                     key={iso}
-                    aria-label={`${day} de ${monthNames[calendarMonth]}, ${custody ? "con Noa, sin entrenamiento" : workoutForDay(date.getDay())}`}
+                    aria-label={`${day} de ${monthNames[calendarMonth]}${holiday ? `, festivo: ${holiday.name}` : ""}, ${custody ? "con Noa, sin entrenamiento" : workoutForDay(date.getDay())}`}
                     onClick={() => { setSelectedDate(iso); if (editingCustody) toggleCustody(iso); }}
                   >
                     <span className="date-number">{day}</span>
+                    {holiday && <span className="holiday-badge">Festivo</span>}
                     <span className="custody-label">{custody ? "Noa" : workoutForDay(date.getDay()).split(" · ")[0]}</span>
                     {mealCount > 0 && <small>{mealCount} {mealCount === 1 ? "plato" : "platos"}</small>}
+                    {habitCount > 0 && <small>{habitCount}/{dailyDietCommitments.length} compromisos</small>}
                   </button>
                 );
               })}
@@ -381,6 +427,7 @@ export default function Home() {
           <aside className={hasNoa(selectedDate) ? "day-focus with-noa" : "day-focus"}>
             <p className="eyebrow">{new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" }).format(selectedDateObject).toUpperCase()}</p>
             <h3>{hasNoa(selectedDate) ? "Día con Noa" : "Día disponible"}</h3>
+            {selectedHoliday && <div className="focus-block holiday-focus"><span>FESTIVO · {selectedHoliday.scope.toUpperCase()}</span><strong>{selectedHoliday.name}</strong><p>Comprueba horarios del gimnasio o del pádel. Si están cerrados, cambia la sesión por un paseo o movilidad. En una comida social, decide antes qué vas a priorizar y vuelve al plan en la siguiente comida.</p></div>}
             <div className="focus-block">
               <span>MOVIMIENTO</span>
               <strong>{hasNoa(selectedDate) ? "Descanso programado" : workoutForDay(selectedDateObject.getDay())}</strong>
@@ -393,6 +440,17 @@ export default function Home() {
                 return <div className="focus-meal" key={key}><input id={`focus-${key}`} type="checkbox" checked={data.selectedMeals.includes(key)} onChange={() => toggleMeal(key)} /><label htmlFor={`focus-${key}`}>{dish}</label><button type="button" aria-label={`Ver receta de ${dish}`} onClick={() => setActiveRecipe(dish)}>💡</button></div>;
               })}
             </div>
+            <div className="focus-block">
+              <span>COMPROMISOS DEL DÍA · {selectedDietHabits.length}/{dailyDietCommitments.length}</span>
+              <div className="habit-checklist">
+                {dailyDietCommitments.map((habit) => {
+                  const checked = selectedDietHabits.includes(habit.id);
+                  const inputId = `habit-${selectedDate}-${habit.id}`;
+                  return <div className={checked ? "focus-habit checked" : "focus-habit"} key={habit.id}><input id={inputId} type="checkbox" checked={checked} onChange={() => toggleDietHabit(selectedDate, habit.id)} /><label htmlFor={inputId}><strong>{habit.title}</strong><small>{habit.detail}</small></label></div>;
+                })}
+              </div>
+              <p className="habit-safety">No hagas ayuno sin supervisión si tienes diabetes tratada, embarazo/lactancia, antecedentes de trastorno alimentario o medicación que exige comida. Omite el vinagre si tienes reflujo, lesión dental, enfermedad renal o una indicación médica contraria.</p>
+            </div>
           </aside>
         </div>
       </section>
@@ -403,12 +461,16 @@ export default function Home() {
           <img src="./recipes/recipe-contact-sheet.webp" alt="Doce platos rápidos y equilibrados vistos desde arriba" />
           <div className="week-switcher">
             <p className="eyebrow">ROTACIÓN DE MENÚS</p>
-            <h3>Cuatro semanas, sin empezar de cero.</h3>
+            <h3>Cinco semanas, sin empezar de cero.</h3>
             <p>Cambia la semana completa o sustituye solo un día. La selección y la lista de compra se actualizan al momento.</p>
-            <div role="group" aria-label="Elegir semana de menú">{[0, 1, 2, 3].map((week) => <button className={data.mealWeek === week ? "active" : ""} type="button" key={week} onClick={() => setData((current) => ({ ...current, mealWeek: week, mealChoices: {} }))}>Semana {week + 1}</button>)}</div>
+            <div role="group" aria-label="Elegir semana de menú">{menuWeekIndexes.map((week) => <button className={data.mealWeek === week ? "active" : ""} type="button" key={week} onClick={() => setData((current) => ({ ...current, mealWeek: week, mealChoices: {} }))}>Semana {week + 1}</button>)}</div>
           </div>
         </div>
         <div className="meal-rules"><span>3 comidas principales</span><span>Proteína en cada comida</span><span>Agua como bebida habitual</span><span>Sin alcachofa</span></div>
+        <aside className="strict-rules" aria-label="Compromiso estricto de alimentación">
+          <div><p className="eyebrow">MODO ESTRICTO · OBJETIVOS ELEGIDOS</p><h3>Reglas visibles, día a día.</h3><p>Márcalas en el calendario. Son compromisos personales para favorecer la constancia, no alimentos médicamente prohibidos para toda la población.</p></div>
+          <ul><li>0 alcohol</li><li>0 refrescos y zumos</li><li>0 bollería y dulces con azúcar añadido</li><li>0 pan y pasta refinados</li><li>Ayuno nocturno de 12 h</li><li>Vinagre solo diluido</li></ul>
+        </aside>
         <div className="meal-days">
           {meals.map((meal) => { const choice = data.mealChoices[meal.day] ?? data.mealWeek; const selected = meal.options[choice]; return (
             <article className="meal-day" key={meal.day}>

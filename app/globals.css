@@ -193,6 +193,7 @@ h1 em { color: var(--leaf); font-weight: 400; }
 .calendar-legend span { display: flex; align-items: center; gap: 6px; }
 .calendar-legend i { width: 10px; height: 10px; border-radius: 50%; }
 .noa-swatch { background: #148fbd; }
+.holiday-swatch { background: var(--orange); }
 .free-swatch { background: var(--white); border: 1px solid var(--line); }
 .edit-custody { justify-self: end; padding: 9px 13px; border: 1px solid var(--line); color: var(--ink); background: transparent; cursor: pointer; }
 .edit-custody.active { color: white; background: var(--orange); border-color: var(--orange); }
@@ -205,8 +206,11 @@ h1 em { color: var(--leaf); font-weight: 400; }
 .calendar-day { position: relative; display: flex; flex-direction: column; align-items: flex-start; padding: 9px; border: 0; border-top: 1px solid var(--line); border-right: 1px solid var(--line); color: var(--ink); background: #fafbf7; cursor: pointer; text-align: left; }
 .calendar-day:nth-child(7n + 1) { border-left: 1px solid var(--line); }
 .calendar-day.with-noa { color: white; background: #148fbd; border-color: rgba(255,255,255,.25); }
+.calendar-day.holiday { box-shadow: inset 0 4px 0 var(--orange); }
 .calendar-day.selected { z-index: 1; outline: 3px solid var(--orange); outline-offset: -3px; }
 .date-number { font-family: Georgia, serif; font-size: 1.05rem; }
+.holiday-badge { position: absolute; top: 9px; right: 7px; padding: 2px 5px; border-radius: 2px; color: white; background: var(--orange); font-size: .5rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.calendar-day.with-noa .holiday-badge { color: var(--orange); background: white; }
 .custody-label { margin-top: auto; font-size: .67rem; font-weight: 800; }
 .calendar-day small { margin-top: 4px; color: inherit; opacity: .72; font-size: .58rem; }
 .day-focus { padding: 28px; background: var(--white); border-top: 5px solid var(--leaf); box-shadow: 9px 9px 0 rgba(24,48,52,.08); }
@@ -216,6 +220,15 @@ h1 em { color: var(--leaf); font-weight: 400; }
 .focus-block > span { display: block; margin-bottom: 7px; color: var(--orange); font-size: .62rem; font-weight: 800; letter-spacing: .1em; }
 .focus-block > strong { font-size: .9rem; }
 .focus-block > p { margin: 8px 0 0; color: var(--muted); font-size: .73rem; line-height: 1.55; }
+.holiday-focus { margin: 0 -10px; padding: 16px 10px; border-top: 0; background: var(--orange-soft); }
+.habit-checklist { display: grid; gap: 8px; margin-top: 10px; }
+.focus-habit { display: grid; grid-template-columns: 18px 1fr; gap: 8px; padding: 9px; border: 1px solid var(--line); background: var(--paper); cursor: pointer; }
+.focus-habit.checked { border-color: var(--leaf); background: #edf3dd; }
+.focus-habit input { margin: 2px 0 0; accent-color: var(--leaf); }
+.focus-habit label { display: grid; gap: 3px; cursor: pointer; }
+.focus-habit strong { font-size: .73rem; }
+.focus-habit small { color: var(--muted); font-size: .63rem; line-height: 1.35; }
+.focus-block .habit-safety { padding: 9px; color: #70402e; background: #f5d9cc; font-size: .65rem; }
 .focus-meal { display: grid; grid-template-columns: 17px 1fr 32px; align-items: start; gap: 8px; margin-top: 9px; color: var(--ink); font-size: .75rem; line-height: 1.4; }
 .focus-meal label { cursor: pointer; }
 .focus-meal button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); cursor: pointer; }
@@ -235,6 +248,12 @@ h1 em { color: var(--leaf); font-weight: 400; }
 .week-switcher button.active { color: var(--ink); background: #f3a27c; border-color: #f3a27c; font-weight: 800; }
 .meal-rules { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 30px; }
 .meal-rules span { padding: 8px 12px; border: 1px solid rgba(24,48,52,.22); border-radius: 99px; font-size: .7rem; font-weight: 700; }
+.strict-rules { display: grid; grid-template-columns: .9fr 1.1fr; gap: 28px; margin-bottom: 34px; padding: 25px; color: white; background: var(--ink); border-left: 6px solid var(--orange); }
+.strict-rules h3 { margin: 0; font-family: Georgia, serif; font-size: 1.5rem; font-weight: 500; }
+.strict-rules p:not(.eyebrow) { margin: 8px 0 0; color: #b9c7c5; font-size: .75rem; line-height: 1.5; }
+.strict-rules ul { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 22px; align-content: center; margin: 0; padding: 0; list-style: none; }
+.strict-rules li { position: relative; padding-left: 17px; font-size: .75rem; font-weight: 800; }
+.strict-rules li::before { position: absolute; left: 0; color: var(--orange); content: "×"; }
 .meal-days { border-top: 1px solid var(--line); }
 .meal-day { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 18px; padding: 22px 0; border-bottom: 1px solid var(--line); }
 .meal-title h3 { margin: 0 0 11px; font-family: Georgia, serif; font-size: 1.3rem; font-weight: 500; }
@@ -348,6 +367,8 @@ footer > span { color: #aab9b7; font-size: .68rem; }
   .training-detail { grid-template-columns: 1fr; }
   .training-detail aside { grid-column: auto; }
   .meal-day { grid-template-columns: 1fr; gap: 15px; }
+  .strict-rules { grid-template-columns: 1fr; }
+  .strict-rules ul { grid-template-columns: 1fr; }
   .calendar-toolbar { grid-template-columns: 1fr; }
   .calendar-legend { grid-column: auto; grid-row: auto; flex-wrap: wrap; }
   .edit-custody { justify-self: start; }
