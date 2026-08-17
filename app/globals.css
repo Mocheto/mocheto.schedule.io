@@ -319,6 +319,17 @@ h1 em { color: var(--leaf); font-weight: 400; }
 .progress-panel { align-self: start; padding: 28px; background: var(--white); border: 1px solid var(--line); box-shadow: 10px 10px 0 var(--sky); }
 .progress-panel form { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .progress-panel form button { grid-column: 1 / -1; padding: 12px; color: white; background: var(--leaf); border: 0; cursor: pointer; font-weight: 800; }
+.progress-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+.progress-charts article { min-width: 0; padding: 13px; background: #f4f6f0; border: 1px solid #dce3dc; border-radius: 8px; }
+.progress-chart-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.progress-chart-head span { color: #536463; font-size: .58rem; font-weight: 900; letter-spacing: .08em; }
+.progress-chart-head strong { color: #2f6b50; font-size: .62rem; }
+.vertical-bars { display: flex; align-items: end; gap: 6px; min-height: 142px; margin-top: 14px; padding: 0 2px; border-bottom: 2px solid #b7c7bd; }
+.vertical-bar { display: grid; flex: 1; min-width: 24px; grid-template-rows: auto 100px auto; gap: 5px; align-items: end; text-align: center; }
+.vertical-bar strong { color: #102f38; font-size: .61rem; }
+.vertical-bar i { display: block; width: 100%; height: var(--bar-height); min-height: 10px; background: linear-gradient(#5f9ca4, #2f6b50); border-radius: 4px 4px 0 0; }
+.vertical-bar.waist i { background: linear-gradient(#e9a078, #d9673d); }
+.vertical-bar span { overflow: hidden; color: #687a78; font-size: .5rem; text-overflow: ellipsis; white-space: nowrap; }
 .history { max-height: 300px; overflow: auto; }
 .history > div { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: center; gap: 8px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: .8rem; }
 .history time, .history span { color: var(--muted); }
@@ -395,6 +406,7 @@ footer > span { color: #aab9b7; font-size: .68rem; }
   .food-footer { align-items: flex-start; flex-direction: column; }
   .shopping-list { grid-template-columns: 1fr; }
   .progress-panel form { grid-template-columns: 1fr; }
+  .progress-charts { grid-template-columns: 1fr; }
   .reset-week { align-items: flex-start; flex-direction: column; }
 }
 
@@ -771,6 +783,31 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 .week-exceptions { padding: 7px; color: #2f6b50; background: #e4eee8; border-radius: 6px; text-align: center; }
 .week-exceptions.has-errors { color: #8d2a23; background: #f9d9d5; }
 .measurement-timeline { margin-top: 14px; }
+.measurement-evolution { margin-top: 14px; padding: 24px; background: white; border: 1px solid rgba(16, 47, 56, .11); border-radius: 12px; }
+.measurement-evolution .history-card-heading > p:last-child { margin: 7px 0 0; color: var(--muted); font-size: .7rem; }
+.measurement-evolution .progress-charts { margin-bottom: 0; }
+.nutrition-evolution { margin-top: 14px; padding: 24px; background: white; border: 1px solid rgba(16, 47, 56, .11); border-radius: 12px; }
+.nutrition-evolution .history-card-heading > p:last-child { max-width: 680px; margin: 7px 0 0; color: var(--muted); font-size: .7rem; line-height: 1.45; }
+.nutrition-chart-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; color: #536463; font-size: .67rem; font-weight: 800; }
+.nutrition-chart-legend span::before { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; background: #d9673d; content: ""; }
+.nutrition-chart-legend .protein::before { background: #2f6b50; }
+.nutrition-chart-legend .carbs::before { background: #5f9ca4; }
+.nutrition-chart-legend .fat::before { background: #b88a28; }
+.nutrition-timeline { --nutrition-height: 190px; position: relative; display: flex; gap: 14px; align-items: end; min-width: max-content; margin-top: 28px; padding: 0 10px; border-bottom: 2px solid #aebdb4; }
+.nutrition-evolution { overflow-x: auto; }
+.nutrition-target-line { position: absolute; right: 0; bottom: calc(34px + (var(--nutrition-height) * .714)); left: 0; z-index: 0; border-top: 2px dashed #102f38; opacity: .55; }
+.nutrition-target-line span { position: absolute; top: -18px; left: 0; color: #102f38; font-size: .67rem; font-weight: 900; }
+.nutrition-day { position: relative; z-index: 1; display: grid; grid-template-rows: var(--nutrition-height) 34px; gap: 5px; min-width: 92px; align-items: end; text-align: center; }
+.nutrition-day-bars { display: flex; gap: 4px; height: var(--nutrition-height); align-items: end; }
+.nutrition-day-bars i { position: relative; display: block; flex: 1; height: var(--bar-height); min-height: 8px; border-radius: 4px 4px 0 0; background: #d9673d; font-style: normal; }
+.nutrition-day-bars i.protein { background: #2f6b50; }
+.nutrition-day-bars i.carbs { background: #5f9ca4; }
+.nutrition-day-bars i.fat { background: #b88a28; }
+.nutrition-day-bars i.low { opacity: .72; }
+.nutrition-day-bars i.high { box-shadow: inset 0 4px #102f38; }
+.nutrition-day-bars b { display: none; }
+.nutrition-day-bars em { position: absolute; top: -18px; left: 50%; color: #102f38; font-size: .62rem; font-style: normal; font-weight: 800; transform: translateX(-50%); }
+.nutrition-day time { color: #687a78; font-size: .67rem; font-weight: 800; white-space: nowrap; }
 .nutrition-history { margin-top: 14px; padding: 24px; background: white; border: 1px solid rgba(16, 47, 56, .11); border-radius: 12px; }
 .nutrition-history .history-card-heading > p:last-child { margin: 7px 0 0; color: var(--muted); font-size: .7rem; }
 .nutrition-history > div:last-child { display: flex; gap: 8px; margin-top: 20px; overflow-x: auto; }
@@ -813,9 +850,10 @@ footer > span { color: #aab9b7; font-size: .68rem; }
   .history-metrics { grid-template-columns: 1fr 1fr; }
   .history-metrics article { padding: 14px; }
   .history-metrics strong { font-size: 1.6rem; }
-  .habit-evolution, .weekly-history, .measurement-timeline { padding: 18px; }
+  .habit-evolution, .weekly-history, .measurement-timeline, .measurement-evolution, .nutrition-evolution, .nutrition-history { padding: 18px; }
   .weekly-history-row { grid-template-columns: 1fr 76px; }
   .weekly-history-row time { grid-column: 1 / -1; }
+  .nutrition-timeline { --nutrition-height: 160px; }
 }
 
 /* Cierre diario: cada fecha conserva su propia fotografía de constancia. */
