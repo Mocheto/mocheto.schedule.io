@@ -13,8 +13,9 @@ type MealCategory = "Desayuno" | "Comida" | "Cena";
 type Dish = { id: string; name: string; category: MealCategory; protein: number; carbs: number; fat: number; builtIn?: boolean };
 type MealPlan = { id: string; name: string; days: Record<string, string[]>; builtIn?: boolean };
 type NutritionTargets = { kcal: number; protein: number; carbs: number; fat: number; waterMl: number };
+type NutritionTotals = Pick<NutritionTargets, "kcal" | "protein" | "carbs" | "fat">;
 type RecipeBadge = { id: string; label: string; symbol: string; description: string; kind: "trait" | "allergen" };
-type DailyArchiveEntry = { date: string; archivedAt: number; workoutCompleted: boolean; completedMeals: number[]; habitExceptions: string[]; waterMl?: number };
+type DailyArchiveEntry = { date: string; archivedAt: number; workoutCompleted: boolean; completedMeals: number[]; habitExceptions: string[]; waterMl?: number; fasted?: boolean; nutrition?: NutritionTotals; nutritionTargets?: NutritionTargets };
 type WeeklyHistoryEntry = { id: number; weekStart: string; weekEnd: string; completed: number; keyCompleted: number; keyTotal?: number; habitExceptions: number; selectedMeals: number; weight: number; waist: number };
 type ActiveView = "today" | "week" | "calendar" | "exercises" | "meals" | "progress" | "history";
 type SavedState = {
@@ -208,6 +209,8 @@ const toIsoDate = (year: number, month: number, day: number) => `${year}-${Strin
 const mondayMealIndex = (jsDay: number) => (jsDay + 6) % 7;
 const dishId = (name: string) => `dish-${name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
 const nutritionKcal = (dish: Pick<Dish, "protein" | "carbs" | "fat">) => Math.round(dish.protein * 4 + dish.carbs * 4 + dish.fat * 9);
+const sumNutrition = (dishes: Dish[]): NutritionTotals => dishes.reduce((totals, dish) => ({ kcal: totals.kcal + nutritionKcal(dish), protein: totals.protein + dish.protein, carbs: totals.carbs + dish.carbs, fat: totals.fat + dish.fat }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+const kcalWithinTarget = (kcal: number, target: number) => kcal >= target * 0.85 && kcal <= target * 1.15;
 const weekStartIso = (iso: string) => {
   const date = new Date(`${iso}T12:00:00`);
   date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
@@ -446,6 +449,8 @@ export default function Home() {
   const selectedDateDishIds = selectedDateMealPlan.days[selectedMealDay.day] ?? [];
   const selectedDateDishes = selectedDateDishIds.map((id) => dishById.get(id)).filter((dish): dish is Dish => Boolean(dish));
   const selectedMenu = selectedDateDishes.map((dish) => dish.name);
+  const selectedDayFasting = !selectedDietExceptions.includes("fast-12");
+  const selectedDayNutrition = sumNutrition(selectedDateDishes.filter((_, index) => !selectedDayFasting || index !== 0));
   const selectedWaterMl = data.waterIntake[selectedDate] ?? 0;
   const selectedWaterPercent = Math.min(100, Math.round((selectedWaterMl / Math.max(1, data.nutritionTargets.waterMl)) * 100));
   const activeRecipeData = activeRecipe ? getRecipe(activeRecipe) : null;
@@ -469,8 +474,11 @@ export default function Home() {
   const trackedDays = archivedDays.length;
   const totalHabitExceptions = archivedDays.reduce((total, day) => total + day.habitExceptions.length, 0);
   const overallHabitRate = trackedDays === 0 ? 0 : Math.max(0, Math.round(((trackedDays * dailyDietCommitments.length - totalHabitExceptions) / (trackedDays * dailyDietCommitments.length)) * 100));
-  const hydratedDays = archivedDays.filter((day) => (day.waterMl ?? 0) >= data.nutritionTargets.waterMl).length;
+  const hydratedDays = archivedDays.filter((day) => (day.waterMl ?? 0) >= (day.nutritionTargets?.waterMl ?? data.nutritionTargets.waterMl)).length;
   const hydrationRate = trackedDays === 0 ? 0 : Math.round((hydratedDays / trackedDays) * 100);
+  const nutritionArchivedDays = archivedDays.filter((day) => day.nutrition && day.nutritionTargets);
+  const nutritionGoalDays = nutritionArchivedDays.filter((day) => kcalWithinTarget(day.nutrition!.kcal, day.nutritionTargets!.kcal)).length;
+  const nutritionGoalRate = nutritionArchivedDays.length === 0 ? 0 : Math.round((nutritionGoalDays / nutritionArchivedDays.length) * 100);
   const waistLost = Math.max(0, data.profile.waist - currentWaist);
   const habitHistory = dailyDietCommitments.map((habit) => {
     const exceptions = archivedDays.filter((day) => day.habitExceptions.includes(habit.id)).length;
@@ -479,14 +487,14 @@ export default function Home() {
   const activeExerciseGroup = data.exerciseGroups.find((group) => group.id === activeExerciseGroupId) ?? data.exerciseGroups[0];
   const activeDayDishIds = activeMealPlan.days[activeMealDay] ?? [];
   const activeDayDishes = activeDayDishIds.map((id) => dishById.get(id)).filter((dish): dish is Dish => Boolean(dish));
-  const activeDayTotals = activeDayDishes.reduce((totals, dish) => ({ kcal: totals.kcal + nutritionKcal(dish), protein: totals.protein + dish.protein, carbs: totals.carbs + dish.carbs, fat: totals.fat + dish.fat }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  const activeDayTotals = sumNutrition(activeDayDishes);
   const macroEnergy = { protein: activeDayTotals.protein * 4, carbs: activeDayTotals.carbs * 4, fat: activeDayTotals.fat * 9 };
   const macroEnergyTotal = Math.max(1, macroEnergy.protein + macroEnergy.carbs + macroEnergy.fat);
   const macroPercent = { protein: Math.round(macroEnergy.protein / macroEnergyTotal * 100), carbs: Math.round(macroEnergy.carbs / macroEnergyTotal * 100), fat: Math.round(macroEnergy.fat / macroEnergyTotal * 100) };
   const proteinStop = macroPercent.protein;
   const carbsStop = macroPercent.protein + macroPercent.carbs;
   const targetChecks = {
-    kcal: activeDayTotals.kcal >= data.nutritionTargets.kcal * 0.85 && activeDayTotals.kcal <= data.nutritionTargets.kcal * 1.15,
+    kcal: kcalWithinTarget(activeDayTotals.kcal, data.nutritionTargets.kcal),
     protein: activeDayTotals.protein >= data.nutritionTargets.protein * 0.85 && activeDayTotals.protein <= data.nutritionTargets.protein * 1.4,
     carbs: activeDayTotals.carbs >= data.nutritionTargets.carbs * 0.7 && activeDayTotals.carbs <= data.nutritionTargets.carbs * 1.3,
     fat: activeDayTotals.fat >= data.nutritionTargets.fat * 0.7 && activeDayTotals.fat <= data.nutritionTargets.fat * 1.3,
@@ -615,9 +623,12 @@ export default function Home() {
         date: selectedDate,
         archivedAt: Date.now(),
         workoutCompleted: current.completed.includes(selectedPlanItem.id),
-        completedMeals: [0, 1, 2].filter((index) => current.selectedMeals.includes(selectedMealKeys[index])),
+        completedMeals: [0, 1, 2].filter((index) => current.selectedMeals.includes(selectedMealKeys[index]) && (!selectedDayFasting || index !== 0)),
         habitExceptions: current.dietExceptions[selectedDate] ?? [],
         waterMl: current.waterIntake[selectedDate] ?? 0,
+        fasted: selectedDayFasting,
+        nutrition: sumNutrition(selectedDateDishes.filter((_, index) => current.selectedMeals.includes(selectedMealKeys[index]) && (!selectedDayFasting || index !== 0))),
+        nutritionTargets: { ...current.nutritionTargets },
       },
     },
   }));
@@ -711,6 +722,10 @@ export default function Home() {
             <label>Cintura inicial (cm)<input type="number" value={data.profile.waist} onChange={(event) => updateProfile("waist", event.target.value)} /></label>
             <label>Día de pádel<select value={data.profile.padelDay} onChange={(event) => updateProfile("padelDay", event.target.value)}>{["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map((day) => <option key={day}>{day}</option>)}</select></label>
           </div>
+          <div className="settings-subheading"><p className="eyebrow">OBJETIVOS DIARIOS</p><p>Se aplican desde ahora; los días ya archivados conservan la meta que tenían al cerrarse.</p></div>
+          <div className="settings-grid nutrition-settings">
+            {([['kcal', 'Energía (kcal)'], ['protein', 'Proteína (g)'], ['carbs', 'Hidratos (g)'], ['fat', 'Grasas (g)'], ['waterMl', 'Agua (ml)']] as [keyof NutritionTargets, string][]).map(([field, label]) => <label key={field}>{label}<input type="number" min="0" step={field === "waterMl" ? 250 : 1} value={data.nutritionTargets[field]} onChange={(event) => updateNutritionTarget(field, event.target.value)} /></label>)}
+          </div>
           <div className="data-actions"><button type="button" onClick={exportData}>Exportar copia</button><button type="button" onClick={() => fileInput.current?.click()}>Importar copia</button><input ref={fileInput} hidden type="file" accept="application/json" onChange={importData} /><span>Los datos viven solo en este navegador.</span></div>
         </section>
       )}
@@ -731,7 +746,7 @@ export default function Home() {
       </section>
 
       <section className="signal-grid" aria-label="Indicadores principales" hidden={activeView !== "today"}>
-        <article><span>GUÍA DIARIA</span><strong>2.200–2.400</strong><small>kcal orientativas</small></article>
+        <article><span>PLAN NUTRICIONAL</span><strong>{selectedDayNutrition.kcal}</strong><small>de {data.nutritionTargets.kcal} kcal{selectedDayFasting ? " · ayuno aplicado" : ""}</small></article>
         <article><span>AHORA</span><strong>{currentWaist}</strong><small>cm de cintura</small></article>
         <article className="success-card"><span>ESTA SEMANA</span><strong>{completion}%</strong><small>{completion >= 80 ? "semana ganada" : "todo suma"}</small></article>
       </section>
@@ -741,10 +756,10 @@ export default function Home() {
           <div className="dashboard-card-heading"><div><p className="eyebrow">PLAN DEL DÍA</p><h2>{hasNoa(selectedDate) ? "Descanso y comidas" : "Tu siguiente paso"}</h2></div>{selectedHoliday && <span className="today-holiday">{selectedHoliday.name}</span>}</div>
           <div className="today-plan-list">
             <div className="today-movement"><span>Movimiento</span><strong>{hasNoa(selectedDate) ? "Descanso programado" : workoutForDay(selectedDateObject.getDay())}</strong><button className={selectedWorkoutCompleted ? "today-check checked" : "today-check"} type="button" aria-label={`${selectedWorkoutCompleted ? "Desmarcar" : "Marcar"} movimiento de hoy`} aria-pressed={selectedWorkoutCompleted} onClick={() => toggleCompleted(selectedPlanItem.id)}>{selectedWorkoutCompleted ? "✓" : ""}</button></div>
-            {selectedMenu.map((dish, index) => { const picked = selectedCompletedMeals.includes(index); return <div className="today-meal-row" key={dish}><span>{["Desayuno", "Comida", "Cena"][index]}</span><strong>{dish}</strong><button className={picked ? "today-check checked" : "today-check"} type="button" aria-label={`${picked ? "Desmarcar" : "Marcar"} ${["desayuno", "comida", "cena"][index]} de hoy`} aria-pressed={picked} onClick={() => toggleMeal(selectedMealKeys[index])}>{picked ? "✓" : ""}</button><button type="button" aria-label={`Ver receta de ${dish}`} onClick={() => setActiveRecipe(dish)}>💡</button></div>; })}
+            {selectedMenu.map((dish, index) => { const fastedBreakfast = selectedDayFasting && index === 0; const picked = fastedBreakfast || selectedCompletedMeals.includes(index); return <div className={fastedBreakfast ? "today-meal-row fasted" : "today-meal-row"} key={dish}><span>{["Desayuno", "Comida", "Cena"][index]}</span><strong>{fastedBreakfast ? `Ayuno · 0 kcal (propuesta: ${dish})` : `${dish} · ${nutritionKcal(selectedDateDishes[index])} kcal`}</strong><button className={picked ? "today-check checked" : "today-check"} type="button" aria-label={fastedBreakfast ? "Desayuno cubierto por el ayuno" : `${picked ? "Desmarcar" : "Marcar"} ${["desayuno", "comida", "cena"][index]} de hoy`} aria-pressed={picked} disabled={fastedBreakfast} onClick={() => toggleMeal(selectedMealKeys[index])}>{picked ? "✓" : ""}</button><button type="button" aria-label={`Ver receta de ${dish}`} onClick={() => setActiveRecipe(dish)}>💡</button></div>; })}
           </div>
           <div className={selectedDayArchive ? "daily-close archived" : "daily-close"}>
-            <div><span>{selectedDayArchive ? "DÍA ARCHIVADO" : "CIERRE DEL DÍA"}</span><strong>{selectedDayArchive ? `${selectedDayArchive.workoutCompleted ? "Movimiento hecho" : "Movimiento pendiente"} · ${selectedDayArchive.completedMeals.length}/3 comidas · ${dailyDietCommitments.length - selectedDayArchive.habitExceptions.length}/5 hábitos · ${selectedDayArchive.waterMl ?? 0} ml` : "Guarda lo que realmente ocurrió hoy."}</strong></div>
+            <div><span>{selectedDayArchive ? "DÍA ARCHIVADO" : "CIERRE DEL DÍA"}</span><strong>{selectedDayArchive ? `${selectedDayArchive.workoutCompleted ? "Movimiento hecho" : "Movimiento pendiente"} · ${selectedDayArchive.completedMeals.length}/${selectedDayArchive.fasted ? 2 : 3} comidas${selectedDayArchive.fasted ? " + ayuno" : ""} · ${dailyDietCommitments.length - selectedDayArchive.habitExceptions.length}/5 hábitos · ${selectedDayArchive.nutrition ? `${selectedDayArchive.nutrition.kcal}/${selectedDayArchive.nutritionTargets?.kcal ?? data.nutritionTargets.kcal} kcal · ` : ""}${selectedDayArchive.waterMl ?? 0} ml` : "Guarda lo que realmente ocurrió hoy, incluidas las kcal y la meta vigente."}</strong></div>
             <button type="button" onClick={archiveSelectedDay}>{selectedDayArchive ? "Actualizar archivo" : "Archivar este día"}</button>
           </div>
         </article>
@@ -770,7 +785,7 @@ export default function Home() {
             <article className={`day-card ${item.tone} ${done ? "done" : ""} ${archived ? "archived" : ""}`} key={item.id}>
               <div className="day-top"><span>{item.day} · {Number(date.slice(-2))}</span><button type="button" disabled={Boolean(archived)} aria-label={archived ? `${item.title}, día archivado` : `${done ? "Desmarcar" : "Marcar"} ${item.title}`} aria-pressed={done} onClick={() => toggleCompleted(item.id)}>{archived ? "◼" : done ? "✓" : ""}</button></div>
               <h3>{item.title}</h3><p>{item.detail}</p>{item.key && <small className="key-label">sesión clave</small>}
-              {archived && <div className="day-archive-summary"><strong>Día archivado</strong><span>{archived.completedMeals.length}/3 comidas · {dailyDietCommitments.length - archived.habitExceptions.length}/5 hábitos · {archived.waterMl ?? 0} ml</span></div>}
+              {archived && <div className="day-archive-summary"><strong>Día archivado</strong><span>{archived.completedMeals.length}/{archived.fasted ? 2 : 3} comidas{archived.fasted ? " + ayuno" : ""} · {dailyDietCommitments.length - archived.habitExceptions.length}/5 hábitos · {archived.nutrition ? `${archived.nutrition.kcal}/${archived.nutritionTargets?.kcal ?? data.nutritionTargets.kcal} kcal · ` : ""}{archived.waterMl ?? 0} ml</span></div>}
             </article>
           ); })}
         </div>
@@ -902,7 +917,7 @@ export default function Home() {
 
       <section className="meals-section" id="comidas" hidden={activeView !== "meals"}>
         <div className="section-heading light"><div><p className="eyebrow">COMER BIEN, SIN VIVIR A DIETA</p><h2>Una semana con sabor</h2></div><p>Sirve primero <strong>½ plato de verdura</strong>, después proteína y completa con hidrato. Ajusta la cantidad a tu hambre y entrenamiento.</p></div>
-        <div className="meal-rules"><span>3 comidas principales</span><span>Proteína en cada comida</span><span>Agua como bebida habitual</span><span>Sin alcachofa</span></div>
+        <div className="meal-rules"><span>Desayuno opcional con ayuno</span><span>Proteína en cada comida</span><span>Agua como bebida habitual</span><span>Sin alcachofa</span></div>
         <aside className="strict-rules" aria-label="Compromiso estricto de alimentación">
           <div><p className="eyebrow">MODO ESTRICTO · OBJETIVOS ELEGIDOS</p><h3>Reglas visibles, día a día.</h3><p>Márcalas en el calendario. Son compromisos personales para favorecer la constancia, no alimentos médicamente prohibidos para toda la población.</p></div>
           <ul><li>0 alcohol</li><li>0 refrescos y zumos</li><li>0 bollería y dulces con azúcar añadido</li><li>0 pan y pasta refinados</li><li>Ayuno nocturno de 12 h</li><li>Vinagre solo diluido</li></ul>
@@ -1003,6 +1018,7 @@ export default function Home() {
           <article><span>SEMANAS ARCHIVADAS</span><strong>{data.weeklyHistory.length}</strong><small>{data.weeklyHistory.length === 1 ? "semana cerrada" : "semanas cerradas"}</small></article>
           <article><span>ADHERENCIA DE HÁBITOS</span><strong>{overallHabitRate}%</strong><small>{totalHabitExceptions} {totalHabitExceptions === 1 ? "excepción" : "excepciones"} en {trackedDays} días</small></article>
           <article><span>HIDRATACIÓN</span><strong>{hydrationRate}%</strong><small>{hydratedDays}/{trackedDays} días alcanzando la meta</small></article>
+          <article><span>OBJETIVO DE KCAL</span><strong>{nutritionGoalRate}%</strong><small>{nutritionGoalDays}/{nutritionArchivedDays.length} días según la meta archivada</small></article>
           <article><span>CAMBIO DE PESO</span><strong>{lost > 0 ? `−${lost.toFixed(1)}` : "0,0"} kg</strong><small>desde {data.profile.startWeight} kg</small></article>
           <article><span>CAMBIO DE CINTURA</span><strong>{waistLost > 0 ? `−${waistLost.toFixed(1)}` : "0,0"} cm</strong><small>desde {data.profile.waist} cm</small></article>
         </div>
@@ -1016,6 +1032,7 @@ export default function Home() {
             {data.weeklyHistory.length === 0 ? <div className="history-empty"><strong>Aún no hay semanas archivadas.</strong><p>Cuando pulses “Cerrar semana y archivar”, aquí aparecerá el resumen antes de comenzar la siguiente.</p></div> : <div className="weekly-history-list">{data.weeklyHistory.slice().reverse().map((entry) => <div className="weekly-history-row" key={entry.id}><time>{new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(new Date(`${entry.weekStart}T12:00:00`))}–{new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(new Date(`${entry.weekEnd}T12:00:00`))}</time><div><strong>{entry.keyCompleted}/{entry.keyTotal ?? 4} sesiones clave</strong><span>{entry.completed}/7 actividades · {entry.selectedMeals} platos</span></div><div className={entry.habitExceptions > 0 ? "week-exceptions has-errors" : "week-exceptions"}><strong>{entry.habitExceptions}</strong><span>excepciones</span></div><div><strong>{entry.weight.toFixed(1)} kg</strong><span>{entry.waist.toFixed(1)} cm</span></div></div>)}</div>}
           </article>
         </div>
+        {nutritionArchivedDays.length > 0 && <article className="nutrition-history"><div className="history-card-heading"><p className="eyebrow">NUTRICIÓN</p><h3>Kcal y objetivo de cada día</h3><p>Cada cierre conserva la meta que estaba configurada ese día; cambiarla hoy no reescribe el pasado.</p></div><div>{nutritionArchivedDays.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14).map((entry) => { const ok = kcalWithinTarget(entry.nutrition!.kcal, entry.nutritionTargets!.kcal); return <span className={ok ? "within" : "outside"} key={entry.date}><time>{new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short" }).format(new Date(`${entry.date}T12:00:00`))}</time><strong>{entry.nutrition!.kcal} / {entry.nutritionTargets!.kcal} kcal</strong><small>{entry.fasted ? "Ayuno · desayuno 0 kcal" : "Con desayuno"} · {ok ? "en objetivo" : "fuera de rango"}</small></span>; })}</div></article>}
         {data.progress.length > 0 && <article className="measurement-timeline"><div className="history-card-heading"><p className="eyebrow">MEDICIONES</p><h3>Hitos de peso y cintura</h3></div><div>{data.progress.map((entry) => <span key={entry.id}><time>{new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short" }).format(new Date(`${entry.date}T12:00:00`))}</time><strong>{entry.weight.toFixed(1)} kg</strong><small>{entry.waist.toFixed(1)} cm</small></span>)}</div></article>}
       </section>
 

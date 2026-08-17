@@ -715,7 +715,7 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 }
 .history-metrics {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 .history-metrics article {
@@ -771,6 +771,17 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 .week-exceptions { padding: 7px; color: #2f6b50; background: #e4eee8; border-radius: 6px; text-align: center; }
 .week-exceptions.has-errors { color: #8d2a23; background: #f9d9d5; }
 .measurement-timeline { margin-top: 14px; }
+.nutrition-history { margin-top: 14px; padding: 24px; background: white; border: 1px solid rgba(16, 47, 56, .11); border-radius: 12px; }
+.nutrition-history .history-card-heading > p:last-child { margin: 7px 0 0; color: var(--muted); font-size: .7rem; }
+.nutrition-history > div:last-child { display: flex; gap: 8px; margin-top: 20px; overflow-x: auto; }
+.nutrition-history > div:last-child span { min-width: 180px; padding: 12px; background: #f7f5ef; border-left: 4px solid #d9673d; border-radius: 7px; }
+.nutrition-history > div:last-child span.within { border-left-color: #2f6b50; }
+.nutrition-history time,
+.nutrition-history strong,
+.nutrition-history small { display: block; }
+.nutrition-history time { color: #d9673d; font-size: .62rem; font-weight: 850; }
+.nutrition-history strong { margin-top: 7px; font-size: .8rem; }
+.nutrition-history small { margin-top: 3px; color: var(--muted); font-size: .6rem; }
 .measurement-timeline > div:last-child { display: flex; gap: 8px; margin-top: 20px; overflow-x: auto; }
 .measurement-timeline > div:last-child span { min-width: 112px; padding: 12px; background: #f7f5ef; border-radius: 7px; }
 .measurement-timeline time,
@@ -812,6 +823,14 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 .today-plan-list > .today-meal-row { grid-template-columns: 90px minmax(0, 1fr) 30px 30px; }
 .today-plan-list .today-check { color: #2f6b50; background: transparent; border-color: #9eb8a6; }
 .today-plan-list .today-check.checked { color: white; background: #2f6b50; border-color: #2f6b50; font-weight: 900; }
+.today-plan-list .today-meal-row.fasted { background: #e4eee8; }
+.today-plan-list .today-meal-row.fasted strong { color: #2f6b50; }
+.today-plan-list .today-check:disabled { cursor: default; opacity: 1; }
+.settings-subheading { margin: 20px 0 10px; padding-top: 16px; border-top: 1px solid rgba(16, 47, 56, .14); }
+.settings-subheading p:last-child { margin: 5px 0 0; color: #667674; font-size: .68rem; }
+.settings-grid.nutrition-settings { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 900px) { .settings-grid.nutrition-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .settings-grid.nutrition-settings { grid-template-columns: 1fr; } }
 .daily-close {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
