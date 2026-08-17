@@ -122,13 +122,15 @@ h1 em { color: var(--leaf); font-weight: 400; }
 }
 .route-head { display: flex; justify-content: space-between; font-size: 0.7rem; letter-spacing: 0.13em; }
 .route-head strong { color: var(--leaf); }
-.route-line { margin: 50px 8px 12px; display: flex; align-items: center; }
-.route-dot { flex: 0 0 14px; height: 14px; border: 3px solid var(--white); border-radius: 50%; box-shadow: 0 0 0 2px var(--ink); background: var(--ink); }
-.route-dot.waypoint { background: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
-.route-dot.goal { background: var(--white); }
-.route-path { position: relative; flex: 1; height: 2px; background: var(--ink); }
-.route-path i { position: absolute; left: 0; top: -2px; width: 20%; height: 6px; background: var(--orange); }
-.route-path.future { background: repeating-linear-gradient(90deg, var(--ink) 0 5px, transparent 5px 10px); }
+.route-line { position: relative; height: 18px; margin: 58px 8px 12px; }
+.route-track { position: absolute; top: 8px; right: 0; left: 0; height: 3px; overflow: hidden; background: repeating-linear-gradient(90deg, var(--ink) 0 5px, transparent 5px 10px); }
+.route-track i { display: block; height: 100%; background: var(--orange); transition: width 300ms ease; }
+.route-dot { position: absolute; top: 2px; width: 14px; height: 14px; border: 3px solid var(--white); border-radius: 50%; box-shadow: 0 0 0 2px var(--ink); background: var(--ink); transform: translateX(-50%); }
+.route-dot.start { left: 0; }
+.route-dot.waypoint { left: 50%; background: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
+.route-dot.goal { right: 0; background: var(--white); transform: translateX(50%); }
+.route-current { position: absolute; top: 0; z-index: 2; width: 18px; height: 18px; border: 3px solid var(--white); border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 2px var(--orange); transform: translateX(-50%); transition: left 300ms ease; }
+.route-current b { position: absolute; bottom: 24px; left: 50%; min-width: 48px; padding: 4px 6px; color: var(--white); background: var(--ink); border-radius: 4px; font-size: .64rem; text-align: center; transform: translateX(-50%); }
 .route-labels { display: flex; justify-content: space-between; text-align: center; }
 .route-labels div:first-child { text-align: left; }
 .route-labels div:last-child { text-align: right; }
@@ -445,8 +447,8 @@ footer > span { color: #aab9b7; font-size: .68rem; }
 .app-shell .route-dot { border-color: #102f38; box-shadow: 0 0 0 2px white; background: white; }
 .app-shell .route-dot.waypoint { box-shadow: 0 0 0 2px #f48a6d; background: #f48a6d; }
 .app-shell .route-dot.goal { background: #102f38; }
-.app-shell .route-path { background: white; }
-.app-shell .route-path.future { background: repeating-linear-gradient(90deg, white 0 5px, transparent 5px 10px); }
+.app-shell .route-track { background: repeating-linear-gradient(90deg, white 0 5px, transparent 5px 10px); }
+.app-shell .route-current b { color: #102f38; background: white; }
 .app-shell .route-labels span, .app-shell .route-card > p { color: #c5d8d5; }
 .app-shell .route-card > p { margin-top: 28px; border-color: rgba(255,255,255,.18); }
 

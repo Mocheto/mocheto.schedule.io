@@ -422,7 +422,9 @@ export default function Home() {
   const currentWeight = latest?.weight ?? data.profile.startWeight;
   const currentWaist = latest?.waist ?? data.profile.waist;
   const lost = Math.max(0, data.profile.startWeight - currentWeight);
-  const goalProgress = Math.min(100, Math.max(0, Math.round((lost / (data.profile.startWeight - data.profile.goalWeight)) * 100)));
+  const weightJourney = data.profile.startWeight - data.profile.goalWeight;
+  const goalProgress = weightJourney <= 0 ? (currentWeight <= data.profile.goalWeight ? 100 : 0) : Math.min(100, Math.max(0, Math.round((lost / weightJourney) * 100)));
+  const firstMilestoneWeight = Math.round((data.profile.startWeight + data.profile.goalWeight) / 2);
   const hasNoa = (date: string) => data.custodyOverrides[date] ?? noaDateSet.has(date);
   const workoutForDay = (jsDay: number) => {
     const assignedGroup = exerciseGroupById.get(data.exerciseSchedule[String(jsDay)]);
@@ -751,9 +753,9 @@ export default function Home() {
           <div className="hero-actions"><button className="primary-button" type="button" onClick={() => openView("week")}>Ver esta semana <span>→</span></button><span className="microcopy">Empieza pequeño. Repite.</span></div>
         </div>
         <div className="route-card" aria-label="Ruta de objetivos de peso">
-          <div className="route-head"><span>LA RUTA, NO LA CARRERA</span><strong>{goalProgress}% recorrido</strong></div>
-          <div className="route-line" aria-hidden="true"><span className="route-dot current" /><span className="route-path"><i style={{ width: `${Math.max(8, goalProgress)}%` }} /></span><span className="route-dot waypoint" /><span className="route-path future" /><span className="route-dot goal" /></div>
-          <div className="route-labels"><div><strong>{data.profile.startWeight} kg</strong><span>Inicio</span></div><div><strong>94–96 kg</strong><span>Primera meta</span></div><div><strong>{data.profile.goalWeight} kg</strong><span>Destino</span></div></div>
+          <div className="route-head"><span>LA RUTA, NO LA CARRERA</span><strong>{currentWeight.toFixed(1)} kg · {goalProgress}%</strong></div>
+          <div className="route-line" role="progressbar" aria-label={`Progreso de peso: ${currentWeight.toFixed(1)} kg, ${goalProgress}% del recorrido`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={goalProgress}><span className="route-track"><i style={{ width: `${goalProgress}%` }} /></span><span className="route-dot start" /><span className="route-dot waypoint" /><span className="route-dot goal" /><span className="route-current" style={{ left: `${goalProgress}%` }}><b>{currentWeight.toFixed(1)}</b></span></div>
+          <div className="route-labels"><div><strong>{data.profile.startWeight} kg</strong><span>Inicio</span></div><div><strong>{firstMilestoneWeight} kg</strong><span>Mitad</span></div><div><strong>{data.profile.goalWeight} kg</strong><span>Destino</span></div></div>
           <p>La primera victoria no son 13 kg: es demostrarte durante 12 semanas que este ritmo cabe en tu vida.</p>
         </div>
       </section>
