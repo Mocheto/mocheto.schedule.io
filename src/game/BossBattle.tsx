@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { SoundKind } from "./GameCanvas";
+import { PixelIcon } from "./PixelIcon";
 import type { BossId } from "./types";
 
 type Choice = "rock" | "paper" | "scissors";
@@ -26,10 +27,10 @@ type BossBattleProps = {
   playSound: (kind: SoundKind) => void;
 };
 
-const choices: Array<{ id: Choice; icon: string; label: string }> = [
-  { id: "rock", icon: "🪨", label: "Piedra" },
-  { id: "paper", icon: "✋", label: "Papel" },
-  { id: "scissors", icon: "✌️", label: "Tijera" },
+const choices: Array<{ id: Choice; label: string }> = [
+  { id: "rock", label: "Piedra" },
+  { id: "paper", label: "Papel" },
+  { id: "scissors", label: "Tijera" },
 ];
 
 const bosses: Record<BossId, { name: string; assetPrefix: string; intro: string }> = {
@@ -41,6 +42,10 @@ const bosses: Record<BossId, { name: string; assetPrefix: string; intro: string 
 };
 
 const choiceById = Object.fromEntries(choices.map((choice) => [choice.id, choice])) as Record<Choice, (typeof choices)[number]>;
+
+function RpsIcon({ choice, small = false }: { choice: Choice; small?: boolean }) {
+  return <span className={`rps-icon rps-${choice} ${small ? "is-small" : ""}`} aria-hidden="true" />;
+}
 
 function getWinner(noa: Choice, boss: Choice): RoundWinner {
   if (noa === boss) return "tie";
@@ -130,7 +135,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
 
   return (
     <div className="modal-backdrop boss-backdrop">
-      <section className={`boss-battle battle-${battle.status} result-flash-${visibleWinner ?? "none"}`} aria-labelledby="boss-title">
+      <section className={`boss-battle boss-theme-${bossId} battle-${battle.status} result-flash-${visibleWinner ?? "none"}`} aria-labelledby="boss-title">
         {(visibleWinner === "noa" || battle.status === "won") && (
           <div className="duel-confetti" aria-hidden="true">
             {Array.from({ length: 14 }, (_, index) => (
@@ -149,7 +154,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
               <span>NOA <strong>{battle.noaScore}</strong></span><b>—</b><span><strong>{battle.bossScore}</strong> JEFE</span>
             </div>
             <div className="duel-attempts" aria-label={`${apples} reintentos disponibles`}>
-              <span>🍎 × {apples}</span><small>{apples === 1 ? "reintento" : "reintentos"}</small>
+              <span><PixelIcon kind="apple" /> × {apples}</span><small>{apples === 1 ? "reintento" : "reintentos"}</small>
             </div>
           </div>
         </header>
@@ -158,7 +163,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
           <ol className="round-history" aria-label="Historial de rondas">
             {history.map((round, index) => (
               <li className={`history-${round.winner}`} key={`${round.noaChoice}-${round.bossChoice}-${index}`}>
-                <small>R{index + 1}</small><span>{choiceById[round.noaChoice].icon}</span><b>{round.winner === "noa" ? "★" : round.winner === "boss" ? "×" : "="}</b><span>{choiceById[round.bossChoice].icon}</span>
+                <small>R{index + 1}</small><RpsIcon choice={round.noaChoice} small /><b>{round.winner === "noa" ? "★" : round.winner === "boss" ? "×" : "="}</b><RpsIcon choice={round.bossChoice} small />
               </li>
             ))}
           </ol>
@@ -170,7 +175,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
             <NoaDuelSprite frame={noaFrame} />
             <strong>NOA</strong>
             <div className={`gesture-card ${battle.status === "countdown" ? "is-hidden" : ""}`}>
-              <span>{choicesRevealed && battle.noaChoice ? choiceById[battle.noaChoice].icon : "❔"}</span>
+              <span>{choicesRevealed && battle.noaChoice ? <RpsIcon choice={battle.noaChoice} /> : "?"}</span>
               <b>{choicesRevealed && battle.noaChoice ? choiceById[battle.noaChoice].label : battle.status === "countdown" ? "Pensando…" : "Preparada"}</b>
             </div>
           </div>
@@ -179,7 +184,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
             <BossSprite assetPrefix={boss.assetPrefix} frame={bossFrame} name={boss.name} />
             <strong>{boss.name}</strong>
             <div className={`gesture-card ${battle.status === "countdown" ? "is-hidden" : ""}`}>
-              <span>{choicesRevealed && battle.bossChoice ? choiceById[battle.bossChoice].icon : "❔"}</span>
+              <span>{choicesRevealed && battle.bossChoice ? <RpsIcon choice={battle.bossChoice} /> : "?"}</span>
               <b>{choicesRevealed && battle.bossChoice ? choiceById[battle.bossChoice].label : battle.status === "countdown" ? "Pensando…" : "Esperando"}</b>
             </div>
           </div>
@@ -194,17 +199,17 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
           <div className="duel-choices" aria-label="Elige piedra, papel o tijera">
             {choices.map((choice, index) => (
               <button type="button" onClick={() => choose(choice.id)} style={{ "--choice-delay": `${index * 75}ms` } as CSSProperties} key={choice.id}>
-                <span>{choice.icon}</span><strong>{choice.label}</strong>
+                <span><RpsIcon choice={choice.id} /></span><strong>{choice.label}</strong>
               </button>
             ))}
           </div>
         )}
         {battle.status === "revealed" && <button className="pixel-button primary duel-next" type="button" onClick={nextRound}>Siguiente ronda ▶</button>}
-        {battle.status === "lost" && apples > 0 && <button className="pixel-button primary duel-next apple-retry" type="button" onClick={retryWithApple}>🍎 Usar una manzana y repetir</button>}
+        {battle.status === "lost" && apples > 0 && <button className="pixel-button primary duel-next apple-retry" type="button" onClick={retryWithApple}><PixelIcon kind="apple" /> Usar una manzana y repetir</button>}
         {battle.status === "lost" && apples === 0 && <button className="pixel-button primary duel-next restart-level" type="button" onClick={onRestartLevel}>↺ Volver a empezar la pantalla</button>}
         {battle.status === "won" && <button className="pixel-button primary duel-next" type="button" onClick={() => { playSound("goal"); onWin(); }}>Continuar la aventura ▶</button>}
 
-        <p className="duel-rules"><span>🪨 gana a ✌️</span><span>✌️ gana a ✋</span><span>✋ gana a 🪨</span></p>
+        <p className="duel-rules"><span><RpsIcon choice="rock" small /> gana a <RpsIcon choice="scissors" small /></span><span><RpsIcon choice="scissors" small /> gana a <RpsIcon choice="paper" small /></span><span><RpsIcon choice="paper" small /> gana a <RpsIcon choice="rock" small /></span></p>
       </section>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BossBattle } from "./game/BossBattle";
+import { PixelIcon } from "./game/PixelIcon";
 import { GameCanvas, type SoundKind } from "./game/GameCanvas";
 import { levels, themeNames } from "./game/levels";
 import { stickerCatalog } from "./game/stickers";
@@ -229,20 +230,23 @@ export default function App() {
         <section className="home-screen" aria-labelledby="game-title">
           <div className="star-field" aria-hidden="true" />
           <div className="home-copy">
-            <p className="eyebrow">Una aventura de 8 bits</p>
+            <p className="eyebrow">Una aventura pixel art</p>
             <h1 id="game-title"><span>SUPER</span> NOA</h1>
-            <p className="home-lead">Quince aventuras entre manzanos, gatitos, lobos, jabalíes y barcos pirata voladores, con cinco grandes duelos de piedra, papel o tijera.</p>
+            <p className="home-lead">Ponte las orejas de gatita, salta entre manzanos y barcos voladores, rescata a los gatitos y hazte amiga de cinco grandes guardianes.</p>
+            <p className="home-invite"><PixelIcon kind="sparkle" /> ¡La aventura te está esperando!</p>
             <div className="home-actions">
-              <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>▶ Jugar</button>
+              <button className="pixel-button primary home-play" type="button" onClick={() => setScreen("map")}>▶ ¡Jugar ahora!</button>
               <button className="pixel-button" type="button" onClick={() => setShowHelp(true)}>¿Cómo se juega?</button>
             </div>
             {progress.unlocked > 0 && <p className="save-note">Partida guardada · {Object.values(progress.levelStats).filter((stats) => stats.completed).length}/{levels.length} pantallas</p>}
           </div>
           <div className="hero-scene" aria-hidden="true">
-            <div className="pixel-sun" />
-            <div className="hero-sprite" style={{ backgroundImage: 'url("./assets/sprites/noa-sprite-sheet.png")' }} />
-            <div className="hero-apple">●</div>
-            <div className="hero-cat">=^•ᴥ•^=</div>
+            <img className="hero-backdrop" src="./assets/home-adventure-v2.png" alt="" />
+            <div className="hero-rays" />
+            <img className="hero-sprite hero-cat-sprite" src="./assets/sprites/noa-cat-jump.png" alt="" />
+            <i className="hero-sparkle sparkle-one" />
+            <i className="hero-sparkle sparkle-two" />
+            <i className="hero-sparkle sparkle-three" />
           </div>
           <nav className="home-footer" aria-label="Opciones">
             <button type="button" onClick={() => setMuted((value) => !value)}>{muted ? "🔇 Activar sonido" : "🔊 Sonido"}</button>
@@ -257,14 +261,15 @@ export default function App() {
           <header className="map-header">
             <div><p className="eyebrow">Elige una pantalla</p><h2>El mapa de Noa</h2></div>
             <div className="map-actions">
-              <span className="apple-total">🍎 {totalApples}</span>
-              <button className="album-button" type="button" onClick={() => setShowAlbum(true)}>✨ {progress.stickers.length}/{stickerCatalog.length}</button>
+              <span className="apple-total"><PixelIcon kind="apple" /> {totalApples}</span>
+              <button className="album-button" type="button" onClick={() => setShowAlbum(true)}><PixelIcon kind="sparkle" /> {progress.stickers.length}/{stickerCatalog.length}</button>
               <button className="icon-button" type="button" onClick={() => setScreen("home")} aria-label="Volver al inicio">⌂</button>
             </div>
           </header>
           <div className="world-list">
             {worldCatalog.map((world) => (
               <article className={`world-card world-${world.id}`} key={world.id}>
+                <img className="world-art" src={`./assets/worlds/world-${world.id}.png`} alt="" aria-hidden="true" />
                 <div className="world-heading">
                   <span className="world-number">Mundo {world.id}</span>
                   <h3>{world.name}</h3>
@@ -277,9 +282,9 @@ export default function App() {
                     const stats = progress.levelStats[level.id];
                     return (
                       <button className={`level-card ${stats?.completed ? "is-complete" : ""}`} type="button" disabled={!unlocked} onClick={() => beginLevel(index)} key={level.id}>
-                        <span className="level-id">{unlocked ? level.id : "🔒"}</span>
+                        <span className="level-id">{unlocked ? level.id : <PixelIcon kind="lock" />}</span>
                         <strong>{level.title}</strong>
-                        <small>{stats?.completed ? `✓ Completada · 🍎 ${stats.bestApples}` : unlocked ? "Lista para jugar" : "Completa la anterior"}</small>
+                        <small>{stats?.completed ? <>✓ Completada · <PixelIcon kind="apple" /> {stats.bestApples}</> : unlocked ? "Lista para jugar" : "Completa la anterior"}</small>
                       </button>
                     );
                   })}
@@ -296,10 +301,10 @@ export default function App() {
           <header className="game-hud">
             <div className="hud-level"><span>{activeLevel.id}</span><strong>{activeLevel.title}</strong></div>
             <div className="hud-stats">
-              <span aria-label={`${lives} vidas`}>♥ × {lives}</span>
-              <span aria-label={`${snapshot.apples} manzanas`}>🍎 × {snapshot.apples}</span>
-              <span aria-label={`${snapshot.stickers.length} pegatinas encontradas`}>✨ × {snapshot.stickers.length}</span>
-              <span className={`power-chip power-${snapshot.power}`}>{snapshot.power === "cat" ? "🧶 Gato" : snapshot.power === "apple" ? "🍎 Protegida" : "Noa"}</span>
+              <span aria-label={`${lives} vidas`}><PixelIcon kind="heart" /> × {lives}</span>
+              <span aria-label={`${snapshot.apples} manzanas`}><PixelIcon kind="apple" /> × {snapshot.apples}</span>
+              <span aria-label={`${snapshot.stickers.length} pegatinas encontradas`}><PixelIcon kind="sparkle" /> × {snapshot.stickers.length}</span>
+              <span className={`power-chip power-${snapshot.power}`}>{snapshot.power === "cat" ? <><PixelIcon kind="yarn" /> Gato</> : snapshot.power === "apple" ? <><PixelIcon kind="apple" /> Protegida</> : "Noa"}</span>
             </div>
             <div className="hud-actions">
               <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Activar sonido" : "Silenciar"}>{muted ? "🔇" : "🔊"}</button>
@@ -332,7 +337,7 @@ export default function App() {
 
           {screen === "complete" && (
             <div className="modal-backdrop celebration"><div className="game-modal">
-              <div className="big-icon">{activeLevel.boss ? "🏆" : "🐱"}</div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
+              <div className="big-icon"><PixelIcon kind={activeLevel.boss ? "trophy" : "cat"} /></div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
               <h2>Pantalla {activeLevel.id} completada</h2>
               <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. {activeLevel.boss ? "El monstruo guardián ha dejado libre el camino." : "La siguiente aventura ya está abierta."}</p>
               {snapshot.stickers.length > 0 && <p className="sticker-found">✨ Pegatina de esta pantalla guardada en el álbum.</p>}
@@ -343,7 +348,7 @@ export default function App() {
 
           {screen === "gameover" && (
             <div className="modal-backdrop"><div className="game-modal">
-              <div className="big-icon">🍎</div><p className="eyebrow">Casi, casi…</p><h2>¡Otra oportunidad!</h2>
+              <div className="big-icon"><PixelIcon kind="apple" /></div><p className="eyebrow">Casi, casi…</p><h2>¡Otra oportunidad!</h2>
               <p>Las cinco vidas vuelven a estar listas. El camino ya te lo sabes.</p>
               <button className="pixel-button primary" type="button" onClick={() => beginLevel(activeIndex)}>Reintentar</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("map")}>Volver al mapa</button>
@@ -386,7 +391,7 @@ export default function App() {
           <p><strong>Super Noa</strong> es un juego original inspirado en los plataformas familiares de 8 bits.</p>
           <p>Personaje creado para este proyecto a partir de referencias privadas. Las fotografías originales no forman parte de la web.</p>
           <p>Música de los cinco mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
-          <p>Los cinco monstruos finales son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios, interfaz y código creados para Super Noa.</p>
+          <p>Los cinco monstruos finales y las miniaturas pixel art de los mundos son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios jugables, interfaz y código creados para Super Noa.</p>
           <button className="pixel-button primary" type="button" onClick={() => setShowCredits(false)}>Cerrar</button>
         </div></div>
       )}

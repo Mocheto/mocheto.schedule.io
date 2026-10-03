@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { PixelIcon } from "./PixelIcon";
 import type { Level, GameSnapshot, LevelItem, Power, Rect } from "./types";
 
 const VIEW_WIDTH = 960;
@@ -46,6 +47,7 @@ type LiveItem = LevelItem & { age: number; rise: number; fromBlock: boolean };
 type Projectile = { x: number; y: number; vx: number; vy: number; life: number };
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
+type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
 
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -53,14 +55,28 @@ const intersects = (a: Rect, b: Rect) =>
 const enemyY = (enemy: LiveEnemy) =>
   enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
 
-const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number, color: string) => {
+const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number, color: string, shadow = "#bdd4dc") => {
+  const px = Math.round(x);
+  const py = Math.round(y);
+  context.fillStyle = shadow;
+  context.fillRect(px + 7, py + 18, 88, 20);
+  context.fillRect(px + 23, py + 6, 34, 30);
+  context.fillRect(px + 57, py + 12, 24, 24);
   context.fillStyle = color;
-  context.fillRect(Math.round(x), Math.round(y + 12), 88, 22);
-  context.fillRect(Math.round(x + 16), Math.round(y), 34, 32);
-  context.fillRect(Math.round(x + 50), Math.round(y + 6), 24, 28);
+  context.fillRect(px, py + 12, 88, 20);
+  context.fillRect(px + 16, py, 34, 30);
+  context.fillRect(px + 50, py + 6, 24, 24);
+  context.fillStyle = "rgba(255,255,255,.42)";
+  context.fillRect(px + 20, py + 4, 21, 5);
 };
 
-function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, sunset: boolean, pirate: boolean) {
+const drawTinySparkle = (context: CanvasRenderingContext2D, x: number, y: number, color: string, scale = 1) => {
+  context.fillStyle = color;
+  context.fillRect(Math.round(x + 4 * scale), Math.round(y), 3 * scale, 11 * scale);
+  context.fillRect(Math.round(x), Math.round(y + 4 * scale), 11 * scale, 3 * scale);
+};
+
+function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, sunset: boolean, pirate: boolean, frame: number) {
   context.fillStyle = sunset ? "#ffd084" : "#ffe36f";
   context.fillRect(x + 27, y, 14, 12);
   context.fillRect(x + 27, y + 68, 14, 12);
@@ -74,12 +90,13 @@ function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, s
   context.fillRect(x + 12, y + 12, 56, 56);
   context.fillRect(x + 5, y + 25, 70, 30);
   context.fillStyle = "#5a3b48";
-  context.fillRect(x + 25, y + 31, 6, 8);
+  const blinking = Math.floor(frame / 80) % 5 === 4;
+  context.fillRect(x + 25, y + (blinking ? 35 : 31), 6, blinking ? 3 : 8);
   if (pirate) {
     context.fillRect(x + 47, y + 29, 11, 11);
     context.fillRect(x + 42, y + 33, 22, 4);
   } else {
-    context.fillRect(x + 49, y + 31, 6, 8);
+    context.fillRect(x + 49, y + (blinking ? 35 : 31), 6, blinking ? 3 : 8);
   }
   context.fillRect(x + 31, y + 49, 18, 5);
   context.fillStyle = "#f08a72";
@@ -87,7 +104,7 @@ function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, s
   context.fillRect(x + 55, y + 44, 8, 5);
 }
 
-function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, catMoon: boolean) {
+function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, catMoon: boolean, frame: number) {
   context.fillStyle = "#fff0ad";
   if (catMoon) {
     context.fillRect(x + 12, y + 3, 18, 20);
@@ -100,15 +117,16 @@ function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, 
   context.fillRect(x + 57, y + 50, 8, 8);
   context.fillRect(x + 21, y + 57, 6, 6);
   context.fillStyle = "#4a3b61";
-  context.fillRect(x + 24, y + 36, 6, 7);
-  context.fillRect(x + 50, y + 36, 6, 7);
+  const blinking = Math.floor(frame / 95) % 5 === 4;
+  context.fillRect(x + 24, y + (blinking ? 39 : 36), 6, blinking ? 3 : 7);
+  context.fillRect(x + 50, y + (blinking ? 39 : 36), 6, blinking ? 3 : 7);
   context.fillRect(x + 32, y + 51, 16, 5);
   context.fillStyle = "#e794a0";
   context.fillRect(x + 16, y + 47, 8, 5);
   context.fillRect(x + 56, y + 47, 8, 5);
 }
 
-function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number) {
+function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number) {
   const storm = level.theme === "boar-storm" || level.theme === "sky-storm";
   const night = level.theme === "forest-night" || level.theme === "wolf-moon" || level.theme === "boar-storm";
   const wolves = level.world === 3;
@@ -120,8 +138,17 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
   context.fillStyle = sky;
   context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
 
+  const lowerSky = pirates ? (storm ? "#75829b" : "#a7e2ed") : night ? "#292653" : boars ? "#e3ad78" : sunset ? "#f2c07e" : "#bfe8e5";
+  context.fillStyle = lowerSky;
+  context.fillRect(0, 255, VIEW_WIDTH, 285);
+  context.fillStyle = night ? "rgba(213,190,241,.12)" : "rgba(255,248,220,.2)";
+  for (let x = -((cameraX * 0.04) % 36); x < VIEW_WIDTH; x += 36) {
+    const y = 170 + ((Math.floor((x + cameraX) / 36) % 4) * 22);
+    context.fillRect(Math.round(x), y, 5, 5);
+  }
+
   if (night) {
-    drawHappyMoon(context, 770, 46, level.world === 2);
+    drawHappyMoon(context, 770, 46, level.world === 2, frame);
     context.fillStyle = "#f5dfff";
     for (let index = 0; index < 18; index += 1) {
       const x = (index * 157 + 43) % VIEW_WIDTH;
@@ -129,13 +156,14 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.fillRect(x, y, index % 3 === 0 ? 4 : 2, index % 3 === 0 ? 4 : 2);
     }
   } else {
-    drawHappySun(context, 770, 46, sunset || storm, pirates);
+    drawHappySun(context, 770, 46, sunset || storm, pirates, frame);
   }
 
   const cloudColor = level.theme === "sky-storm" ? "#aeb8ce" : storm ? "#77758b" : night ? "#5c548c" : boars ? "#ffe1b5" : sunset ? "#ffe0cf" : "#f8fdff";
+  const cloudShadow = level.theme === "sky-storm" ? "#727d98" : night ? "#3c3a69" : sunset ? "#d69b9c" : "#b7d9df";
   for (let index = 0; index < 7; index += 1) {
     const x = index * 310 - ((cameraX * 0.12) % 310) - 90;
-    drawPixelCloud(context, x, 72 + (index % 3) * 48, cloudColor);
+    drawPixelCloud(context, x, 72 + (index % 3) * 48, cloudColor, cloudShadow);
   }
 
   const farColor = pirates ? (storm ? "#44506c" : "#7fb6c9") : boars ? (storm ? "#313c45" : "#596548") : wolves ? "#303956" : forest ? (night ? "#342c5f" : "#5d617b") : sunset ? "#c86d68" : "#6db6b1";
@@ -143,23 +171,30 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
   if (pirates) {
     for (let index = -1; index < 6; index += 1) {
       const x = index * 230 - ((cameraX * 0.18) % 230);
-      drawPixelCloud(context, x, 330 + (index % 2) * 55, farColor);
+      drawPixelCloud(context, x, 330 + (index % 2) * 55, farColor, storm ? "#30384f" : "#4f8397");
       context.fillStyle = storm ? "#343c58" : "#557b91";
       context.fillRect(Math.round(x + 35), 385 + (index % 2) * 55, 54, 10);
       context.fillRect(Math.round(x + 48), 395 + (index % 2) * 55, 28, 15);
     }
   } else {
-    context.beginPath();
-    context.moveTo(0, 390);
-    for (let x = 0; x <= VIEW_WIDTH + 100; x += 100) {
-      const worldX = x + cameraX * 0.22;
-      const y = 300 + ((Math.floor(worldX / 100) % 3) * 23);
-      context.lineTo(x, y);
+    for (let x = -120 - ((cameraX * 0.18) % 180); x < VIEW_WIDTH + 180; x += 180) {
+      const peak = 270 + (Math.abs(Math.floor((x + cameraX) / 180)) % 3) * 30;
+      context.beginPath();
+      context.moveTo(x, 430);
+      context.lineTo(x + 72, peak);
+      context.lineTo(x + 96, peak + 26);
+      context.lineTo(x + 180, 430);
+      context.closePath();
+      context.fill();
+      context.fillStyle = night ? "rgba(220,211,244,.08)" : "rgba(255,244,218,.16)";
+      context.beginPath();
+      context.moveTo(x + 72, peak);
+      context.lineTo(x + 96, peak + 26);
+      context.lineTo(x + 118, 365);
+      context.closePath();
+      context.fill();
+      context.fillStyle = farColor;
     }
-    context.lineTo(VIEW_WIDTH, 480);
-    context.lineTo(0, 480);
-    context.closePath();
-    context.fill();
   }
 
   const treeSpacing = forest ? 155 : 220;
@@ -169,23 +204,43 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
     const tall = 118 + ((index * 19) % 42);
     context.fillStyle = boars ? "#50372f" : wolves ? "#252a3c" : night ? "#281c49" : forest ? "#3d665e" : "#725039";
     context.fillRect(Math.round(x + 64), 430 - tall, 28, tall);
+    context.fillStyle = boars ? "#7d5238" : wolves ? "#394256" : night ? "#493b77" : forest ? "#56806b" : "#9a6748";
+    context.fillRect(Math.round(x + 69), 438 - tall, 7, tall - 18);
     context.fillStyle = boars ? (storm ? "#405347" : "#57744d") : wolves ? "#34485a" : night ? "#40366d" : forest ? "#477d68" : "#4d9b63";
     if (wolves) {
-      context.beginPath();
-      context.moveTo(Math.round(x + 76), 250 - (index % 2) * 18);
-      context.lineTo(Math.round(x + 5), 370);
-      context.lineTo(Math.round(x + 148), 370);
-      context.closePath();
-      context.fill();
+      for (let tier = 0; tier < 3; tier += 1) {
+        context.beginPath();
+        context.moveTo(Math.round(x + 76), 246 + tier * 44 - (index % 2) * 18);
+        context.lineTo(Math.round(x + 16 - tier * 5), 348 + tier * 20);
+        context.lineTo(Math.round(x + 137 + tier * 5), 348 + tier * 20);
+        context.closePath();
+        context.fill();
+      }
+      context.fillStyle = "#4d6570";
+      context.fillRect(Math.round(x + 34), 335, 18, 6);
+      context.fillRect(Math.round(x + 102), 369, 16, 6);
     } else if (boars) {
       context.fillRect(Math.round(x + 4), 285 - (index % 2) * 20, 145, 58);
       context.fillRect(Math.round(x + 22), 325 - (index % 2) * 20, 112, 46);
+      context.fillStyle = storm ? "#526b57" : "#71935a";
+      context.fillRect(Math.round(x + 18), 292 - (index % 2) * 20, 48, 11);
+      context.fillRect(Math.round(x + 82), 332 - (index % 2) * 20, 42, 9);
       context.fillStyle = "#b57b3e";
       context.fillRect(Math.round(x + 30), 311 - (index % 2) * 20, 8, 8);
       context.fillRect(Math.round(x + 110), 300 - (index % 2) * 20, 8, 8);
     } else {
-      context.fillRect(Math.round(x + 18), 290 - (index % 2) * 18, 118, 76);
-      context.fillRect(Math.round(x), 325 - (index % 2) * 18, 155, 62);
+      const crownY = 290 - (index % 2) * 18;
+      context.fillStyle = forest ? (night ? "#302754" : "#365b4f") : "#356f47";
+      context.fillRect(Math.round(x + 19), crownY - 9, 110, 87);
+      context.fillRect(Math.round(x - 5), crownY + 26, 165, 66);
+      context.fillRect(Math.round(x + 45), crownY - 25, 61, 35);
+      context.fillStyle = night ? "#40366d" : forest ? "#477d68" : "#4d9b63";
+      context.fillRect(Math.round(x + 24), crownY - 4, 99, 74);
+      context.fillRect(Math.round(x + 2), crownY + 31, 151, 52);
+      context.fillRect(Math.round(x + 50), crownY - 19, 51, 25);
+      context.fillStyle = night ? "#574982" : forest ? "#609478" : "#69b66f";
+      context.fillRect(Math.round(x + 18), crownY + 7, 44, 13);
+      context.fillRect(Math.round(x + 84), crownY + 48, 49, 11);
     }
     if (!forest) {
       context.fillStyle = "#e74b54";
@@ -203,15 +258,48 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.fillRect(Math.round(x), y, 4, 4);
     }
   }
+
+  if (pirates) {
+    for (let index = 0; index < 7; index += 1) {
+      const x = ((index * 181 - cameraX * 0.5) % (VIEW_WIDTH + 120)) - 40;
+      drawTinySparkle(context, x, 205 + (index % 3) * 55, storm ? "#d7def0" : "#fff4b0", index % 3 === 0 ? 2 : 1);
+    }
+  }
 }
 
-function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, forest: boolean, playerX: number) {
+function drawAmbientForeground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number) {
+  if (level.world >= 2 && level.world <= 4) {
+    const leafColor = level.world === 3 ? "#263645" : level.world === 4 ? "#40573b" : "#3c6857";
+    context.fillStyle = leafColor;
+    for (let index = 0; index < 8; index += 1) {
+      const side = index % 2 === 0 ? -1 : 1;
+      const x = side < 0 ? (index * 17) % 75 - 28 : VIEW_WIDTH - ((index * 19) % 78) - 24;
+      const y = 34 + ((index * 79 + Math.floor(cameraX * 0.08)) % 360);
+      context.fillRect(x, y, 34, 12);
+      context.fillRect(x + (side < 0 ? 10 : -10), y + 9, 29, 10);
+    }
+    if (level.world === 2) {
+      for (let index = 0; index < 8; index += 1) {
+        const x = (index * 139 + frame * 0.35) % VIEW_WIDTH;
+        const y = 120 + ((index * 67 + frame * 0.2) % 310);
+        drawTinySparkle(context, x, y, index % 2 ? "#f4d76f" : "#cfa5ef");
+      }
+    }
+  }
+}
+
+function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, world: Level["world"], playerX: number, frame: number) {
   const x = Math.round(platform.x - cameraX);
+  const forest = world >= 2 && world <= 4;
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
   if (platform.kind === "ship") {
     const mastX = x + Math.round(platform.width * 0.58);
+    context.fillStyle = "#2a1a2e";
+    context.fillRect(x + 7, platform.y - 5, platform.width - 14, 29);
     context.fillStyle = "#4a2b34";
     context.fillRect(mastX, platform.y - 118, 8, 125);
+    context.fillStyle = "#8b5840";
+    context.fillRect(mastX + 3, platform.y - 112, 3, 108);
     context.fillStyle = "#fff0c9";
     context.beginPath();
     context.moveTo(mastX + 8, platform.y - 108);
@@ -219,8 +307,15 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.lineTo(mastX + 8, platform.y - 28);
     context.closePath();
     context.fill();
+    context.fillStyle = "#e4c995";
+    context.fillRect(mastX + 12, platform.y - 68, Math.min(74, platform.width * 0.22), 5);
     context.fillStyle = "#b76bd0";
     context.fillRect(mastX + 13, platform.y - 82, Math.min(48, platform.width * 0.14), 9);
+    const flagWave = Math.floor(frame / 12) % 2 === 0 ? 0 : 5;
+    context.fillStyle = "#e95667";
+    context.fillRect(mastX + 8, platform.y - 116, 34 + flagWave, 9);
+    context.fillStyle = "#ffd45f";
+    context.fillRect(mastX + 19, platform.y - 113, 8, 3);
     context.fillStyle = "#6f3e2e";
     context.fillRect(x + 8, platform.y, platform.width - 16, 18);
     context.fillStyle = "#d49a55";
@@ -235,12 +330,18 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fill();
     context.fillStyle = "#3b2637";
     context.fillRect(x + 80, platform.y + 35, Math.max(28, platform.width - 160), 7);
+    context.fillStyle = "#a86645";
+    for (let plank = 30; plank < platform.width - 20; plank += 42) context.fillRect(x + plank, platform.y + 7, 4, 12);
     for (let porthole = 92; porthole < platform.width - 70; porthole += 62) {
       context.fillStyle = "#f6c75e";
       context.fillRect(x + porthole, platform.y + 27, 13, 13);
       context.fillStyle = "#74c5df";
       context.fillRect(x + porthole + 3, platform.y + 30, 7, 7);
     }
+    context.fillStyle = "#fff1b1";
+    context.fillRect(x + 35, platform.y + 31, 9, 5);
+    context.fillStyle = "#563243";
+    context.fillRect(x + 44, platform.y + 28, 6, 18);
     return;
   }
   if (platform.kind === "air-plank") {
@@ -280,6 +381,8 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     return;
   }
   if (platform.kind === "canopy") {
+    context.fillStyle = "#2d2029";
+    context.fillRect(x - 3, platform.y + 6, platform.width + 6, platform.height - 3);
     context.fillStyle = "#4b3028";
     context.fillRect(x, platform.y + 8, platform.width, platform.height - 8);
     context.fillStyle = "#bd8444";
@@ -289,16 +392,25 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     for (let leaf = 12; leaf < platform.width - 8; leaf += 28) {
       context.fillStyle = leaf % 56 ? "#75a855" : "#486f42";
       context.fillRect(x + leaf, platform.y - 5, 18, 12);
+      context.fillStyle = "#9bc45c";
+      context.fillRect(x + leaf + 4, platform.y - 3, 7, 4);
     }
     return;
   }
   if (platform.kind === "branch") {
+    context.fillStyle = "#2d2029";
+    context.fillRect(x - 3, platform.y - 3, platform.width + 6, platform.height + 6);
     context.fillStyle = "#5a382d";
     context.fillRect(x, platform.y, platform.width, platform.height);
     context.fillStyle = "#936044";
     context.fillRect(x, platform.y, platform.width, 8);
     context.fillStyle = "#d4955d";
     for (let mark = 18; mark < platform.width; mark += 46) context.fillRect(x + mark, platform.y + 10, 18, 4);
+    context.fillStyle = "#7ab75c";
+    for (let leaf = 27; leaf < platform.width - 12; leaf += 78) {
+      context.fillRect(x + leaf, platform.y - 7, 13, 8);
+      context.fillRect(x + leaf + 8, platform.y - 11, 10, 8);
+    }
     return;
   }
   if (platform.kind === "stone") {
@@ -312,18 +424,31 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     }
     return;
   }
-  context.fillStyle = forest ? "#385543" : "#a7653c";
+  const earth = world === 1 ? "#9a5d3b" : world === 2 ? "#3c4c50" : world === 3 ? "#303846" : "#493d32";
+  const top = world === 1 ? "#62b45b" : world === 2 ? "#618766" : world === 3 ? "#526c5b" : "#65834c";
+  const texture = world === 1 ? "#c9834d" : world === 2 ? "#536a60" : world === 3 ? "#465363" : "#6a5940";
+  context.fillStyle = "#291d2c";
+  context.fillRect(x - 3, platform.y - 3, platform.width + 6, platform.height + 3);
+  context.fillStyle = earth;
   context.fillRect(x, platform.y, platform.width, platform.height);
-  context.fillStyle = forest ? "#73b05a" : "#69b857";
+  context.fillStyle = top;
   context.fillRect(x, platform.y, platform.width, 14);
-  context.fillStyle = forest ? "#4c7950" : "#d3894b";
+  context.fillStyle = world === 1 ? "#91d565" : "#88aa65";
+  for (let grass = 4; grass < platform.width; grass += 22) context.fillRect(x + grass, platform.y - (grass % 44 === 0 ? 7 : 4), 5, 7);
+  context.fillStyle = texture;
   for (let tile = 0; tile < platform.width; tile += 48) {
-    context.fillRect(x + tile + 4, platform.y + 26, 34, 9);
-    context.fillRect(x + tile + 18, platform.y + 48, 27, 8);
+    context.fillRect(x + tile + 4, platform.y + 26, 31, 8);
+    context.fillRect(x + tile + 18, platform.y + 48, 24, 7);
+    context.fillStyle = forest ? "#2d3e39" : "#77442f";
+    context.fillRect(x + tile + 38, platform.y + 17, 5, 5);
+    context.fillStyle = texture;
   }
 }
 
 function drawApple(context: CanvasRenderingContext2D, x: number, y: number) {
+  context.fillStyle = "#382332";
+  context.fillRect(x + 1, y + 3, 30, 25);
+  context.fillRect(x - 3, y + 8, 38, 14);
   context.fillStyle = "#5a382d";
   context.fillRect(x + 14, y - 8, 5, 10);
   context.fillStyle = "#5eb454";
@@ -333,9 +458,15 @@ function drawApple(context: CanvasRenderingContext2D, x: number, y: number) {
   context.fillRect(x, y + 7, 32, 14);
   context.fillStyle = "#ff7a78";
   context.fillRect(x + 6, y + 5, 6, 6);
+  context.fillStyle = "#b52f45";
+  context.fillRect(x + 7, y + 22, 18, 5);
 }
 
 function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number) {
+  context.fillStyle = "#2d1d39";
+  context.fillRect(x, y + 2, 40, 36);
+  context.fillRect(x + 1, y - 9, 16, 18);
+  context.fillRect(x + 23, y - 9, 16, 18);
   context.fillStyle = "#4b295f";
   context.fillRect(x + 3, y + 4, 34, 31);
   context.fillRect(x + 4, y - 6, 12, 15);
@@ -348,13 +479,17 @@ function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number) {
   context.fillRect(x + 25, y + 15, 5, 5);
   context.fillStyle = "#ee9ccf";
   context.fillRect(x + 18, y + 23, 5, 4);
+  context.fillStyle = "#f4d66f";
+  context.fillRect(x + 16, y + 31, 9, 4);
 }
 
 function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pulse: number) {
   context.fillStyle = "#4b295f";
-  context.fillRect(x, y, 38, 38);
+  context.fillRect(x + 5, y, 28, 38);
+  context.fillRect(x, y + 5, 38, 28);
   context.fillStyle = pulse > 0 ? "#ffe875" : "#f5c957";
-  context.fillRect(x + 4, y + 4, 30, 30);
+  context.fillRect(x + 8, y + 4, 22, 30);
+  context.fillRect(x + 4, y + 8, 30, 22);
   context.fillStyle = "#b468d1";
   context.fillRect(x + 15, y + 7, 8, 24);
   context.fillRect(x + 8, y + 14, 22, 9);
@@ -364,15 +499,17 @@ function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pu
 }
 
 function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean) {
+  context.fillStyle = "#2c1d38";
+  context.fillRect(x - 3, y - 3, 54, 54);
   context.fillStyle = hit ? "#746b7c" : "#5a2e70";
   context.fillRect(x, y, 48, 48);
   context.fillStyle = hit ? "#958c9d" : "#c787e8";
   context.fillRect(x + 5, y + 5, 38, 38);
   context.fillStyle = hit ? "#5e5765" : "#fff0a0";
   context.fillRect(x + 18, y + 12, 12, 12);
-  context.fillRect(x + 10, y + 13, 7, 8);
-  context.fillRect(x + 31, y + 13, 7, 8);
-  context.fillRect(x + 13, y + 27, 22, 11);
+  context.fillRect(x + 8, y + 13, 7, 8);
+  context.fillRect(x + 33, y + 13, 7, 8);
+  context.fillRect(x + 12, y + 27, 24, 11);
   context.fillStyle = hit ? "#bbb2c0" : "#edc6fb";
   context.fillRect(x + 4, y + 4, 8, 5);
 }
@@ -381,7 +518,18 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
   const y = Math.round(enemyY(enemy));
+  const flying = enemy.kind === "bird" || enemy.kind === "parrot" || enemy.kind === "cloud";
+  if (!flying) {
+    context.save();
+    context.globalAlpha = 0.18;
+    context.fillStyle = "#21162b";
+    context.fillRect(x + 5, y + enemy.height - 2, Math.max(30, enemy.width - 10), 6);
+    context.restore();
+  }
   if (enemy.kind === "slime") {
+    context.fillStyle = "#243548";
+    context.fillRect(x + 1, y + 8, 40, 31);
+    context.fillRect(x + 7, y - 1, 28, 11);
     context.fillStyle = "#77cbe0";
     context.fillRect(x + 4, y + 8, 34, 28);
     context.fillRect(x + 10, y + 2, 22, 8);
@@ -390,7 +538,14 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillRect(x + 27, y + 14, 5, 7);
     context.fillStyle = "#a7e7ef";
     context.fillRect(x + 8, y + 7, 8, 5);
+    context.fillStyle = "#4d9db8";
+    context.fillRect(x + 10, y + 31, 23, 5);
+    context.fillStyle = "#24445d";
+    context.fillRect(x + 18, y + 25, 8, 3);
   } else if (enemy.kind === "beetle") {
+    context.fillStyle = "#251c36";
+    context.fillRect(x + 1, y + 8, 40, 28);
+    context.fillRect(x + 8, y + 2, 28, 8);
     context.fillStyle = "#3b2c58";
     context.fillRect(x + 4, y + 11, 34, 22);
     context.fillStyle = "#f3a557";
@@ -402,7 +557,14 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillStyle = "#3b2c58";
     context.fillRect(x, y + 30, 12, 5);
     context.fillRect(x + 31, y + 30, 12, 5);
+    context.fillRect(x + 12, y, 4, 9);
+    context.fillRect(x + 29, y, 4, 9);
+    context.fillStyle = "#ffd17a";
+    context.fillRect(x + 13, y + 10, 5, 11);
   } else if (enemy.kind === "cloud") {
+    context.fillStyle = "#4c3d6c";
+    context.fillRect(x - 2, y + 10, 48, 27);
+    context.fillRect(x + 7, y + 1, 30, 31);
     context.fillStyle = "#ece8ff";
     context.fillRect(x + 2, y + 12, 40, 22);
     context.fillRect(x + 10, y + 4, 24, 25);
@@ -410,8 +572,14 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillRect(x + 12, y + 18, 5, 5);
     context.fillRect(x + 29, y + 18, 5, 5);
     context.fillRect(x + 19, y + 27, 9, 3);
+    context.fillStyle = "#d9a7c9";
+    context.fillRect(x + 6, y + 25, 6, 4);
+    context.fillRect(x + 34, y + 25, 6, 4);
   } else if (enemy.kind === "bird") {
     const flapUp = Math.sin(enemy.phase * 2) > 0;
+    context.fillStyle = "#21172c";
+    context.fillRect(x + 8, y + 7, 34, 23);
+    context.fillRect(x + 26, y + 2, 18, 21);
     context.fillStyle = "#3b2948";
     context.fillRect(x + 11, y + 10, 26, 17);
     context.fillRect(x + 28, y + 5, 13, 15);
@@ -424,6 +592,7 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillStyle = "#24192f";
     context.fillRect(x + 35, y + 9, 2, 2);
     context.fillRect(x + 3, y + 13, 12, 5);
+    context.fillRect(x, y + 9, 8, 5);
     context.fillStyle = "#6f456f";
     if (flapUp) {
       context.fillRect(x + 13, y, 9, 14);
@@ -434,6 +603,9 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     }
   } else if (enemy.kind === "parrot") {
     const flapUp = Math.sin(enemy.phase * 2.3) > 0;
+    context.fillStyle = "#221832";
+    context.fillRect(x + 9, y + 5, 33, 27);
+    context.fillRect(x + 18, y + 1, 24, 22);
     context.fillStyle = "#2d3156";
     context.fillRect(x + 12, y + 8, 26, 20);
     context.fillStyle = "#e65362";
@@ -455,7 +627,13 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     }
     context.fillStyle = "#58bdda";
     context.fillRect(x + 8, y + 25, 8, 7);
+    context.fillStyle = "#2d3156";
+    context.fillRect(x + 5, y + 30, 5, 13);
+    context.fillRect(x + 12, y + 30, 5, 16);
   } else if (enemy.kind === "pirate") {
+    context.fillStyle = "#281b33";
+    context.fillRect(x + 2, y + 1, 42, 14);
+    context.fillRect(x + 8, y + 10, 32, 38);
     context.fillStyle = "#4a294f";
     context.fillRect(x + 5, y + 4, 36, 10);
     context.fillRect(x + 12, y, 23, 8);
@@ -476,6 +654,11 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillStyle = "#f3b07e";
     context.fillRect(x, y + 30, 9, 12);
     context.fillRect(x + 38, y + 30, 8, 12);
+    context.fillStyle = "#d9575e";
+    context.fillRect(x + 1, y + 7, 13, 6);
+    context.fillStyle = "#d7d0dc";
+    context.fillRect(x + 42, y + 35, 7, 4);
+    context.fillRect(x + 47, y + 31, 4, 8);
   } else if (enemy.kind === "boar") {
     if (nearby) {
       context.fillStyle = "#fff0bd";
@@ -486,6 +669,9 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
       context.fillText("¡OINK!", x + 30, y - 18);
       context.textAlign = "start";
     }
+    context.fillStyle = "#2d1d24";
+    context.fillRect(x + 2, y + 8, 57, 33);
+    context.fillRect(x + 12, y, 42, 31);
     context.fillStyle = "#4b2f2b";
     context.fillRect(x + 5, y + 11, 50, 27);
     context.fillRect(x + 15, y + 3, 35, 27);
@@ -516,6 +702,9 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
       context.fillText("¡AUUU!", x + 29, y - 19);
       context.textAlign = "start";
     }
+    context.fillStyle = "#201a2b";
+    context.fillRect(x + 2, y + 8, 53, 32);
+    context.fillRect(x + 9, y, 38, 31);
     context.fillStyle = "#312c42";
     context.fillRect(x + 5, y + 11, 47, 26);
     context.fillRect(x + 12, y + 3, 32, 26);
@@ -536,15 +725,29 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
 function drawCannon(context: CanvasRenderingContext2D, cannon: LiveCannon, cameraX: number) {
   const x = Math.round(cannon.x - cameraX);
   const barrelX = cannon.direction === -1 ? x - 13 : x + 22;
+  context.fillStyle = "#171421";
+  context.fillRect(barrelX - 3, cannon.y, 34, 19);
+  context.fillRect(x - 3, cannon.y + 5, 41, 31);
   context.fillStyle = "#2c2638";
   context.fillRect(barrelX, cannon.y + 3, 28, 13);
   context.fillStyle = "#51435c";
   context.fillRect(x, cannon.y + 8, 35, 24);
   context.fillStyle = "#d0934f";
-  context.fillRect(x + 5, cannon.y + 27, 8, 8);
-  context.fillRect(x + 24, cannon.y + 27, 8, 8);
+  context.fillRect(x + 3, cannon.y + 25, 12, 12);
+  context.fillRect(x + 22, cannon.y + 25, 12, 12);
+  context.fillStyle = "#704b37";
+  context.fillRect(x + 7, cannon.y + 28, 4, 7);
+  context.fillRect(x + 26, cannon.y + 28, 4, 7);
   context.fillStyle = "#171421";
   context.fillRect(cannon.direction === -1 ? barrelX : barrelX + 21, cannon.y + 5, 7, 9);
+  context.fillStyle = "#8d7e9b";
+  context.fillRect(x + 6, cannon.y + 12, 16, 4);
+  if (cannon.cooldown > cannon.interval - 0.18) {
+    const smokeX = cannon.direction === -1 ? barrelX - 13 : barrelX + 31;
+    context.fillStyle = "rgba(245,240,255,.8)";
+    context.fillRect(smokeX, cannon.y - 2, 10, 10);
+    context.fillRect(smokeX + cannon.direction * 8, cannon.y - 12, 8, 8);
+  }
 }
 
 function drawCannonball(context: CanvasRenderingContext2D, ball: Cannonball, cameraX: number) {
@@ -568,6 +771,11 @@ function drawCheckpoint(context: CanvasRenderingContext2D, worldX: number, camer
   context.fillRect(x + 7, 370, 48, 30);
   context.fillStyle = active ? "#fff4a5" : "#ded6d1";
   context.fillRect(x + 19, 379, 10, 10);
+  if (active) {
+    drawTinySparkle(context, x + 49, 359, "#fff2a0");
+    context.fillStyle = "#7cc36b";
+    context.fillRect(x - 5, 450, 17, 6);
+  }
 }
 
 function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean) {
@@ -581,6 +789,10 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.fillRect(x + 105, 350, 12, 12);
   const catX = x + 18;
   const catY = 400;
+  context.fillStyle = "#352841";
+  context.fillRect(catX + 1, catY + 5, 48, 48);
+  context.fillRect(catX + 2, catY - 3, 18, 21);
+  context.fillRect(catX + 30, catY - 3, 18, 21);
   context.fillStyle = finalLevel ? "#f5d58d" : "#f5f0e9";
   context.fillRect(catX + 4, catY + 8, 42, 42);
   context.fillRect(catX + 5, catY, 14, 18);
@@ -611,6 +823,12 @@ function drawBossGate(context: CanvasRenderingContext2D, worldX: number, cameraX
   context.fillRect(x + 73, 362, 18, 18);
   context.fillStyle = "#d85e73";
   context.fillRect(x + 56, 397, 20, 12);
+  context.fillStyle = "#b783d3";
+  for (let brick = 0; brick < 4; brick += 1) {
+    context.fillRect(x + 3, 340 + brick * 25, 12, 8);
+    context.fillRect(x + 117, 350 + brick * 23, 12, 8);
+  }
+  drawTinySparkle(context, x + 60, 344, "#fff0a1");
   context.textAlign = "start";
 }
 
@@ -698,6 +916,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const warnedEnemies = new Set<string>();
     const hitBlocks = new Set<string>();
     const projectiles: Projectile[] = [];
+    const bursts: PixelBurst[] = [];
     const cannons: LiveCannon[] = (level.cannons ?? []).map((item, index) => ({ ...item, cooldown: 0.8 + index * 0.22 }));
     const cannonballs: Cannonball[] = [];
     let cameraX = 0;
@@ -731,6 +950,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const hurt = () => {
       if (player.invincible > 0) return;
       callbacksRef.current.playSound("hurt");
+      bursts.push({ x: player.x + player.width / 2, y: player.y + 22, life: 0.45, color: "#ff8b9d", kind: "stars" });
       if (player.power === "cat") {
         player.power = "apple";
         player.invincible = 1.8;
@@ -898,6 +1118,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           enemy.active = false;
           player.vy = -390;
           player.jumpsUsed = 1;
+          bursts.push({ x: enemy.x + enemy.width / 2, y: hitbox.y + 8, life: 0.5, color: "#ffe477", kind: "stars" });
           callbacksRef.current.playSound("stomp");
         } else {
           hurt();
@@ -930,6 +1151,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         if (player.vy > 60 && previousBottom <= hitbox.y + 12) {
           player.vy = -360;
           player.jumpsUsed = 1;
+          bursts.push({ x: ball.x + 12, y: ball.y + 12, life: 0.45, color: "#ffe477", kind: "puff" });
           callbacksRef.current.playSound("stomp");
         } else {
           hurt();
@@ -947,6 +1169,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           if (intersects({ x: ball.x - 10, y: ball.y - 10, width: 20, height: 20 }, enemyHitbox)) {
             enemy.active = false;
             ball.life = 0;
+            bursts.push({ x: enemy.x + enemy.width / 2, y: enemyHitbox.y + 10, life: 0.5, color: "#dca0f1", kind: "stars" });
             callbacksRef.current.playSound("stomp");
           }
         });
@@ -955,6 +1178,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           if (intersects({ x: ball.x - 10, y: ball.y - 10, width: 20, height: 20 }, { x: cannonball.x, y: cannonball.y, width: 24, height: 24 })) {
             cannonball.active = false;
             ball.life = 0;
+            bursts.push({ x: cannonball.x + 12, y: cannonball.y + 12, life: 0.45, color: "#eef1ff", kind: "puff" });
             callbacksRef.current.playSound("stomp");
           }
         });
@@ -964,6 +1188,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
       for (let index = cannonballs.length - 1; index >= 0; index -= 1) {
         if (!cannonballs[index].active) cannonballs.splice(index, 1);
+      }
+      for (let index = bursts.length - 1; index >= 0; index -= 1) {
+        bursts[index].life -= delta;
+        if (bursts[index].life <= 0) bursts.splice(index, 1);
       }
 
       level.checkpoints.forEach((checkpoint, index) => {
@@ -1051,12 +1279,18 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.fillRect(x + player.width + 4, Math.round(player.y + 31), 6, 6);
         context.fillRect(x + 8, Math.round(player.y + player.height + 4), 5, 5);
       }
+      if (player.grounded && Math.abs(player.vx) > 60 && frame % 8 < 3) {
+        context.fillStyle = "rgba(255,244,214,.62)";
+        const dustX = player.facing === 1 ? x - 7 : x + player.width + 2;
+        context.fillRect(dustX, Math.round(player.y + player.height - 7), 8, 6);
+        context.fillRect(dustX + (player.facing === 1 ? -5 : 5), Math.round(player.y + player.height - 13), 5, 5);
+      }
       context.globalAlpha = 1;
     };
 
     const render = () => {
-      drawBackground(context, level, cameraX);
-      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world >= 2, player.x));
+      drawBackground(context, level, cameraX, frame);
+      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame));
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
       level.rewardBlocks.forEach((block) => {
         const x = Math.round(block.x - cameraX);
@@ -1092,9 +1326,26 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.fillStyle = "#eee0ff";
         context.fillRect(x - 5, Math.round(ball.y) - 4, 10, 3);
       });
+      bursts.forEach((burst) => {
+        const x = Math.round(burst.x - cameraX);
+        const spread = Math.round((0.5 - burst.life) * 46);
+        context.save();
+        context.globalAlpha = Math.min(1, burst.life * 3);
+        if (burst.kind === "stars") {
+          drawTinySparkle(context, x - spread, burst.y - spread * 0.6, burst.color);
+          drawTinySparkle(context, x + spread, burst.y - spread * 0.25, burst.color);
+          drawTinySparkle(context, x - spread * 0.35, burst.y + spread * 0.45, "#fff7d1");
+        } else {
+          context.fillStyle = burst.color;
+          context.fillRect(x - spread, burst.y - 6, 12, 10);
+          context.fillRect(x + spread - 10, burst.y - spread * 0.4, 10, 10);
+        }
+        context.restore();
+      });
       if (level.boss) drawBossGate(context, level.goalX, cameraX);
       else drawGoalCat(context, level.goalX, cameraX, false);
       drawPlayer();
+      drawAmbientForeground(context, level, cameraX, frame);
 
       if (!runningRef.current) {
         context.fillStyle = "rgba(34, 24, 57, 0.42)";
@@ -1148,7 +1399,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           <button type="button" className="touch-button" aria-label="Mover a la derecha" {...bindTouch("right")}>▶</button>
         </div>
         <div className="touch-group touch-actions">
-          <button type="button" className="touch-button touch-yarn" aria-label="Lanzar bola de lana" {...bindTouch("shoot")}>🧶</button>
+          <button type="button" className="touch-button touch-yarn" aria-label="Lanzar bola de lana" {...bindTouch("shoot")}><PixelIcon kind="yarn" /></button>
           <button type="button" className="touch-button touch-jump" aria-label="Saltar o hacer doble salto" {...bindTouch("jump")}>↑</button>
         </div>
       </div>
