@@ -206,6 +206,8 @@ h1 span {
 .world-3::after { background: repeating-conic-gradient(#f5c95f 0 8deg, #2b273b 8deg 18deg); }
 .world-4 { background: linear-gradient(160deg, #7b4b31, #3f653f); }
 .world-4::after { background: radial-gradient(circle at 35% 45%, #c88b43 0 16%, transparent 17%), repeating-conic-gradient(#784326 0 10deg, #283f2a 10deg 20deg); }
+.world-5 { background: linear-gradient(160deg, #2989b2, #6552a0); }
+.world-5::after { background: radial-gradient(circle at 38% 35%, #fff4cf 0 17%, transparent 18%), repeating-conic-gradient(#f4c85b 0 9deg, #66407d 9deg 18deg); }
 .world-number { display: inline-block; color: var(--ink); background: var(--gold); padding: 7px 11px; border: 3px solid var(--ink); font-weight: 900; }
 .world-heading h3 { margin: 22px 0 7px; font-size: clamp(1.5rem, 3vw, 2.35rem); line-height: 1; color: #fff; }
 .world-heading p { margin: 0 0 28px; font-family: system-ui, sans-serif; color: rgba(255,255,255,.86); }

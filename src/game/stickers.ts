@@ -2,7 +2,7 @@ export type StickerDefinition = {
   id: string;
   name: string;
   icon: string;
-  world: 1 | 2 | 3 | 4;
+  world: 1 | 2 | 3 | 4 | 5;
   hint: string;
 };
 
@@ -19,4 +19,7 @@ export const stickerCatalog: StickerDefinition[] = [
   { id: "sticker-4-1", name: "Bellota dorada", icon: "🌰", world: 4, hint: "Busca entre las primeras copas altas." },
   { id: "sticker-4-2", name: "Colmillo valiente", icon: "🦷", world: 4, hint: "Cruza el gran vacío sin bajar al suelo." },
   { id: "sticker-4-3", name: "Rey de las bellotas", icon: "🏵️", world: 4, hint: "Está antes del último duelo, casi en las nubes." },
+  { id: "sticker-5-1", name: "Timón sonriente", icon: "⚓", world: 5, hint: "Busca en la plataforma más alta entre los barcos." },
+  { id: "sticker-5-2", name: "Loro aventurero", icon: "🦜", world: 5, hint: "Sigue a los loros por encima de las velas." },
+  { id: "sticker-5-3", name: "Tesoro del cielo", icon: "💎", world: 5, hint: "Está entre los últimos cañones, antes del capitán." },
 ];

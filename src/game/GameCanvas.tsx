@@ -7,7 +7,7 @@ const GRAVITY = 1650;
 const MOVE_SPEED = 250;
 const JUMP_SPEED = 625;
 
-type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl" | "snort" | "countdown";
+type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl" | "snort" | "cannon" | "countdown";
 
 type GameCanvasProps = {
   level: Level;
@@ -44,12 +44,14 @@ type Player = Rect & {
 type LiveEnemy = Level["enemies"][number] & { vx: number; active: boolean; phase: number };
 type LiveItem = LevelItem & { age: number; rise: number; fromBlock: boolean };
 type Projectile = { x: number; y: number; vx: number; vy: number; life: number };
+type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
+type Cannonball = { x: number; y: number; vx: number; active: boolean };
 
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
 const enemyY = (enemy: LiveEnemy) =>
-  enemy.y + (enemy.kind === "bird" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
+  enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
 
 const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number, color: string) => {
   context.fillStyle = color;
@@ -58,22 +60,68 @@ const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number,
   context.fillRect(Math.round(x + 50), Math.round(y + 6), 24, 28);
 };
 
+function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, sunset: boolean, pirate: boolean) {
+  context.fillStyle = sunset ? "#ffd084" : "#ffe36f";
+  context.fillRect(x + 27, y, 14, 12);
+  context.fillRect(x + 27, y + 68, 14, 12);
+  context.fillRect(x, y + 27, 12, 14);
+  context.fillRect(x + 68, y + 27, 12, 14);
+  context.fillRect(x + 8, y + 8, 12, 12);
+  context.fillRect(x + 60, y + 8, 12, 12);
+  context.fillRect(x + 8, y + 60, 12, 12);
+  context.fillRect(x + 60, y + 60, 12, 12);
+  context.fillStyle = sunset ? "#ffc15f" : "#ffdf55";
+  context.fillRect(x + 12, y + 12, 56, 56);
+  context.fillRect(x + 5, y + 25, 70, 30);
+  context.fillStyle = "#5a3b48";
+  context.fillRect(x + 25, y + 31, 6, 8);
+  if (pirate) {
+    context.fillRect(x + 47, y + 29, 11, 11);
+    context.fillRect(x + 42, y + 33, 22, 4);
+  } else {
+    context.fillRect(x + 49, y + 31, 6, 8);
+  }
+  context.fillRect(x + 31, y + 49, 18, 5);
+  context.fillStyle = "#f08a72";
+  context.fillRect(x + 17, y + 44, 8, 5);
+  context.fillRect(x + 55, y + 44, 8, 5);
+}
+
+function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, catMoon: boolean) {
+  context.fillStyle = "#fff0ad";
+  if (catMoon) {
+    context.fillRect(x + 12, y + 3, 18, 20);
+    context.fillRect(x + 50, y + 3, 18, 20);
+  }
+  context.fillRect(x + 10, y + 12, 60, 60);
+  context.fillRect(x + 3, y + 25, 74, 34);
+  context.fillStyle = "#e6cf91";
+  context.fillRect(x + 18, y + 19, 9, 8);
+  context.fillRect(x + 57, y + 50, 8, 8);
+  context.fillRect(x + 21, y + 57, 6, 6);
+  context.fillStyle = "#4a3b61";
+  context.fillRect(x + 24, y + 36, 6, 7);
+  context.fillRect(x + 50, y + 36, 6, 7);
+  context.fillRect(x + 32, y + 51, 16, 5);
+  context.fillStyle = "#e794a0";
+  context.fillRect(x + 16, y + 47, 8, 5);
+  context.fillRect(x + 56, y + 47, 8, 5);
+}
+
 function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number) {
-  const storm = level.theme === "boar-storm";
-  const night = level.theme === "forest-night" || level.theme === "wolf-moon" || storm;
+  const storm = level.theme === "boar-storm" || level.theme === "sky-storm";
+  const night = level.theme === "forest-night" || level.theme === "wolf-moon" || level.theme === "boar-storm";
   const wolves = level.world === 3;
   const boars = level.world === 4;
-  const forest = level.world >= 2;
+  const pirates = level.world === 5;
+  const forest = level.world >= 2 && level.world <= 4;
   const sunset = level.theme === "orchard-sunset" || level.theme === "forest-dusk" || level.theme === "wolf-pines";
-  const sky = storm ? "#45475f" : boars ? "#d39462" : night || level.theme === "wolf-moon" ? "#171a3d" : wolves ? "#8d7894" : sunset ? "#f7a873" : "#91dcf4";
+  const sky = level.theme === "sky-storm" ? "#596581" : pirates ? "#72c8ed" : storm ? "#45475f" : boars ? "#d39462" : night ? "#171a3d" : wolves ? "#8d7894" : sunset ? "#f7a873" : "#91dcf4";
   context.fillStyle = sky;
   context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
 
   if (night) {
-    context.fillStyle = "#fff4b8";
-    context.fillRect(785, 55, 76, 76);
-    context.fillStyle = sky;
-    context.fillRect(760, 42, 63, 63);
+    drawHappyMoon(context, 770, 46, level.world === 2);
     context.fillStyle = "#f5dfff";
     for (let index = 0; index < 18; index += 1) {
       const x = (index * 157 + 43) % VIEW_WIDTH;
@@ -81,33 +129,42 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.fillRect(x, y, index % 3 === 0 ? 4 : 2, index % 3 === 0 ? 4 : 2);
     }
   } else {
-    context.fillStyle = sunset ? "#fff0b5" : "#ffe36f";
-    context.fillRect(765, 54, 70, 70);
+    drawHappySun(context, 770, 46, sunset || storm, pirates);
   }
 
-  const cloudColor = storm ? "#77758b" : night ? "#5c548c" : boars ? "#ffe1b5" : sunset ? "#ffe0cf" : "#f8fdff";
+  const cloudColor = level.theme === "sky-storm" ? "#aeb8ce" : storm ? "#77758b" : night ? "#5c548c" : boars ? "#ffe1b5" : sunset ? "#ffe0cf" : "#f8fdff";
   for (let index = 0; index < 7; index += 1) {
     const x = index * 310 - ((cameraX * 0.12) % 310) - 90;
     drawPixelCloud(context, x, 72 + (index % 3) * 48, cloudColor);
   }
 
-  const farColor = boars ? (storm ? "#313c45" : "#596548") : wolves ? "#303956" : forest ? (night ? "#342c5f" : "#5d617b") : sunset ? "#c86d68" : "#6db6b1";
+  const farColor = pirates ? (storm ? "#44506c" : "#7fb6c9") : boars ? (storm ? "#313c45" : "#596548") : wolves ? "#303956" : forest ? (night ? "#342c5f" : "#5d617b") : sunset ? "#c86d68" : "#6db6b1";
   context.fillStyle = farColor;
-  context.beginPath();
-  context.moveTo(0, 390);
-  for (let x = 0; x <= VIEW_WIDTH + 100; x += 100) {
-    const worldX = x + cameraX * 0.22;
-    const y = 300 + ((Math.floor(worldX / 100) % 3) * 23);
-    context.lineTo(x, y);
+  if (pirates) {
+    for (let index = -1; index < 6; index += 1) {
+      const x = index * 230 - ((cameraX * 0.18) % 230);
+      drawPixelCloud(context, x, 330 + (index % 2) * 55, farColor);
+      context.fillStyle = storm ? "#343c58" : "#557b91";
+      context.fillRect(Math.round(x + 35), 385 + (index % 2) * 55, 54, 10);
+      context.fillRect(Math.round(x + 48), 395 + (index % 2) * 55, 28, 15);
+    }
+  } else {
+    context.beginPath();
+    context.moveTo(0, 390);
+    for (let x = 0; x <= VIEW_WIDTH + 100; x += 100) {
+      const worldX = x + cameraX * 0.22;
+      const y = 300 + ((Math.floor(worldX / 100) % 3) * 23);
+      context.lineTo(x, y);
+    }
+    context.lineTo(VIEW_WIDTH, 480);
+    context.lineTo(0, 480);
+    context.closePath();
+    context.fill();
   }
-  context.lineTo(VIEW_WIDTH, 480);
-  context.lineTo(0, 480);
-  context.closePath();
-  context.fill();
 
   const treeSpacing = forest ? 155 : 220;
   const firstTree = Math.floor((cameraX * 0.45) / treeSpacing) - 1;
-  for (let index = firstTree; index < firstTree + 9; index += 1) {
+  for (let index = firstTree; !pirates && index < firstTree + 9; index += 1) {
     const x = index * treeSpacing - cameraX * 0.45;
     const tall = 118 + ((index * 19) % 42);
     context.fillStyle = boars ? "#50372f" : wolves ? "#252a3c" : night ? "#281c49" : forest ? "#3d665e" : "#725039";
@@ -151,6 +208,53 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
 function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, forest: boolean, playerX: number) {
   const x = Math.round(platform.x - cameraX);
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
+  if (platform.kind === "ship") {
+    const mastX = x + Math.round(platform.width * 0.58);
+    context.fillStyle = "#4a2b34";
+    context.fillRect(mastX, platform.y - 118, 8, 125);
+    context.fillStyle = "#fff0c9";
+    context.beginPath();
+    context.moveTo(mastX + 8, platform.y - 108);
+    context.lineTo(mastX + Math.min(92, platform.width * 0.28), platform.y - 66);
+    context.lineTo(mastX + 8, platform.y - 28);
+    context.closePath();
+    context.fill();
+    context.fillStyle = "#b76bd0";
+    context.fillRect(mastX + 13, platform.y - 82, Math.min(48, platform.width * 0.14), 9);
+    context.fillStyle = "#6f3e2e";
+    context.fillRect(x + 8, platform.y, platform.width - 16, 18);
+    context.fillStyle = "#d49a55";
+    context.fillRect(x + 3, platform.y, platform.width - 6, 7);
+    context.beginPath();
+    context.moveTo(x + 18, platform.y + 18);
+    context.lineTo(x + platform.width - 12, platform.y + 18);
+    context.lineTo(x + platform.width - 58, platform.y + 72);
+    context.lineTo(x + 68, platform.y + 72);
+    context.closePath();
+    context.fillStyle = "#7b4634";
+    context.fill();
+    context.fillStyle = "#3b2637";
+    context.fillRect(x + 80, platform.y + 35, Math.max(28, platform.width - 160), 7);
+    for (let porthole = 92; porthole < platform.width - 70; porthole += 62) {
+      context.fillStyle = "#f6c75e";
+      context.fillRect(x + porthole, platform.y + 27, 13, 13);
+      context.fillStyle = "#74c5df";
+      context.fillRect(x + porthole + 3, platform.y + 30, 7, 7);
+    }
+    return;
+  }
+  if (platform.kind === "air-plank") {
+    context.fillStyle = "#513143";
+    context.fillRect(x, platform.y, platform.width, platform.height);
+    context.fillStyle = "#d79855";
+    context.fillRect(x + 4, platform.y + 3, platform.width - 8, 8);
+    context.fillStyle = "#fff2d2";
+    context.fillRect(x + 12, platform.y + platform.height, platform.width - 24, 8);
+    context.fillRect(x + 28, platform.y + platform.height + 6, Math.max(24, platform.width - 56), 8);
+    context.fillStyle = "#8a5a38";
+    for (let board = 20; board < platform.width; board += 28) context.fillRect(x + board, platform.y + 3, 4, 11);
+    return;
+  }
   if (platform.kind === "spring") {
     context.fillStyle = "#3a2149";
     context.fillRect(x, platform.y, platform.width, platform.height);
@@ -328,6 +432,50 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
       context.fillRect(x + 13, y + 21, 9, 10);
       context.fillRect(x + 20, y + 18, 9, 10);
     }
+  } else if (enemy.kind === "parrot") {
+    const flapUp = Math.sin(enemy.phase * 2.3) > 0;
+    context.fillStyle = "#2d3156";
+    context.fillRect(x + 12, y + 8, 26, 20);
+    context.fillStyle = "#e65362";
+    context.fillRect(x + 20, y + 4, 18, 18);
+    context.fillStyle = "#ffd45f";
+    context.fillRect(x + 36, y + 10, 10, 6);
+    context.fillRect(x + 16, y + 22, 16, 7);
+    context.fillStyle = "#fff8e9";
+    context.fillRect(x + 29, y + 8, 4, 4);
+    context.fillStyle = "#251b39";
+    context.fillRect(x + 31, y + 9, 2, 2);
+    context.fillStyle = "#55b66c";
+    if (flapUp) {
+      context.fillRect(x + 6, y, 10, 20);
+      context.fillRect(x, y + 2, 9, 12);
+    } else {
+      context.fillRect(x + 6, y + 18, 12, 12);
+      context.fillRect(x + 1, y + 24, 9, 8);
+    }
+    context.fillStyle = "#58bdda";
+    context.fillRect(x + 8, y + 25, 8, 7);
+  } else if (enemy.kind === "pirate") {
+    context.fillStyle = "#4a294f";
+    context.fillRect(x + 5, y + 4, 36, 10);
+    context.fillRect(x + 12, y, 23, 8);
+    context.fillStyle = "#f3b07e";
+    context.fillRect(x + 12, y + 12, 24, 18);
+    context.fillStyle = "#2b203a";
+    context.fillRect(x + 14, y + 16, 8, 5);
+    context.fillRect(x + 18, y + 14, 4, 9);
+    context.fillStyle = "#fff3d4";
+    context.fillRect(x + 29, y + 17, 4, 4);
+    context.fillStyle = "#d9575e";
+    context.fillRect(x + 8, y + 29, 30, 16);
+    context.fillStyle = "#f6cb58";
+    context.fillRect(x + 8, y + 34, 30, 5);
+    context.fillStyle = "#382743";
+    context.fillRect(x + 6, y + 44, 14, 6);
+    context.fillRect(x + 27, y + 44, 14, 6);
+    context.fillStyle = "#f3b07e";
+    context.fillRect(x, y + 30, 9, 12);
+    context.fillRect(x + 38, y + 30, 8, 12);
   } else if (enemy.kind === "boar") {
     if (nearby) {
       context.fillStyle = "#fff0bd";
@@ -383,6 +531,33 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillRect(x, y + 34, 16, 6);
     context.fillRect(x + 42, y + 34, 16, 6);
   }
+}
+
+function drawCannon(context: CanvasRenderingContext2D, cannon: LiveCannon, cameraX: number) {
+  const x = Math.round(cannon.x - cameraX);
+  const barrelX = cannon.direction === -1 ? x - 13 : x + 22;
+  context.fillStyle = "#2c2638";
+  context.fillRect(barrelX, cannon.y + 3, 28, 13);
+  context.fillStyle = "#51435c";
+  context.fillRect(x, cannon.y + 8, 35, 24);
+  context.fillStyle = "#d0934f";
+  context.fillRect(x + 5, cannon.y + 27, 8, 8);
+  context.fillRect(x + 24, cannon.y + 27, 8, 8);
+  context.fillStyle = "#171421";
+  context.fillRect(cannon.direction === -1 ? barrelX : barrelX + 21, cannon.y + 5, 7, 9);
+}
+
+function drawCannonball(context: CanvasRenderingContext2D, ball: Cannonball, cameraX: number) {
+  if (!ball.active) return;
+  const x = Math.round(ball.x - cameraX);
+  const y = Math.round(ball.y);
+  context.fillStyle = "#171421";
+  context.fillRect(x, y, 24, 24);
+  context.fillRect(x - 4, y + 6, 32, 12);
+  context.fillStyle = "#81758e";
+  context.fillRect(x + 5, y + 4, 7, 6);
+  context.fillStyle = "#ffd76a";
+  context.fillRect(ball.vx < 0 ? x + 25 : x - 8, y + 8, 8, 8);
 }
 
 function drawCheckpoint(context: CanvasRenderingContext2D, worldX: number, cameraX: number, active: boolean) {
@@ -523,6 +698,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const warnedEnemies = new Set<string>();
     const hitBlocks = new Set<string>();
     const projectiles: Projectile[] = [];
+    const cannons: LiveCannon[] = (level.cannons ?? []).map((item, index) => ({ ...item, cooldown: 0.8 + index * 0.22 }));
+    const cannonballs: Cannonball[] = [];
     let cameraX = 0;
     let apples = 0;
     let checkpointIndex = -1;
@@ -547,6 +724,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       player.jumpsUsed = 0;
       player.doubleJumpFx = 0;
       projectiles.length = 0;
+      cannonballs.length = 0;
       callbacksRef.current.onLoseLife();
     };
 
@@ -726,6 +904,38 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         }
       });
 
+      cannons.forEach((cannon) => {
+        cannon.cooldown -= delta;
+        if (cannon.cooldown > 0 || Math.abs(player.x - cannon.x) > 900) return;
+        cannonballs.push({
+          x: cannon.x + (cannon.direction === -1 ? -24 : 38),
+          y: cannon.y + 4,
+          vx: cannon.direction * (205 + level.screen * 14),
+          active: true,
+        });
+        cannon.cooldown = cannon.interval;
+        callbacksRef.current.playSound("cannon");
+      });
+
+      cannonballs.forEach((ball) => {
+        if (!ball.active) return;
+        ball.x += ball.vx * delta;
+        if (ball.x < -80 || ball.x > level.width + 80) {
+          ball.active = false;
+          return;
+        }
+        const hitbox = { x: ball.x, y: ball.y, width: 24, height: 24 };
+        if (!intersects(player, hitbox)) return;
+        ball.active = false;
+        if (player.vy > 60 && previousBottom <= hitbox.y + 12) {
+          player.vy = -360;
+          player.jumpsUsed = 1;
+          callbacksRef.current.playSound("stomp");
+        } else {
+          hurt();
+        }
+      });
+
       projectiles.forEach((ball) => {
         ball.x += ball.vx * delta;
         ball.y += ball.vy * delta;
@@ -740,9 +950,20 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
             callbacksRef.current.playSound("stomp");
           }
         });
+        cannonballs.forEach((cannonball) => {
+          if (!cannonball.active) return;
+          if (intersects({ x: ball.x - 10, y: ball.y - 10, width: 20, height: 20 }, { x: cannonball.x, y: cannonball.y, width: 24, height: 24 })) {
+            cannonball.active = false;
+            ball.life = 0;
+            callbacksRef.current.playSound("stomp");
+          }
+        });
       });
       for (let index = projectiles.length - 1; index >= 0; index -= 1) {
         if (projectiles[index].life <= 0) projectiles.splice(index, 1);
+      }
+      for (let index = cannonballs.length - 1; index >= 0; index -= 1) {
+        if (!cannonballs[index].active) cannonballs.splice(index, 1);
       }
 
       level.checkpoints.forEach((checkpoint, index) => {
@@ -850,6 +1071,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.textAlign = "start";
         }
       });
+      cannons.forEach((cannon) => drawCannon(context, cannon, cameraX));
       items.forEach((item) => {
         if (collected.has(item.id)) return;
         const x = Math.round(item.x - cameraX);
@@ -860,6 +1082,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2);
       });
       enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, (enemy.kind === "wolf" || enemy.kind === "boar") && Math.abs(player.x - enemy.x) < 360));
+      cannonballs.forEach((ball) => drawCannonball(context, ball, cameraX));
       projectiles.forEach((ball) => {
         const x = Math.round(ball.x - cameraX);
         context.fillStyle = "#4b295f";

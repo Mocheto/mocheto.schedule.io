@@ -6,7 +6,7 @@ Las pistas `manzanos.mp3`, `gatitos.mp3` y `lobos.mp3` proceden del paquete [Pla
 
 - Licencia declarada por el autor: [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
 - Archivos originales: `stage1.mp3`, `stage2.mp3` y `stage3.mp3`.
-- El cuarto mundo reutiliza `lobos.mp3`; no incorpora una pista con otra licencia.
+- El cuarto mundo reutiliza `lobos.mp3` y el quinto reutiliza `manzanos.mp3`; no incorporan pistas con otra licencia.
 - Descargados el 3 de octubre de 2026.
 
 La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y trazabilidad.
@@ -16,5 +16,5 @@ La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y traz
 - Diseño de Noa: interpretación pixelada original creada para Super Noa a partir de referencias privadas. Las fotografías no se distribuyen ni forman parte del repositorio.
 - Gestos de Noa para los duelos: cuatro sprites originales derivados únicamente de la hoja pixelada del personaje, sin reutilizar las fotografías privadas.
 - Escenarios, objetos, enemigos e interfaz: creados específicamente para Super Noa.
-- Monstruos finales: Rey Zarzal, Condesa Niebla, Gran Lobo y Gran Jabalí son diseños pixelados originales generados para Super Noa. No copian personajes de Nintendo, Sega ni de otros juegos.
+- Monstruos finales: Rey Zarzal, Condesa Niebla, Gran Lobo, Gran Jabalí y Capitán Celeste son diseños pixelados originales generados para Super Noa. No copian personajes de Nintendo, Sega ni de otros juegos.
 - Efectos de sonido: sintetizados en tiempo real mediante Web Audio API.

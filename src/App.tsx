@@ -13,6 +13,13 @@ type Screen = "home" | "map" | "game" | "boss" | "complete" | "gameover" | "fini
 
 const emptyProgress: Progress = { unlocked: 0, levelStats: {}, stickers: [] };
 const emptySnapshot: GameSnapshot = { apples: 0, stickers: [], power: "normal", checkpoint: 0, paused: false };
+const worldCatalog = [
+  { id: 1, name: "El Prado de las Manzanas", description: "Sol, ramas anchas y manzanas crujientes." },
+  { id: 2, name: "El Bosque de los Gatitos", description: "Luciérnagas, luna y suaves maullidos." },
+  { id: 3, name: "El Bosque de los Lobos", description: "Pinos, luna llena y lobos enfadados." },
+  { id: 4, name: "El Bosque de los Jabalíes", description: "Bellotas, copas altas y jabalíes salvajes." },
+  { id: 5, name: "La Flota de las Nubes", description: "Barcos voladores, piratas, loros y cañones." },
+] as const;
 
 function readProgress(): Progress {
   try {
@@ -81,6 +88,7 @@ export default function App() {
       2: "./assets/music/gatitos.mp3",
       3: "./assets/music/lobos.mp3",
       4: "./assets/music/lobos.mp3",
+      5: "./assets/music/manzanos.mp3",
     } as const;
     const audio = new Audio(tracks[activeLevel.world]);
     audio.loop = true;
@@ -113,6 +121,7 @@ export default function App() {
       hurt: [145, 0.22, "sawtooth"], stomp: [210, 0.09, "square"], yarn: [760, 0.08, "triangle"],
       checkpoint: [880, 0.18, "triangle"], goal: [1046, 0.42, "square"], sticker: [1174, 0.32, "triangle"],
       howl: [196, 0.48, "sawtooth"], snort: [110, 0.22, "square"], countdown: [330, 0.08, "square"],
+      cannon: [92, 0.3, "sawtooth"],
     };
     const [frequency, duration, type] = notes[kind];
     oscillator.type = type;
@@ -222,7 +231,7 @@ export default function App() {
           <div className="home-copy">
             <p className="eyebrow">Una aventura de 8 bits</p>
             <h1 id="game-title"><span>SUPER</span> NOA</h1>
-            <p className="home-lead">Doce aventuras entre manzanos, ovillos, gatitos, lobos y jabalíes, con cuatro grandes duelos de piedra, papel o tijera.</p>
+            <p className="home-lead">Quince aventuras entre manzanos, gatitos, lobos, jabalíes y barcos pirata voladores, con cinco grandes duelos de piedra, papel o tijera.</p>
             <div className="home-actions">
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>▶ Jugar</button>
               <button className="pixel-button" type="button" onClick={() => setShowHelp(true)}>¿Cómo se juega?</button>
@@ -254,16 +263,16 @@ export default function App() {
             </div>
           </header>
           <div className="world-list">
-            {[1, 2, 3, 4].map((world) => (
-              <article className={`world-card world-${world}`} key={world}>
+            {worldCatalog.map((world) => (
+              <article className={`world-card world-${world.id}`} key={world.id}>
                 <div className="world-heading">
-                  <span className="world-number">Mundo {world}</span>
-                  <h3>{world === 1 ? "El Prado de las Manzanas" : world === 2 ? "El Bosque de los Gatitos" : world === 3 ? "El Bosque de los Lobos" : "El Bosque de los Jabalíes"}</h3>
-                  <p>{world === 1 ? "Sol, ramas anchas y manzanas crujientes." : world === 2 ? "Luciérnagas, luna y suaves maullidos." : world === 3 ? "Pinos, huellas y lobos enfadados." : "Bellotas, copas altas y jabalíes salvajes."}</p>
+                  <span className="world-number">Mundo {world.id}</span>
+                  <h3>{world.name}</h3>
+                  <p>{world.description}</p>
                 </div>
                 <div className="level-row">
                   {levels.map((level, index) => {
-                    if (level.world !== world) return null;
+                    if (level.world !== world.id) return null;
                     const unlocked = index <= progress.unlocked;
                     const stats = progress.levelStats[level.id];
                     return (
@@ -298,12 +307,12 @@ export default function App() {
               {screen === "game" && <button type="button" onClick={() => setPaused((value) => !value)} aria-label="Pausa">Ⅱ</button>}
             </div>
           </header>
-          <GameCanvas key={`${activeLevel.id}-${levelRun}`} level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSnapshot={handleSnapshot} playSound={playSound} />
+          <GameCanvas key={`game-${activeLevel.id}-${levelRun}`} level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSnapshot={handleSnapshot} playSound={playSound} />
           <div className="level-caption"><span>{themeNames[activeLevel.theme]}</span><span>Bandera {snapshot.checkpoint}/{activeLevel.checkpoints.length}</span></div>
 
           {screen === "boss" && activeLevel.boss && (
             <BossBattle
-              key={`${activeLevel.id}-${levelRun}`}
+              key={`boss-${activeLevel.id}-${levelRun}`}
               bossId={activeLevel.boss}
               apples={snapshot.apples}
               onSpendApple={spendBossApple}
@@ -344,7 +353,7 @@ export default function App() {
           {screen === "finished" && (
             <div className="modal-backdrop celebration"><div className="game-modal finale">
               <div className="cat-party" aria-hidden="true">🐱 🍎 🐱 🧶 🐱</div><p className="eyebrow">Aventura completada</p>
-              <h2>¡Bravo, Super Noa!</h2><p>Los cuatro guardianes son ahora amigos de Noa y todos los gatitos celebran una fiesta bajo la luna. Fin… por ahora.</p>
+              <h2>¡Bravo, Super Noa!</h2><p>Los cinco guardianes son ahora amigos de Noa. Los gatitos y la tripulación celebran una fiesta entre las nubes. Fin… por ahora.</p>
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>Ver el mapa</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("home")}>Ir al inicio</button>
             </div></div>
@@ -363,9 +372,9 @@ export default function App() {
             <div><span>🧶</span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
             <div><span>🍎</span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
             <div><span>🪨✋✌️</span><strong>Vencer al jefe</strong><small>Gana dos rondas; cada manzana permite repetir un duelo</small></div>
-            <div><span>✨</span><strong>Explorar arriba</strong><small>Las doce pegatinas están en rutas elevadas</small></div>
+            <div><span>✨</span><strong>Explorar arriba</strong><small>Las quince pegatinas están en rutas especiales</small></div>
           </div>
-          <p className="help-note">Ramas elásticas en los manzanos, niebla que aparece al acercarte, aullidos de lobos y copas altas para evitar a los jabalíes. También puedes usar los botones grandes o un mando.</p>
+          <p className="help-note">Ramas elásticas, niebla que aparece al acercarte, aullidos, copas altas, barcos voladores y cañones. También puedes usar los botones grandes o un mando.</p>
           <button className="pixel-button primary" type="button" onClick={() => { setShowHelp(false); setScreen("map"); }}>¡Vamos!</button>
         </div></div>
       )}
@@ -376,8 +385,8 @@ export default function App() {
           <p className="eyebrow">Hecho con cariño</p><h2>Créditos</h2>
           <p><strong>Super Noa</strong> es un juego original inspirado en los plataformas familiares de 8 bits.</p>
           <p>Personaje creado para este proyecto a partir de referencias privadas. Las fotografías originales no forman parte de la web.</p>
-          <p>Música de los cuatro mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
-          <p>Los cuatro monstruos finales son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios, interfaz y código creados para Super Noa.</p>
+          <p>Música de los cinco mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
+          <p>Los cinco monstruos finales son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios, interfaz y código creados para Super Noa.</p>
           <button className="pixel-button primary" type="button" onClick={() => setShowCredits(false)}>Cerrar</button>
         </div></div>
       )}

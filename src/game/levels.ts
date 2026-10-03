@@ -1,4 +1,4 @@
-import type { Enemy, Level, LevelItem, Platform, RewardBlock, Theme } from "./types";
+import type { Cannon, Enemy, Level, LevelItem, Platform, RewardBlock, Theme } from "./types";
 
 const ground = (segments: Array<[number, number]>): Platform[] =>
   segments.map(([x, width]) => ({ x, y: 456, width, height: 120, kind: "ground" }));
@@ -10,6 +10,9 @@ const ledge = (x: number, y: number, width: number, kind: Platform["kind"] = "br
   height: 22,
   kind,
 });
+
+const ship = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 26, kind: "ship" });
+const airPlank = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 18, kind: "air-plank" });
 
 const enemy = (
   id: string,
@@ -24,8 +27,8 @@ const enemy = (
   kind,
   x,
   y,
-  width: kind === "boar" ? 60 : kind === "wolf" ? 56 : kind === "bird" ? 46 : 42,
-  height: kind === "boar" ? 42 : kind === "wolf" ? 40 : kind === "bird" ? 32 : 36,
+  width: kind === "boar" ? 60 : kind === "wolf" ? 56 : kind === "bird" || kind === "parrot" || kind === "pirate" ? 46 : 42,
+  height: kind === "boar" ? 42 : kind === "wolf" ? 40 : kind === "pirate" ? 50 : kind === "bird" || kind === "parrot" ? 32 : 36,
   minX,
   maxX,
   speed,
@@ -39,6 +42,7 @@ const reward = (id: string, x: number, y = 330, kind: RewardBlock["reward"] = "c
   y,
   reward: kind,
 });
+const cannon = (id: string, x: number, y: number, direction: Cannon["direction"], interval = 2.4): Cannon => ({ id, x, y, direction, interval });
 
 export const themeNames: Record<Theme, string> = {
   "orchard-day": "Mañana entre manzanos",
@@ -49,6 +53,8 @@ export const themeNames: Record<Theme, string> = {
   "wolf-moon": "Bosque de los lobos",
   "boar-canopy": "Copas de los jabalíes",
   "boar-storm": "Tormenta de bellotas",
+  "sky-pirates": "La flota de las nubes",
+  "sky-storm": "La tormenta del Capitán Celeste",
 };
 
 export const levels: Level[] = [
@@ -471,6 +477,113 @@ export const levels: Level[] = [
     rewardBlocks: [reward("r1", 1080, 225), reward("r2", 3650, 225, "apple"), reward("r3", 6570, 225)],
     checkpoints: [1000, 1780, 2590, 3500, 4470, 5450, 6440, 7040],
     boss: "great-boar",
+  },
+  {
+    id: "5-1",
+    world: 5,
+    screen: 1,
+    title: "La flota de las nubes",
+    subtitle: "Salta entre barcos voladores y vigila a los primeros piratas.",
+    theme: "sky-pirates",
+    width: 5200,
+    start: { x: 80, y: 350 },
+    goalX: 5040,
+    platforms: [
+      ship(0, 440, 450), airPlank(520, 350, 130), ship(720, 405, 390), airPlank(1180, 315, 150),
+      ship(1410, 430, 370), airPlank(1860, 345, 140), ship(2070, 395, 410), airPlank(2550, 295, 150),
+      ship(2790, 430, 410), airPlank(3280, 340, 140), ship(3490, 400, 390), airPlank(3950, 300, 150),
+      ship(4200, 430, 390), airPlank(4660, 345, 130), ship(4840, 410, 360),
+    ],
+    enemies: [
+      enemy("pi1", "pirate", 190, 390, 110, 360, 38), enemy("pi2", "pirate", 830, 355, 770, 1010, 40),
+      enemy("pi3", "pirate", 2170, 345, 2120, 2370, 42), enemy("pi4", "pirate", 2910, 380, 2840, 3100, 44),
+      enemy("pi5", "pirate", 4300, 380, 4250, 4480, 46),
+      enemy("lo1", "parrot", 1260, 205, 1120, 1510, 52), enemy("lo2", "parrot", 2640, 190, 2480, 2920, 56),
+      enemy("lo3", "parrot", 4050, 195, 3880, 4320, 58),
+    ],
+    items: [
+      apple("a1", 330, 390), apple("a2", 565, 300), apple("a3", 970, 355), apple("a4", 1230, 265),
+      apple("a5", 1650, 380), apple("a6", 2600, 245), sticker("sticker-5-1", 2655, 245),
+      apple("a7", 3100, 380), apple("a8", 4000, 250), apple("a9", 4960, 360),
+    ],
+    rewardBlocks: [reward("r1", 1510, 300), reward("r2", 3580, 270, "apple")],
+    checkpoints: [1430, 2810, 4210],
+  },
+  {
+    id: "5-2",
+    world: 5,
+    screen: 2,
+    title: "El baile de las velas",
+    subtitle: "Los barcos se separan y los loros cruzan el camino más alto.",
+    theme: "sky-pirates",
+    width: 6600,
+    start: { x: 80, y: 350 },
+    goalX: 6420,
+    platforms: [
+      ship(0, 440, 410), airPlank(490, 345, 125), ship(690, 395, 360), airPlank(1130, 285, 135),
+      ship(1350, 430, 350), airPlank(1780, 335, 125), ship(1980, 385, 370), airPlank(2430, 270, 145),
+      ship(2780, 430, 370), airPlank(3230, 325, 130), ship(3440, 390, 360), airPlank(3880, 265, 140),
+      ship(4200, 430, 370), airPlank(4650, 320, 130), ship(4860, 385, 370), airPlank(5310, 260, 145),
+      ship(5590, 425, 370), airPlank(6040, 315, 125), ship(6220, 405, 380),
+    ],
+    enemies: [
+      enemy("pi1", "pirate", 170, 390, 100, 320, 42), enemy("pi2", "pirate", 790, 345, 750, 970, 44),
+      enemy("pi3", "pirate", 1430, 380, 1390, 1620, 46), enemy("pi4", "pirate", 2070, 335, 2030, 2260, 48),
+      enemy("pi5", "pirate", 3520, 340, 3480, 3710, 50), enemy("pi6", "pirate", 4950, 335, 4900, 5140, 52),
+      enemy("pi7", "pirate", 6300, 355, 6260, 6500, 54),
+      enemy("lo1", "parrot", 1190, 185, 1030, 1430, 58), enemy("lo2", "parrot", 2490, 175, 2320, 2760, 62),
+      enemy("lo3", "parrot", 3950, 170, 3760, 4210, 64), enemy("lo4", "parrot", 5370, 165, 5200, 5600, 66),
+      enemy("lo5", "parrot", 5930, 220, 5750, 6200, 68),
+    ],
+    items: [
+      apple("a1", 300, 390), apple("a2", 535, 295), apple("a3", 900, 345), apple("a4", 1175, 235),
+      apple("a5", 1510, 380), apple("a6", 2480, 220), apple("a7", 2960, 380), apple("a8", 3920, 215),
+      sticker("sticker-5-2", 3990, 215), apple("a9", 4380, 380), apple("a10", 5350, 210), apple("a11", 6380, 355),
+    ],
+    rewardBlocks: [reward("r1", 1450, 300), reward("r2", 3550, 255, "apple"), reward("r3", 5660, 290)],
+    checkpoints: [1370, 2800, 4220, 5610],
+  },
+  {
+    id: "5-3",
+    world: 5,
+    screen: 3,
+    title: "La tormenta del Capitán Celeste",
+    subtitle: "Cruza la gran flota, salta los cañonazos y reta al capitán pirata.",
+    theme: "sky-storm",
+    width: 8000,
+    start: { x: 80, y: 350 },
+    goalX: 7820,
+    platforms: [
+      ship(0, 440, 410), airPlank(480, 340, 120), ship(680, 390, 350), airPlank(1110, 275, 130),
+      ship(1320, 425, 350), airPlank(1750, 325, 120), ship(1950, 380, 360), airPlank(2390, 260, 140),
+      ship(2710, 430, 360), airPlank(3150, 320, 120), ship(3350, 380, 360), airPlank(3790, 255, 140),
+      ship(4110, 425, 360), airPlank(4550, 315, 120), ship(4750, 375, 360), airPlank(5190, 250, 140),
+      ship(5510, 425, 360), airPlank(5950, 310, 120), ship(6150, 375, 360), airPlank(6590, 245, 140),
+      ship(6900, 420, 360), airPlank(7340, 305, 120), ship(7540, 390, 460),
+    ],
+    enemies: [
+      enemy("pi1", "pirate", 170, 390, 100, 320, 46), enemy("pi2", "pirate", 760, 340, 720, 950, 48),
+      enemy("pi3", "pirate", 1400, 375, 1360, 1580, 50), enemy("pi4", "pirate", 2030, 330, 1990, 2220, 52),
+      enemy("pi5", "pirate", 3430, 330, 3390, 3620, 54), enemy("pi6", "pirate", 4830, 325, 4790, 5020, 56),
+      enemy("pi7", "pirate", 6230, 325, 6190, 6420, 58), enemy("pi8", "pirate", 7670, 340, 7620, 7880, 60),
+      enemy("lo1", "parrot", 1160, 175, 1000, 1370, 62), enemy("lo2", "parrot", 2450, 165, 2290, 2700, 66),
+      enemy("lo3", "parrot", 3860, 160, 3690, 4110, 68), enemy("lo4", "parrot", 5250, 155, 5080, 5510, 70),
+      enemy("lo5", "parrot", 6010, 205, 5840, 6230, 72), enemy("lo6", "parrot", 6650, 155, 6480, 6910, 74),
+      enemy("lo7", "parrot", 7410, 210, 7240, 7600, 76),
+    ],
+    items: [
+      apple("a1", 300, 390), apple("a2", 520, 290), apple("a3", 850, 340), apple("a4", 1150, 225),
+      apple("a5", 1500, 375), apple("a6", 2440, 210), apple("a7", 2890, 380), apple("a8", 3830, 205),
+      apple("a9", 4300, 375), apple("a10", 5230, 200), apple("a11", 5680, 375), apple("a12", 6630, 195),
+      sticker("sticker-5-3", 6690, 195), apple("a13", 7130, 370), apple("a14", 7700, 340),
+    ],
+    rewardBlocks: [reward("r1", 1410, 295), reward("r2", 3450, 250, "apple"), reward("r3", 6250, 245)],
+    cannons: [
+      cannon("c1", 930, 358, -1, 2.7), cannon("c2", 1570, 393, -1, 2.5), cannon("c3", 3610, 348, -1, 2.3),
+      cannon("c4", 5010, 343, -1, 2.1), cannon("c5", 7130, 388, -1, 1.9),
+    ],
+    checkpoints: [1340, 2730, 4130, 5530, 6920, 7560],
+    boss: "sky-captain",
   },
 ];
 
