@@ -881,8 +881,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
   });
 
   return (
-    <div className="game-stage">
-      <canvas ref={canvasRef} width={VIEW_WIDTH} height={VIEW_HEIGHT} aria-label={`Pantalla ${level.id}: ${level.title}`} />
+    <div className="game-frame">
+      <div className="game-stage">
+        <canvas ref={canvasRef} width={VIEW_WIDTH} height={VIEW_HEIGHT} aria-label={`Pantalla ${level.id}: ${level.title}`} />
+      </div>
       <div className="touch-controls" aria-label="Controles táctiles">
         <div className="touch-group touch-move">
           <button type="button" className="touch-button" aria-label="Mover a la izquierda" {...bindTouch("left")}>◀</button>

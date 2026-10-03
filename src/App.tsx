@@ -64,6 +64,7 @@ export default function App() {
   const [snapshot, setSnapshot] = useState<GameSnapshot>(emptySnapshot);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const playScreenRef = useRef<HTMLElement | null>(null);
   const activeLevel = levels[activeIndex];
 
   useEffect(() => {
@@ -210,7 +211,7 @@ export default function App() {
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
-    else void document.documentElement.requestFullscreen?.();
+    else void (playScreenRef.current ?? document.documentElement).requestFullscreen?.().catch(() => undefined);
   };
 
   return (
@@ -282,7 +283,7 @@ export default function App() {
       )}
 
       {(screen === "game" || screen === "boss" || screen === "complete" || screen === "gameover" || screen === "finished") && (
-        <section className="play-screen">
+        <section className="play-screen" ref={playScreenRef}>
           <header className="game-hud">
             <div className="hud-level"><span>{activeLevel.id}</span><strong>{activeLevel.title}</strong></div>
             <div className="hud-stats">

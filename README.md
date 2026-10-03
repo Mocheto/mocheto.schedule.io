@@ -28,7 +28,7 @@ La compilación estática se genera en `dist-pages/`. El workflow `.github/workf
 - Monstruos finales: gana dos rondas de piedra, papel o tijera. Cada derrota puede repetirse gastando una manzana; sin manzanas se reinicia la pantalla, pero no se pierde una vida.
 - Rutas especiales: ramas elásticas en el mundo 1, plataformas de niebla en el mundo 2, aullidos de aviso en el mundo 3 y un largo camino por las copas para evitar a los jabalíes en el mundo 4.
 - Álbum: hay una pegatina opcional en la ruta elevada de cada pantalla.
-- En móvil o tableta aparecen controles táctiles grandes.
+- En móvil o tableta aparecen controles táctiles grandes: debajo del juego en vertical y superpuestos dentro del escenario en horizontal o pantalla completa.
 - También se admite un mando mediante Gamepad API.
 
 El progreso y las pegatinas se guardan únicamente en el navegador con la clave `super-noa-progress-v1`.
