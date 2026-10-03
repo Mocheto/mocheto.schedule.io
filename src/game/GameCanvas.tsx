@@ -7,7 +7,7 @@ const GRAVITY = 1650;
 const MOVE_SPEED = 250;
 const JUMP_SPEED = 625;
 
-type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl" | "countdown";
+type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl" | "snort" | "countdown";
 
 type GameCanvasProps = {
   level: Level;
@@ -56,11 +56,13 @@ const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number,
 };
 
 function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number) {
-  const night = level.theme === "forest-night" || level.theme === "wolf-moon";
+  const storm = level.theme === "boar-storm";
+  const night = level.theme === "forest-night" || level.theme === "wolf-moon" || storm;
   const wolves = level.world === 3;
+  const boars = level.world === 4;
   const forest = level.world >= 2;
   const sunset = level.theme === "orchard-sunset" || level.theme === "forest-dusk" || level.theme === "wolf-pines";
-  const sky = night || level.theme === "wolf-moon" ? "#171a3d" : wolves ? "#8d7894" : sunset ? "#f7a873" : "#91dcf4";
+  const sky = storm ? "#45475f" : boars ? "#d39462" : night || level.theme === "wolf-moon" ? "#171a3d" : wolves ? "#8d7894" : sunset ? "#f7a873" : "#91dcf4";
   context.fillStyle = sky;
   context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
 
@@ -80,13 +82,13 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
     context.fillRect(765, 54, 70, 70);
   }
 
-  const cloudColor = night ? "#5c548c" : sunset ? "#ffe0cf" : "#f8fdff";
+  const cloudColor = storm ? "#77758b" : night ? "#5c548c" : boars ? "#ffe1b5" : sunset ? "#ffe0cf" : "#f8fdff";
   for (let index = 0; index < 7; index += 1) {
     const x = index * 310 - ((cameraX * 0.12) % 310) - 90;
     drawPixelCloud(context, x, 72 + (index % 3) * 48, cloudColor);
   }
 
-  const farColor = wolves ? "#303956" : forest ? (night ? "#342c5f" : "#5d617b") : sunset ? "#c86d68" : "#6db6b1";
+  const farColor = boars ? (storm ? "#313c45" : "#596548") : wolves ? "#303956" : forest ? (night ? "#342c5f" : "#5d617b") : sunset ? "#c86d68" : "#6db6b1";
   context.fillStyle = farColor;
   context.beginPath();
   context.moveTo(0, 390);
@@ -105,9 +107,9 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
   for (let index = firstTree; index < firstTree + 9; index += 1) {
     const x = index * treeSpacing - cameraX * 0.45;
     const tall = 118 + ((index * 19) % 42);
-    context.fillStyle = wolves ? "#252a3c" : night ? "#281c49" : forest ? "#3d665e" : "#725039";
+    context.fillStyle = boars ? "#50372f" : wolves ? "#252a3c" : night ? "#281c49" : forest ? "#3d665e" : "#725039";
     context.fillRect(Math.round(x + 64), 430 - tall, 28, tall);
-    context.fillStyle = wolves ? "#34485a" : night ? "#40366d" : forest ? "#477d68" : "#4d9b63";
+    context.fillStyle = boars ? (storm ? "#405347" : "#57744d") : wolves ? "#34485a" : night ? "#40366d" : forest ? "#477d68" : "#4d9b63";
     if (wolves) {
       context.beginPath();
       context.moveTo(Math.round(x + 76), 250 - (index % 2) * 18);
@@ -115,6 +117,12 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.lineTo(Math.round(x + 148), 370);
       context.closePath();
       context.fill();
+    } else if (boars) {
+      context.fillRect(Math.round(x + 4), 285 - (index % 2) * 20, 145, 58);
+      context.fillRect(Math.round(x + 22), 325 - (index % 2) * 20, 112, 46);
+      context.fillStyle = "#b57b3e";
+      context.fillRect(Math.round(x + 30), 311 - (index % 2) * 20, 8, 8);
+      context.fillRect(Math.round(x + 110), 300 - (index % 2) * 20, 8, 8);
     } else {
       context.fillRect(Math.round(x + 18), 290 - (index % 2) * 18, 118, 76);
       context.fillRect(Math.round(x), 325 - (index % 2) * 18, 155, 62);
@@ -162,6 +170,19 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fillStyle = "#b99ddd";
     context.fillRect(x + 8, platform.y + 16, platform.width - 16, 6);
     context.restore();
+    return;
+  }
+  if (platform.kind === "canopy") {
+    context.fillStyle = "#4b3028";
+    context.fillRect(x, platform.y + 8, platform.width, platform.height - 8);
+    context.fillStyle = "#bd8444";
+    context.fillRect(x, platform.y + 8, platform.width, 7);
+    context.fillStyle = "#5f8b49";
+    context.fillRect(x + 5, platform.y, platform.width - 10, 11);
+    for (let leaf = 12; leaf < platform.width - 8; leaf += 28) {
+      context.fillStyle = leaf % 56 ? "#75a855" : "#486f42";
+      context.fillRect(x + leaf, platform.y - 5, 18, 12);
+    }
     return;
   }
   if (platform.kind === "branch") {
@@ -282,6 +303,36 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillRect(x + 12, y + 18, 5, 5);
     context.fillRect(x + 29, y + 18, 5, 5);
     context.fillRect(x + 19, y + 27, 9, 3);
+  } else if (enemy.kind === "boar") {
+    if (nearby) {
+      context.fillStyle = "#fff0bd";
+      context.fillRect(x - 5, y - 34, 72, 23);
+      context.fillStyle = "#4a2b2e";
+      context.font = "bold 12px monospace";
+      context.textAlign = "center";
+      context.fillText("¡OINK!", x + 30, y - 18);
+      context.textAlign = "start";
+    }
+    context.fillStyle = "#4b2f2b";
+    context.fillRect(x + 5, y + 11, 50, 27);
+    context.fillRect(x + 15, y + 3, 35, 27);
+    context.fillRect(x + 10, y - 2, 12, 13);
+    context.fillRect(x + 43, y - 2, 12, 13);
+    context.fillStyle = "#986047";
+    context.fillRect(x + 19, y + 15, 29, 17);
+    context.fillStyle = "#e58c79";
+    context.fillRect(x + 24, y + 21, 19, 10);
+    context.fillStyle = "#2d1d24";
+    context.fillRect(x + 28, y + 24, 4, 4);
+    context.fillRect(x + 37, y + 24, 4, 4);
+    context.fillRect(x + 20, y + 11, 5, 5);
+    context.fillRect(x + 43, y + 11, 5, 5);
+    context.fillStyle = "#fff2cf";
+    context.fillRect(x + 18, y + 27, 6, 8);
+    context.fillRect(x + 44, y + 27, 6, 8);
+    context.fillStyle = "#2d1d24";
+    context.fillRect(x, y + 36, 18, 6);
+    context.fillRect(x + 44, y + 36, 18, 6);
   } else {
     if (nearby) {
       context.fillStyle = "#fff3c4";
@@ -442,7 +493,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const items: LiveItem[] = level.items.map((item) => ({ ...item, age: 99, rise: 1, fromBlock: false }));
     const collected = new Set<string>();
     const collectedStickers = new Set<string>();
-    const warnedWolves = new Set<string>();
+    const warnedEnemies = new Set<string>();
     const hitBlocks = new Set<string>();
     const projectiles: Projectile[] = [];
     let cameraX = 0;
@@ -619,9 +670,13 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         if (!enemy.active) return;
         enemy.phase += delta * 2.4;
         enemy.x += enemy.vx * delta;
-        if (enemy.kind === "wolf" && Math.abs(player.x - enemy.x) < 340 && !warnedWolves.has(enemy.id)) {
-          warnedWolves.add(enemy.id);
-          callbacksRef.current.playSound("howl");
+        const enemyDistance = Math.abs(player.x - enemy.x);
+        if ((enemy.kind === "wolf" || enemy.kind === "boar") && enemyDistance < 340 && !warnedEnemies.has(enemy.id)) {
+          warnedEnemies.add(enemy.id);
+          callbacksRef.current.playSound(enemy.kind === "boar" ? "snort" : "howl");
+        }
+        if (enemy.kind === "boar" && enemyDistance < 310) {
+          enemy.vx = (player.x < enemy.x ? -1 : 1) * Math.max(82, Math.abs(enemy.vx));
         }
         if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
           enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
@@ -698,7 +753,6 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       if (player.power === "cat") {
         row = 3;
         column = player.grounded ? (Math.abs(player.vx) > 25 ? runningFrame % 2 : 0) : 2;
-        if (shootCooldown > 0.16) column = 3;
       } else if (!player.grounded) {
         row = 2;
         column = player.vy < 0 ? 0 : 1;
@@ -771,7 +825,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         else if (item.kind === "cat") drawCatPower(context, x, y + bob);
         else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2);
       });
-      enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, enemy.kind === "wolf" && Math.abs(player.x - enemy.x) < 360));
+      enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, (enemy.kind === "wolf" || enemy.kind === "boar") && Math.abs(player.x - enemy.x) < 360));
       projectiles.forEach((ball) => {
         const x = Math.round(ball.x - cameraX);
         context.fillStyle = "#4b295f";

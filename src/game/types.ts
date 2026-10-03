@@ -1,4 +1,4 @@
-export type Theme = "orchard-day" | "orchard-sunset" | "forest-dusk" | "forest-night" | "wolf-pines" | "wolf-moon";
+export type Theme = "orchard-day" | "orchard-sunset" | "forest-dusk" | "forest-night" | "wolf-pines" | "wolf-moon" | "boar-canopy" | "boar-storm";
 
 export type Rect = {
   x: number;
@@ -8,12 +8,12 @@ export type Rect = {
 };
 
 export type Platform = Rect & {
-  kind?: "ground" | "branch" | "stone" | "spring" | "mist";
+  kind?: "ground" | "branch" | "stone" | "spring" | "mist" | "canopy";
 };
 
 export type Enemy = Rect & {
   id: string;
-  kind: "slime" | "beetle" | "cloud" | "wolf";
+  kind: "slime" | "beetle" | "cloud" | "wolf" | "boar";
   minX: number;
   maxX: number;
   speed: number;
@@ -33,11 +33,11 @@ export type RewardBlock = {
   reward: "apple" | "cat";
 };
 
-export type BossId = "bramble-king" | "mist-countess" | "great-wolf";
+export type BossId = "bramble-king" | "mist-countess" | "great-wolf" | "great-boar";
 
 export type Level = {
   id: string;
-  world: 1 | 2 | 3;
+  world: 1 | 2 | 3 | 4;
   screen: 1 | 2 | 3;
   title: string;
   subtitle: string;

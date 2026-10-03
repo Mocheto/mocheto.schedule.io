@@ -195,7 +195,7 @@ h1 span {
   width: 47px; height: 47px; border: 3px solid #f0dff8; color: #fff; background: #56366b; font-size: 1.3rem; cursor: pointer;
 }
 
-.world-list { max-width: 1380px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.world-list { max-width: 1380px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .world-card { min-height: 460px; border: 6px solid #2d1b39; padding: clamp(22px, 4vw, 42px); box-shadow: 10px 10px 0 rgba(26, 15, 38, .55); overflow: hidden; position: relative; }
 .world-card::after { content: ""; position: absolute; width: 220px; height: 220px; right: -70px; bottom: -70px; border-radius: 50%; opacity: .26; }
 .world-1 { background: linear-gradient(160deg, #4f9e68, #91c867); }
@@ -204,6 +204,8 @@ h1 span {
 .world-2::after { background: radial-gradient(circle at 30% 30%, #fff2a5 0 18%, transparent 19%), #302752; }
 .world-3 { background: linear-gradient(160deg, #334b52, #4b3b60); }
 .world-3::after { background: repeating-conic-gradient(#f5c95f 0 8deg, #2b273b 8deg 18deg); }
+.world-4 { background: linear-gradient(160deg, #7b4b31, #3f653f); }
+.world-4::after { background: radial-gradient(circle at 35% 45%, #c88b43 0 16%, transparent 17%), repeating-conic-gradient(#784326 0 10deg, #283f2a 10deg 20deg); }
 .world-number { display: inline-block; color: var(--ink); background: var(--gold); padding: 7px 11px; border: 3px solid var(--ink); font-weight: 900; }
 .world-heading h3 { margin: 22px 0 7px; font-size: clamp(1.5rem, 3vw, 2.35rem); line-height: 1; color: #fff; }
 .world-heading p { margin: 0 0 28px; font-family: system-ui, sans-serif; color: rgba(255,255,255,.86); }
@@ -320,6 +322,7 @@ h1 span {
 @keyframes countdown-pop { from { opacity: .35; transform: translate(-50%, -50%) rotate(6deg) scale(.45); } }
 .boss-sprite-window { position: relative; width: clamp(86px, 18vw, 210px); aspect-ratio: 434.4 / 724; overflow: hidden; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
 .boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; clip-path: inset(0 5%); transform: scaleX(1.1); image-rendering: pixelated; }
+.boss-sprite-window.clean-frame .boss-sprite-frame { clip-path: none; transform: none; }
 .duel-noa-sprite { display: grid; place-items: center; width: clamp(86px, 16vw, 175px); aspect-ratio: 524 / 724; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
 .duel-noa-sprite > img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .duel-noa-idle { width: 84%; aspect-ratio: .89; background-position: 0 0; background-repeat: no-repeat; background-size: 400% 400%; image-rendering: pixelated; }
@@ -372,7 +375,6 @@ h1 span {
 
 @media (min-width: 901px) and (max-width: 1150px) {
   .world-list { grid-template-columns: 1fr 1fr; }
-  .world-3 { grid-column: 1 / -1; }
 }
 
 @media (max-width: 620px) {

@@ -36,6 +36,7 @@ const bosses: Record<BossId, { name: string; assetPrefix: string; intro: string 
   "bramble-king": { name: "Rey Zarzal", assetPrefix: "./assets/sprites/boss-rey-zarzal", intro: "El guardián de las raíces te reta a un duelo." },
   "mist-countess": { name: "Condesa Niebla", assetPrefix: "./assets/sprites/boss-condesa-niebla", intro: "La guardiana de la luna quiere probar tu ingenio." },
   "great-wolf": { name: "Gran Lobo", assetPrefix: "./assets/sprites/boss-gran-lobo", intro: "El rey de las huellas te espera para el último duelo." },
+  "great-boar": { name: "Gran Jabalí", assetPrefix: "./assets/sprites/boss-gran-jabali", intro: "El guardián de las bellotas protege las copas del bosque." },
 };
 
 const choiceById = Object.fromEntries(choices.map((choice) => [choice.id, choice])) as Record<Choice, (typeof choices)[number]>;
@@ -61,7 +62,7 @@ function getRuleText(noa: Choice, boss: Choice) {
 function BossSprite({ assetPrefix, frame, name }: { assetPrefix: string; frame: number; name: string }) {
   const gesture = frame === 1 ? "piedra" : frame === 2 ? "papel" : frame === 3 ? "tijera" : frame === 4 ? "derrota" : "reto";
   return (
-    <div className="boss-sprite-window" role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
+    <div className={`boss-sprite-window ${assetPrefix.includes("gran-jabali") ? "clean-frame" : ""}`} role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
       <img className="boss-sprite-frame" src={`${assetPrefix}-${frame}.png`} alt="" />
     </div>
   );
