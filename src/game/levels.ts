@@ -32,6 +32,7 @@ const enemy = (
 });
 
 const apple = (id: string, x: number, y: number): LevelItem => ({ id, kind: "apple", x, y });
+const sticker = (id: string, x: number, y: number): LevelItem => ({ id, kind: "sticker", x, y });
 const reward = (id: string, x: number, y = 330, kind: RewardBlock["reward"] = "cat"): RewardBlock => ({
   id,
   x,
@@ -64,6 +65,7 @@ export const levels: Level[] = [
       ledge(330, 370, 180), ledge(590, 315, 150), ledge(1030, 370, 190),
       ledge(1510, 300, 180), ledge(1980, 365, 170), ledge(2310, 310, 190),
       ledge(2790, 350, 190), ledge(3150, 295, 180),
+      ledge(850, 448, 82, "spring"), ledge(2960, 448, 82, "spring"),
     ],
     enemies: [
       enemy("e1", "slime", 560, 420, 520, 720, 26),
@@ -72,7 +74,11 @@ export const levels: Level[] = [
       enemy("e4", "beetle", 2630, 420, 2500, 2860, 34),
       enemy("e5", "slime", 3220, 420, 3060, 3360, 30),
     ],
-    items: [apple("a1", 410, 320), apple("a2", 1100, 320), apple("a3", 2380, 260), apple("a4", 3210, 245)],
+    items: [
+      apple("a1", 250, 410), apple("a2", 635, 265), apple("a3", 1100, 320),
+      apple("a4", 1540, 250), apple("a5", 2380, 260), apple("a6", 3210, 245),
+      sticker("sticker-1-1", 1635, 250),
+    ],
     rewardBlocks: [reward("r1", 1370)],
     checkpoints: [1120, 2350],
   },
@@ -92,7 +98,7 @@ export const levels: Level[] = [
       ledge(1500, 310, 210), ledge(1980, 360, 200),
       ledge(2520, 320, 180), ledge(3110, 350, 210),
       ledge(3560, 285, 180), ledge(4480, 350, 190),
-      ledge(4780, 290, 180),
+      ledge(4780, 290, 180), ledge(1325, 448, 82, "spring"), ledge(3390, 448, 82, "spring"),
     ],
     enemies: [
       enemy("e1", "beetle", 690, 420, 610, 930, 34),
@@ -103,7 +109,11 @@ export const levels: Level[] = [
       enemy("e6", "cloud", 4430, 255, 4280, 4660, 24),
       enemy("e7", "beetle", 4830, 420, 4650, 4950, 38),
     ],
-    items: [apple("a1", 350, 320), apple("a2", 1560, 260), apple("a3", 2580, 270), apple("a4", 3630, 235), apple("a5", 4850, 240)],
+    items: [
+      apple("a1", 230, 410), apple("a2", 585, 255), apple("a3", 1560, 260),
+      apple("a4", 2580, 270), apple("a5", 3580, 235), sticker("sticker-1-2", 3680, 235),
+      apple("a6", 4850, 240),
+    ],
     rewardBlocks: [reward("r1", 850), reward("r2", 3850, 325, "apple")],
     checkpoints: [1290, 2780, 4250],
   },
@@ -123,6 +133,7 @@ export const levels: Level[] = [
       ledge(1740, 345, 200), ledge(2180, 280, 190), ledge(2670, 350, 200),
       ledge(3290, 360, 210), ledge(3730, 295, 180), ledge(4230, 345, 210),
       ledge(4940, 350, 200), ledge(5400, 285, 190), ledge(5860, 350, 210),
+      ledge(1600, 448, 82, "spring"), ledge(5570, 448, 82, "spring"),
     ],
     enemies: [
       enemy("e1", "beetle", 590, 420, 450, 850, 34),
@@ -135,9 +146,10 @@ export const levels: Level[] = [
       enemy("e8", "slime", 5900, 420, 5700, 6140, 32),
     ],
     items: [
-      apple("a1", 390, 310), apple("a2", 780, 250), apple("a3", 1810, 295),
-      apple("a4", 2720, 300), apple("a5", 3780, 245), apple("a6", 4990, 300),
-      apple("a7", 5450, 235), apple("a8", 5940, 300),
+      apple("a1", 250, 410), apple("a2", 780, 250), apple("a3", 1810, 295),
+      apple("a4", 2240, 230), sticker("sticker-1-3", 2325, 230),
+      apple("a5", 2720, 300), apple("a6", 3780, 245), apple("a7", 4990, 300),
+      apple("a8", 5450, 235), apple("a9", 5940, 300),
     ],
     rewardBlocks: [reward("r1", 930), reward("r2", 3910, 325, "apple")],
     checkpoints: [1560, 3100, 4740, 5740],
@@ -156,9 +168,9 @@ export const levels: Level[] = [
     platforms: [
       ...ground([[0, 4000]]),
       ledge(290, 350, 210, "stone"), ledge(910, 375, 190, "stone"),
-      ledge(1320, 305, 190), ledge(1810, 365, 180, "stone"),
-      ledge(2180, 295, 210), ledge(2720, 350, 190, "stone"),
-      ledge(3180, 290, 200), ledge(3510, 360, 180, "stone"),
+      ledge(1320, 305, 190, "mist"), ledge(1810, 365, 180, "stone"),
+      ledge(2180, 295, 210, "mist"), ledge(2720, 350, 190, "stone"),
+      ledge(3180, 290, 200, "mist"), ledge(3510, 360, 180, "stone"),
     ],
     enemies: [
       enemy("e1", "slime", 520, 420, 430, 650, 28),
@@ -168,7 +180,10 @@ export const levels: Level[] = [
       enemy("e5", "cloud", 3260, 235, 3100, 3420, 24),
       enemy("e6", "beetle", 3600, 420, 3480, 3740, 34),
     ],
-    items: [apple("a1", 380, 300), apple("a2", 1390, 255), apple("a3", 2240, 245), apple("a4", 3260, 240)],
+    items: [
+      apple("a1", 760, 410), apple("a2", 1345, 255), apple("a3", 2240, 245),
+      sticker("sticker-2-1", 2325, 245), apple("a4", 3260, 240),
+    ],
     rewardBlocks: [reward("r1", 1530)],
     checkpoints: [1180, 2460, 3380],
   },
@@ -184,10 +199,10 @@ export const levels: Level[] = [
     goalX: 5530,
     platforms: [
       ...ground([[0, 1300], [1390, 1300], [2790, 1400], [4300, 1400]]),
-      ledge(300, 365, 200, "stone"), ledge(650, 300, 180), ledge(1120, 380, 170, "stone"),
-      ledge(1640, 330, 210), ledge(2180, 285, 190),
-      ledge(3060, 350, 190, "stone"), ledge(3510, 290, 200), ledge(4620, 345, 190),
-      ledge(5050, 285, 190), ledge(5320, 360, 180, "stone"),
+      ledge(300, 365, 200, "stone"), ledge(650, 300, 180, "mist"), ledge(1120, 380, 170, "stone"),
+      ledge(1640, 330, 210), ledge(2180, 285, 190, "mist"),
+      ledge(3060, 350, 190, "stone"), ledge(3510, 290, 200, "mist"), ledge(4620, 345, 190),
+      ledge(5050, 285, 190, "mist"), ledge(5320, 360, 180, "stone"),
     ],
     enemies: [
       enemy("e1", "beetle", 520, 420, 420, 780, 34),
@@ -199,7 +214,10 @@ export const levels: Level[] = [
       enemy("e7", "cloud", 4700, 245, 4520, 4930, 25),
       enemy("e8", "beetle", 5230, 420, 5050, 5430, 38),
     ],
-    items: [apple("a1", 370, 315), apple("a2", 1710, 280), apple("a3", 3570, 240), apple("a4", 4690, 295), apple("a5", 5120, 235)],
+    items: [
+      apple("a1", 900, 410), apple("a2", 1710, 280), apple("a3", 3530, 240),
+      sticker("sticker-2-2", 3650, 240), apple("a4", 4690, 295), apple("a5", 5120, 235),
+    ],
     rewardBlocks: [reward("r1", 850), reward("r2", 3980, 325, "apple")],
     checkpoints: [1420, 2820, 4330],
   },
@@ -215,10 +233,10 @@ export const levels: Level[] = [
     goalX: 6630,
     platforms: [
       ...ground([[0, 1350], [1460, 1550], [3135, 1500], [4770, 2030]]),
-      ledge(330, 355, 200, "stone"), ledge(760, 290, 180), ledge(1120, 350, 190, "stone"),
-      ledge(1710, 345, 210), ledge(2210, 280, 190, "stone"), ledge(2700, 350, 200),
+      ledge(330, 355, 200, "stone"), ledge(760, 290, 180, "mist"), ledge(1120, 350, 190, "stone"),
+      ledge(1710, 345, 210), ledge(2210, 280, 190, "mist"), ledge(2700, 350, 200),
       ledge(3370, 350, 210, "stone"), ledge(3820, 285, 180), ledge(4310, 345, 210),
-      ledge(5050, 355, 200, "stone"), ledge(5520, 285, 190), ledge(6010, 345, 210, "stone"),
+      ledge(5050, 355, 200, "stone"), ledge(5520, 285, 190, "mist"), ledge(6010, 345, 210, "stone"),
     ],
     enemies: [
       enemy("e1", "slime", 540, 420, 420, 800, 30),
@@ -231,9 +249,9 @@ export const levels: Level[] = [
       enemy("e8", "beetle", 6100, 420, 5900, 6400, 40),
     ],
     items: [
-      apple("a1", 390, 305), apple("a2", 820, 240), apple("a3", 1760, 295),
+      apple("a1", 260, 410), apple("a2", 820, 240), apple("a3", 1760, 295),
       apple("a4", 2260, 230), apple("a5", 3420, 300), apple("a6", 4360, 295),
-      apple("a7", 5570, 235), apple("a8", 6060, 295),
+      apple("a7", 5530, 235), sticker("sticker-2-3", 5645, 235), apple("a8", 6060, 295),
     ],
     rewardBlocks: [reward("r1", 900), reward("r2", 4550, 325, "apple")],
     checkpoints: [1500, 3180, 4810, 5900],
@@ -262,7 +280,10 @@ export const levels: Level[] = [
       enemy("w4", "wolf", 2920, 416, 2760, 3190, 42),
       enemy("w5", "wolf", 3850, 416, 3690, 4170, 42),
     ],
-    items: [apple("a1", 400, 305), apple("a2", 1960, 235), apple("a3", 3370, 240), apple("a4", 3910, 300)],
+    items: [
+      apple("a1", 1000, 410), apple("a2", 1960, 235), apple("a3", 3315, 240),
+      sticker("sticker-3-1", 3410, 240), apple("a4", 3910, 300),
+    ],
     rewardBlocks: [reward("r1", 920)],
     checkpoints: [1220, 2620, 3650],
   },
@@ -293,7 +314,11 @@ export const levels: Level[] = [
       enemy("w7", "wolf", 5250, 416, 5080, 5550, 46),
       enemy("w8", "wolf", 5740, 416, 5580, 5910, 48),
     ],
-    items: [apple("a1", 390, 310), apple("a2", 1720, 290), apple("a3", 3210, 295), apple("a4", 4820, 295), apple("a5", 5310, 235), apple("a6", 5700, 300)],
+    items: [
+      apple("a1", 1040, 410), apple("a2", 1720, 290), apple("a3", 3210, 295),
+      apple("a4", 4820, 295), apple("a5", 5250, 235), sticker("sticker-3-2", 5350, 235),
+      apple("a6", 5700, 300),
+    ],
     rewardBlocks: [reward("r1", 850), reward("r2", 4010, 325, "apple")],
     checkpoints: [1370, 2880, 4450, 5450],
   },
@@ -327,9 +352,10 @@ export const levels: Level[] = [
       enemy("w9", "wolf", 6550, 416, 6350, 6840, 50),
     ],
     items: [
-      apple("a1", 390, 305), apple("a2", 810, 240), apple("a3", 1730, 295),
+      apple("a1", 250, 410), apple("a2", 810, 240), apple("a3", 1730, 295),
       apple("a4", 2210, 230), apple("a5", 3380, 300), apple("a6", 4360, 295),
-      apple("a7", 5640, 230), apple("a8", 6130, 295), apple("a9", 6570, 235),
+      apple("a7", 5600, 230), sticker("sticker-3-3", 5700, 230),
+      apple("a8", 6130, 295), apple("a9", 6570, 235),
     ],
     rewardBlocks: [reward("r1", 880), reward("r2", 4550, 325, "apple")],
     checkpoints: [1460, 3100, 4840, 5740, 6500],

@@ -2,16 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BossBattle } from "./game/BossBattle";
 import { GameCanvas, type SoundKind } from "./game/GameCanvas";
 import { levels, themeNames } from "./game/levels";
+import { stickerCatalog } from "./game/stickers";
 import type { GameSnapshot } from "./game/types";
 
 const STORAGE_KEY = "super-noa-progress-v1";
 
 type LevelStats = Record<string, { completed: boolean; bestApples: number }>;
-type Progress = { unlocked: number; levelStats: LevelStats };
+type Progress = { unlocked: number; levelStats: LevelStats; stickers: string[] };
 type Screen = "home" | "map" | "game" | "boss" | "complete" | "gameover" | "finished";
 
-const emptyProgress: Progress = { unlocked: 0, levelStats: {} };
-const emptySnapshot: GameSnapshot = { apples: 0, power: "normal", checkpoint: 0, paused: false };
+const emptyProgress: Progress = { unlocked: 0, levelStats: {}, stickers: [] };
+const emptySnapshot: GameSnapshot = { apples: 0, stickers: [], power: "normal", checkpoint: 0, paused: false };
 
 function readProgress(): Progress {
   try {
@@ -31,6 +32,7 @@ function readProgress(): Progress {
     return {
       unlocked,
       levelStats,
+      stickers: Array.isArray(saved.stickers) ? saved.stickers.filter((id): id is string => typeof id === "string") : [],
     };
   } catch {
     return emptyProgress;
@@ -57,6 +59,7 @@ export default function App() {
   const [muted, setMuted] = useState(() => localStorage.getItem("super-noa-muted") === "true");
   const [showHelp, setShowHelp] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  const [showAlbum, setShowAlbum] = useState(false);
   const [snapshot, setSnapshot] = useState<GameSnapshot>(emptySnapshot);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -105,12 +108,13 @@ export default function App() {
     const notes: Record<SoundKind, [number, number, OscillatorType]> = {
       apple: [660, 0.11, "square"], block: [410, 0.12, "square"], cat: [523, 0.28, "triangle"], jump: [360, 0.12, "square"],
       hurt: [145, 0.22, "sawtooth"], stomp: [210, 0.09, "square"], yarn: [760, 0.08, "triangle"],
-      checkpoint: [880, 0.18, "triangle"], goal: [1046, 0.42, "square"],
+      checkpoint: [880, 0.18, "triangle"], goal: [1046, 0.42, "square"], sticker: [1174, 0.32, "triangle"],
+      howl: [196, 0.48, "sawtooth"],
     };
     const [frequency, duration, type] = notes[kind];
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, now);
-    oscillator.frequency.exponentialRampToValueAtTime(kind === "hurt" ? 70 : frequency * 1.35, now + duration);
+    oscillator.frequency.exponentialRampToValueAtTime(kind === "hurt" || kind === "howl" ? 70 : frequency * 1.35, now + duration);
     gain.gain.setValueAtTime(0.075, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
     oscillator.connect(gain).connect(audioContext.destination);
@@ -142,10 +146,20 @@ export default function App() {
     });
   }, []);
 
+  const handleSnapshot = useCallback((next: GameSnapshot) => {
+    setSnapshot(next);
+    if (next.stickers.length === 0) return;
+    setProgress((current) => {
+      const newStickers = next.stickers.filter((id) => !current.stickers.includes(id));
+      return newStickers.length > 0 ? { ...current, stickers: [...current.stickers, ...newStickers] } : current;
+    });
+  }, []);
+
   const handleComplete = useCallback(() => {
     setProgress((current) => {
       const previous = current.levelStats[activeLevel.id];
       return {
+        ...current,
         unlocked: Math.max(current.unlocked, Math.min(levels.length - 1, activeIndex + 1)),
         levelStats: {
           ...current.levelStats,
@@ -170,7 +184,7 @@ export default function App() {
   };
 
   const resetProgress = () => {
-    if (!window.confirm("¿Empezar de nuevo? Se borrarán las pantallas completadas y las manzanas guardadas.")) return;
+    if (!window.confirm("¿Empezar de nuevo? Se borrarán las pantallas, las manzanas y las pegatinas guardadas.")) return;
     setProgress(emptyProgress);
     setActiveIndex(0);
     setLives(5);
@@ -204,6 +218,7 @@ export default function App() {
           </div>
           <nav className="home-footer" aria-label="Opciones">
             <button type="button" onClick={() => setMuted((value) => !value)}>{muted ? "🔇 Activar sonido" : "🔊 Sonido"}</button>
+            <button type="button" onClick={() => setShowAlbum(true)}>Álbum {progress.stickers.length}/9</button>
             <button type="button" onClick={() => setShowCredits(true)}>Créditos</button>
           </nav>
         </section>
@@ -215,6 +230,7 @@ export default function App() {
             <div><p className="eyebrow">Elige una pantalla</p><h2>El mapa de Noa</h2></div>
             <div className="map-actions">
               <span className="apple-total">🍎 {totalApples}</span>
+              <button className="album-button" type="button" onClick={() => setShowAlbum(true)}>✨ {progress.stickers.length}/9</button>
               <button className="icon-button" type="button" onClick={() => setScreen("home")} aria-label="Volver al inicio">⌂</button>
             </div>
           </header>
@@ -254,6 +270,7 @@ export default function App() {
             <div className="hud-stats">
               <span aria-label={`${lives} vidas`}>♥ × {lives}</span>
               <span aria-label={`${snapshot.apples} manzanas`}>🍎 × {snapshot.apples}</span>
+              <span aria-label={`${snapshot.stickers.length} pegatinas encontradas`}>✨ × {snapshot.stickers.length}</span>
               <span className={`power-chip power-${snapshot.power}`}>{snapshot.power === "cat" ? "🧶 Gato" : snapshot.power === "apple" ? "🍎 Protegida" : "Noa"}</span>
             </div>
             <div className="hud-actions">
@@ -262,7 +279,7 @@ export default function App() {
               {screen === "game" && <button type="button" onClick={() => setPaused((value) => !value)} aria-label="Pausa">Ⅱ</button>}
             </div>
           </header>
-          <GameCanvas level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSnapshot={setSnapshot} playSound={playSound} />
+          <GameCanvas level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSnapshot={handleSnapshot} playSound={playSound} />
           <div className="level-caption"><span>{themeNames[activeLevel.theme]}</span><span>Bandera {snapshot.checkpoint}/{activeLevel.checkpoints.length}</span></div>
 
           {screen === "boss" && activeLevel.boss && (
@@ -282,6 +299,7 @@ export default function App() {
               <div className="big-icon">{activeLevel.boss ? "🏆" : "🐱"}</div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
               <h2>Pantalla {activeLevel.id} completada</h2>
               <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. {activeLevel.boss ? "El monstruo guardián ha dejado libre el camino." : "La siguiente aventura ya está abierta."}</p>
+              {snapshot.stickers.length > 0 && <p className="sticker-found">✨ Pegatina de esta pantalla guardada en el álbum.</p>}
               <button className="pixel-button primary" type="button" onClick={nextLevel}>Siguiente pantalla ▶</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("map")}>Volver al mapa</button>
             </div></div>
@@ -313,13 +331,14 @@ export default function App() {
           <p className="eyebrow">Es muy fácil</p><h2>Cómo jugar</h2>
           <div className="help-grid">
             <div><span>◀ ▶</span><strong>Moverse</strong><small>Flechas o A y D</small></div>
-            <div><span>↑</span><strong>Saltar</strong><small>Espacio, W o flecha arriba</small></div>
+            <div><span>↑ ↑</span><strong>Doble salto</strong><small>Pulsa dos veces para llegar más alto</small></div>
             <div><span>▣</span><strong>Abrir cajas</strong><small>Salta y golpea la huella desde abajo</small></div>
             <div><span>🧶</span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
             <div><span>🍎</span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
             <div><span>🪨✋✌️</span><strong>Vencer al jefe</strong><small>Gana dos rondas de piedra, papel o tijera</small></div>
+            <div><span>✨</span><strong>Explorar arriba</strong><small>Las nueve pegatinas están en rutas elevadas</small></div>
           </div>
-          <p className="help-note">También puedes usar los botones grandes de la pantalla o un mando.</p>
+          <p className="help-note">Ramas elásticas en los manzanos, niebla que aparece al acercarte y aullidos que avisan de los lobos. También puedes usar los botones grandes o un mando.</p>
           <button className="pixel-button primary" type="button" onClick={() => { setShowHelp(false); setScreen("map"); }}>¡Vamos!</button>
         </div></div>
       )}
@@ -333,6 +352,28 @@ export default function App() {
           <p>Música de los tres mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
           <p>Los tres monstruos finales son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios, interfaz y código creados para Super Noa.</p>
           <button className="pixel-button primary" type="button" onClick={() => setShowCredits(false)}>Cerrar</button>
+        </div></div>
+      )}
+
+      {showAlbum && (
+        <div className="modal-backdrop"><div className="game-modal album-modal">
+          <button className="modal-close" type="button" onClick={() => setShowAlbum(false)} aria-label="Cerrar">×</button>
+          <p className="eyebrow">Colección de Noa</p><h2>Álbum de pegatinas</h2>
+          <p>Hay una pegatina escondida en la ruta elevada de cada pantalla.</p>
+          <div className="sticker-grid">
+            {stickerCatalog.map((sticker) => {
+              const found = progress.stickers.includes(sticker.id);
+              return (
+                <article className={`sticker-card ${found ? "is-found" : "is-locked"}`} key={sticker.id}>
+                  <span aria-hidden="true">{found ? sticker.icon : "?"}</span>
+                  <strong>{found ? sticker.name : `Mundo ${sticker.world}`}</strong>
+                  <small>{found ? "¡Encontrada!" : sticker.hint}</small>
+                </article>
+              );
+            })}
+          </div>
+          <p className="album-progress">✨ {progress.stickers.length} de {stickerCatalog.length}</p>
+          <button className="pixel-button primary" type="button" onClick={() => setShowAlbum(false)}>Seguir explorando</button>
         </div></div>
       )}
     </main>

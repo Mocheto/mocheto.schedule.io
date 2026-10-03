@@ -189,7 +189,8 @@ h1 span {
 .map-header { display: flex; align-items: end; justify-content: space-between; max-width: 1180px; margin: 0 auto 30px; }
 .map-header h2, .game-modal h2 { margin: 0; font-size: clamp(2rem, 5vw, 4rem); color: #fff8e9; letter-spacing: -.06em; }
 .map-actions { display: flex; align-items: center; gap: 12px; }
-.apple-total { border: 3px solid #ead4f4; padding: 11px 15px; background: #39234d; font-weight: 900; }
+.apple-total, .album-button { border: 3px solid #ead4f4; padding: 11px 15px; color: #fff8e9; background: #39234d; font-weight: 900; }
+.album-button { cursor: pointer; }
 .icon-button, .hud-actions button {
   width: 47px; height: 47px; border: 3px solid #f0dff8; color: #fff; background: #56366b; font-size: 1.3rem; cursor: pointer;
 }
@@ -260,6 +261,16 @@ h1 span {
 .credits-modal { text-align: left; }
 .credits-modal h2, .credits-modal .eyebrow { text-align: center; }
 .credits-modal a { color: #78458b; font-weight: 700; }
+.sticker-found { border: 3px solid #7d4f8e; padding: 10px; background: #f0ddf7; font-weight: 800; }
+.album-modal { width: min(820px, 100%); }
+.sticker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0 14px; }
+.sticker-card { display: grid; align-content: center; gap: 7px; min-height: 150px; border: 4px solid #553264; padding: 12px 8px; background: #f0e2f5; }
+.sticker-card span { display: grid; place-items: center; width: 62px; height: 62px; margin: 0 auto; border: 3px solid #513061; border-radius: 50%; background: #fff8e9; font-size: 2.2rem; }
+.sticker-card small { min-height: 34px; color: #6d5a72; font-family: system-ui, sans-serif; line-height: 1.25; }
+.sticker-card.is-locked { filter: grayscale(.75); background: #e3dedf; }
+.sticker-card.is-locked span { color: #827a82; background: #cfc8cd; font-weight: 900; }
+.sticker-card.is-found { box-shadow: inset 0 0 0 5px #e0baf0; }
+.album-progress { margin: 8px 0; font-size: 1.05rem; font-weight: 900; }
 
 .boss-backdrop { background: rgba(18, 10, 31, .92); }
 .boss-battle {
@@ -285,8 +296,10 @@ h1 span {
 @keyframes duel-winner { 50% { transform: translateY(-14px) scale(1.04); } }
 .duel-versus { align-self: center; border: 4px solid var(--ink); padding: 9px; color: #fff; background: var(--apple); font-size: clamp(1rem, 3vw, 1.8rem); font-weight: 900; transform: rotate(-5deg); }
 .boss-sprite-window { position: relative; width: clamp(86px, 18vw, 210px); aspect-ratio: 434.4 / 724; overflow: hidden; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
-.boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
-.duel-noa-sprite { width: clamp(86px, 16vw, 175px); aspect-ratio: .89; background-position: 0 0; background-repeat: no-repeat; background-size: 400% 400%; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
+.boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; clip-path: inset(0 5%); transform: scaleX(1.1); image-rendering: pixelated; }
+.duel-noa-sprite { display: grid; place-items: center; width: clamp(86px, 16vw, 175px); aspect-ratio: 524 / 724; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
+.duel-noa-sprite > img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.duel-noa-idle { width: 84%; aspect-ratio: .89; background-position: 0 0; background-repeat: no-repeat; background-size: 400% 400%; image-rendering: pixelated; }
 .gesture-card { display: flex; align-items: center; justify-content: center; gap: 9px; min-width: min(220px, 100%); border: 4px solid #513061; padding: 7px 12px; background: #fffdf6; box-shadow: 0 4px 0 #513061; }
 .gesture-card span { font-size: clamp(1.7rem, 4vw, 2.8rem); line-height: 1; }
 .gesture-card b { font-size: clamp(.66rem, 1.5vw, .9rem); }
@@ -314,7 +327,7 @@ h1 span {
   .home-copy { text-align: center; margin-inline: auto; }
   .home-actions { justify-content: center; }
   .hero-scene { max-width: 390px; order: -1; }
-  .home-footer { right: 50%; transform: translateX(50%); white-space: nowrap; }
+  .home-footer { right: 50%; width: min(520px, calc(100% - 28px)); transform: translateX(50%); flex-wrap: wrap; justify-content: center; }
   .world-list { grid-template-columns: 1fr; }
   .game-hud { grid-template-columns: 1fr auto; min-height: 64px; }
   .hud-stats { grid-row: 2; grid-column: 1 / -1; justify-content: center; }
@@ -335,6 +348,8 @@ h1 span {
   .map-header { align-items: center; }
   .map-header h2 { font-size: 2rem; }
   .map-header .eyebrow { display: none; }
+  .map-actions { gap: 5px; }
+  .apple-total, .album-button { padding: 8px; font-size: .68rem; }
   .world-card { min-height: auto; padding: 24px 18px; }
   .play-screen { padding: 0; place-content: start center; }
   .game-hud, .game-stage, .level-caption { width: 100vw; }
@@ -351,6 +366,12 @@ h1 span {
   .touch-jump { width: 66px; height: 66px; }
   .touch-yarn { width: 50px; height: 50px; }
   .help-grid { grid-template-columns: 1fr; }
+  .album-modal { padding-inline: 12px; }
+  .sticker-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .sticker-card { min-height: 128px; border-width: 3px; padding: 8px 3px; }
+  .sticker-card span { width: 45px; height: 45px; font-size: 1.6rem; }
+  .sticker-card strong { font-size: .62rem; }
+  .sticker-card small { font-size: .64rem; }
   .boss-backdrop { padding: 6px; }
   .boss-battle { max-height: calc(100vh - 12px); border-width: 4px; padding: 14px 10px; }
   .boss-header { display: grid; gap: 10px; }

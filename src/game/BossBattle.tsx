@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { SoundKind } from "./GameCanvas";
 import type { BossId } from "./types";
 
@@ -73,16 +73,26 @@ function BossSprite({ assetPrefix, frame, name }: { assetPrefix: string; frame: 
   );
 }
 
+function NoaDuelSprite({ frame }: { frame: number | null }) {
+  const gesture = frame === 0 ? "piedra" : frame === 1 ? "papel" : frame === 2 ? "tijera" : frame === 3 ? "victoria" : "preparada";
+  return (
+    <div className="duel-noa-sprite" role="img" aria-label={`Noa hace el gesto de ${gesture}`}>
+      {frame === null
+        ? <div className="duel-noa-idle" style={{ backgroundImage: 'url("./assets/sprites/noa-sprite-sheet.png")' }} />
+        : <img src={`./assets/sprites/noa-rps-${frame}.png`} alt="" />}
+    </div>
+  );
+}
+
 export function BossBattle({ bossId, onWin, playSound }: BossBattleProps) {
   const boss = bosses[bossId];
-  const roundRef = useRef(0);
   const [battle, setBattle] = useState<BattleState>({ noaScore: 0, bossScore: 0, status: "choosing" });
 
   const choose = (noaChoice: Choice) => {
     if (battle.status !== "choosing") return;
-    const bossOffset = bossId === "bramble-king" ? 0 : bossId === "mist-countess" ? 1 : 2;
-    const bossChoice = choices[(roundRef.current + bossOffset) % choices.length].id;
-    roundRef.current += 1;
+    const randomValue = new Uint32Array(1);
+    window.crypto.getRandomValues(randomValue);
+    const bossChoice = choices[randomValue[0] % choices.length].id;
     const roundWinner = getWinner(noaChoice, bossChoice);
     const noaScore = battle.noaScore + (roundWinner === "noa" ? 1 : 0);
     const bossScore = battle.bossScore + (roundWinner === "boss" ? 1 : 0);
@@ -92,11 +102,9 @@ export function BossBattle({ bossId, onWin, playSound }: BossBattleProps) {
   };
 
   const nextRound = () => setBattle((current) => ({ noaScore: current.noaScore, bossScore: current.bossScore, status: "choosing" }));
-  const retry = () => {
-    roundRef.current = 0;
-    setBattle({ noaScore: 0, bossScore: 0, status: "choosing" });
-  };
+  const retry = () => setBattle({ noaScore: 0, bossScore: 0, status: "choosing" });
   const bossFrame = battle.status === "won" ? 4 : battle.bossChoice ? choices.findIndex((choice) => choice.id === battle.bossChoice) + 1 : 0;
+  const noaFrame = battle.status === "won" ? 3 : battle.noaChoice ? choices.findIndex((choice) => choice.id === battle.noaChoice) : null;
   const roundText = battle.noaChoice && battle.bossChoice ? getRuleText(battle.noaChoice, battle.bossChoice) : "Elige un gesto. El primero que gane dos rondas vence.";
 
   return (
@@ -117,7 +125,7 @@ export function BossBattle({ bossId, onWin, playSound }: BossBattleProps) {
 
         <div className="duel-arena">
           <div className={`duel-fighter noa-fighter ${battle.roundWinner === "noa" ? "round-winner" : ""}`}>
-            <div className="duel-noa-sprite" style={{ backgroundImage: 'url("./assets/sprites/noa-sprite-sheet.png")' }} aria-label="Noa" />
+            <NoaDuelSprite frame={noaFrame} />
             <strong>NOA</strong>
             <div className="gesture-card">
               <span>{battle.noaChoice ? choiceById[battle.noaChoice].icon : "❔"}</span>

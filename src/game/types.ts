@@ -8,7 +8,7 @@ export type Rect = {
 };
 
 export type Platform = Rect & {
-  kind?: "ground" | "branch" | "stone";
+  kind?: "ground" | "branch" | "stone" | "spring" | "mist";
 };
 
 export type Enemy = Rect & {
@@ -21,7 +21,7 @@ export type Enemy = Rect & {
 
 export type LevelItem = {
   id: string;
-  kind: "apple" | "cat";
+  kind: "apple" | "cat" | "sticker";
   x: number;
   y: number;
 };
@@ -57,6 +57,7 @@ export type Power = "normal" | "apple" | "cat";
 
 export type GameSnapshot = {
   apples: number;
+  stickers: string[];
   power: Power;
   checkpoint: number;
   paused: boolean;

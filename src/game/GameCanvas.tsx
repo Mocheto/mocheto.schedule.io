@@ -7,7 +7,7 @@ const GRAVITY = 1650;
 const MOVE_SPEED = 250;
 const JUMP_SPEED = 625;
 
-type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal";
+type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl";
 
 type GameCanvasProps = {
   level: Level;
@@ -37,10 +37,12 @@ type Player = Rect & {
   invincible: number;
   coyote: number;
   jumpBuffer: number;
+  jumpsUsed: number;
+  doubleJumpFx: number;
 };
 
 type LiveEnemy = Level["enemies"][number] & { vx: number; active: boolean; phase: number };
-type LiveItem = LevelItem & { age: number; rise: number };
+type LiveItem = LevelItem & { age: number; rise: number; fromBlock: boolean };
 type Projectile = { x: number; y: number; vx: number; vy: number; life: number };
 
 const intersects = (a: Rect, b: Rect) =>
@@ -135,9 +137,33 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
   }
 }
 
-function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, forest: boolean) {
+function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, forest: boolean, playerX: number) {
   const x = Math.round(platform.x - cameraX);
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
+  if (platform.kind === "spring") {
+    context.fillStyle = "#3a2149";
+    context.fillRect(x, platform.y, platform.width, platform.height);
+    context.fillStyle = "#f7cc58";
+    context.fillRect(x + 5, platform.y + 3, platform.width - 10, 6);
+    context.fillStyle = "#c783e7";
+    for (let mark = 12; mark < platform.width - 8; mark += 20) {
+      context.fillRect(x + mark, platform.y + 10, 8, 8);
+    }
+    return;
+  }
+  if (platform.kind === "mist") {
+    const distance = Math.abs(playerX - (platform.x + platform.width / 2));
+    context.save();
+    context.globalAlpha = distance < 330 ? 0.96 : 0.34;
+    context.fillStyle = "#ede4ff";
+    context.fillRect(x, platform.y + 7, platform.width, 15);
+    context.fillRect(x + 18, platform.y, Math.max(35, platform.width * 0.35), 18);
+    context.fillRect(x + platform.width * 0.52, platform.y + 2, Math.max(28, platform.width * 0.28), 17);
+    context.fillStyle = "#b99ddd";
+    context.fillRect(x + 8, platform.y + 16, platform.width - 16, 6);
+    context.restore();
+    return;
+  }
   if (platform.kind === "branch") {
     context.fillStyle = "#5a382d";
     context.fillRect(x, platform.y, platform.width, platform.height);
@@ -196,6 +222,19 @@ function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number) {
   context.fillRect(x + 18, y + 23, 5, 4);
 }
 
+function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pulse: number) {
+  context.fillStyle = "#4b295f";
+  context.fillRect(x, y, 38, 38);
+  context.fillStyle = pulse > 0 ? "#ffe875" : "#f5c957";
+  context.fillRect(x + 4, y + 4, 30, 30);
+  context.fillStyle = "#b468d1";
+  context.fillRect(x + 15, y + 7, 8, 24);
+  context.fillRect(x + 8, y + 14, 22, 9);
+  context.fillStyle = "#fff8d6";
+  context.fillRect(x + 17, y + 11, 4, 16);
+  context.fillRect(x + 12, y + 16, 14, 4);
+}
+
 function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean) {
   context.fillStyle = hit ? "#746b7c" : "#5a2e70";
   context.fillRect(x, y, 48, 48);
@@ -210,7 +249,7 @@ function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number
   context.fillRect(x + 4, y + 4, 8, 5);
 }
 
-function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX: number) {
+function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX: number, nearby: boolean) {
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
   const y = Math.round(enemy.y + (enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0));
@@ -244,6 +283,15 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillRect(x + 29, y + 18, 5, 5);
     context.fillRect(x + 19, y + 27, 9, 3);
   } else {
+    if (nearby) {
+      context.fillStyle = "#fff3c4";
+      context.fillRect(x - 9, y - 35, 77, 24);
+      context.fillStyle = "#3c294a";
+      context.font = "bold 12px monospace";
+      context.textAlign = "center";
+      context.fillText("¡AUUU!", x + 29, y - 19);
+      context.textAlign = "start";
+    }
     context.fillStyle = "#312c42";
     context.fillRect(x + 5, y + 11, 47, 26);
     context.fillRect(x + 12, y + 3, 32, 26);
@@ -329,6 +377,8 @@ function createInitialPlayer(level: Level): Player {
     invincible: 0,
     coyote: 0,
     jumpBuffer: 0,
+    jumpsUsed: 0,
+    doubleJumpFx: 0,
   };
 }
 
@@ -389,8 +439,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     sprite.src = "./assets/sprites/noa-sprite-sheet.png";
     const player = createInitialPlayer(level);
     let enemies: LiveEnemy[] = level.enemies.map((item, index) => ({ ...item, vx: item.speed, active: true, phase: index }));
-    const items: LiveItem[] = level.items.map((item) => ({ ...item, age: 99, rise: 1 }));
+    const items: LiveItem[] = level.items.map((item) => ({ ...item, age: 99, rise: 1, fromBlock: false }));
     const collected = new Set<string>();
+    const collectedStickers = new Set<string>();
+    const warnedWolves = new Set<string>();
     const hitBlocks = new Set<string>();
     const projectiles: Projectile[] = [];
     let cameraX = 0;
@@ -414,6 +466,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       player.vy = 0;
       player.power = "normal";
       player.invincible = 1.4;
+      player.jumpsUsed = 0;
+      player.doubleJumpFx = 0;
       projectiles.length = 0;
       callbacksRef.current.onLoseLife();
     };
@@ -454,11 +508,18 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       previousJump = jump;
       player.jumpBuffer = Math.max(0, player.jumpBuffer - delta);
       player.coyote = player.grounded ? 0.12 : Math.max(0, player.coyote - delta);
-      if (player.jumpBuffer > 0 && player.coyote > 0) {
+      if (player.jumpBuffer > 0 && player.coyote > 0 && player.jumpsUsed === 0) {
         player.vy = -JUMP_SPEED;
         player.grounded = false;
         player.coyote = 0;
         player.jumpBuffer = 0;
+        player.jumpsUsed = 1;
+        callbacksRef.current.playSound("jump");
+      } else if (player.jumpBuffer > 0 && !player.grounded && player.jumpsUsed === 1) {
+        player.vy = -JUMP_SPEED * 0.94;
+        player.jumpBuffer = 0;
+        player.jumpsUsed = 2;
+        player.doubleJumpFx = 0.38;
         callbacksRef.current.playSound("jump");
       }
       if (!jump && player.vy < -220) player.vy += GRAVITY * 1.4 * delta;
@@ -490,8 +551,17 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         const horizontal = player.x + player.width > platform.x && player.x < platform.x + platform.width;
         if (horizontal && player.vy >= 0 && previousBottom <= platform.y + 10 && player.y + player.height >= platform.y) {
           player.y = platform.y - player.height;
-          player.vy = 0;
-          player.grounded = true;
+          if (platform.kind === "spring") {
+            player.vy = -JUMP_SPEED * 1.12;
+            player.grounded = false;
+            player.jumpsUsed = 1;
+            player.doubleJumpFx = 0.32;
+            callbacksRef.current.playSound("jump");
+          } else {
+            player.vy = 0;
+            player.grounded = true;
+            player.jumpsUsed = 0;
+          }
         }
       }
 
@@ -502,12 +572,13 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           player.y = block.y - player.height;
           player.vy = 0;
           player.grounded = true;
+          player.jumpsUsed = 0;
         } else if (player.vy < 0 && previousY >= block.y + 40 && player.y <= block.y + 48) {
           player.y = block.y + 48;
           player.vy = 95;
           if (!hitBlocks.has(block.id)) {
             hitBlocks.add(block.id);
-            items.push({ id: `${block.id}-reward`, kind: block.reward, x: block.x + 4, y: block.y - 42, age: 0, rise: 0 });
+            items.push({ id: `${block.id}-reward`, kind: block.reward, x: block.x + 4, y: block.y - 42, age: 0, rise: 0, fromBlock: true });
             callbacksRef.current.playSound("block");
           }
         }
@@ -522,7 +593,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         if (collected.has(item.id)) continue;
         item.age += delta;
         item.rise = Math.min(1, item.rise + delta * 2.8);
-        if (item.age > 0.9 && item.rise === 1 && item.y < 410) {
+        if (item.fromBlock && item.age > 0.9 && item.rise === 1 && item.y < 410) {
           item.x += delta * 42;
           item.y = Math.min(410, item.y + delta * 115);
         }
@@ -535,9 +606,12 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           apples += 1;
           if (player.power === "normal") player.power = "apple";
           callbacksRef.current.playSound("apple");
-        } else {
+        } else if (item.kind === "cat") {
           player.power = "cat";
           callbacksRef.current.playSound("cat");
+        } else {
+          collectedStickers.add(item.id);
+          callbacksRef.current.playSound("sticker");
         }
       }
 
@@ -545,6 +619,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         if (!enemy.active) return;
         enemy.phase += delta * 2.4;
         enemy.x += enemy.vx * delta;
+        if (enemy.kind === "wolf" && Math.abs(player.x - enemy.x) < 340 && !warnedWolves.has(enemy.id)) {
+          warnedWolves.add(enemy.id);
+          callbacksRef.current.playSound("howl");
+        }
         if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
           enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
           enemy.vx *= -1;
@@ -559,6 +637,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         if (player.vy > 60 && previousBottom <= hitbox.y + 15) {
           enemy.active = false;
           player.vy = -390;
+          player.jumpsUsed = 1;
           callbacksRef.current.playSound("stomp");
         } else {
           hurt();
@@ -602,10 +681,11 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
 
       player.invincible = Math.max(0, player.invincible - delta);
+      player.doubleJumpFx = Math.max(0, player.doubleJumpFx - delta);
       cameraX += (Math.max(0, Math.min(level.width - VIEW_WIDTH, player.x - 330)) - cameraX) * Math.min(1, delta * 5);
 
       if (now - lastSnapshot > 130) {
-        callbacksRef.current.onSnapshot({ apples, power: player.power, checkpoint: checkpointIndex + 1, paused: !runningRef.current });
+        callbacksRef.current.onSnapshot({ apples, stickers: [...collectedStickers], power: player.power, checkpoint: checkpointIndex + 1, paused: !runningRef.current });
         lastSnapshot = now;
       }
     };
@@ -617,7 +697,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       let column = 0;
       if (player.power === "cat") {
         row = 3;
-        column = player.grounded ? (Math.abs(player.vx) > 25 ? 1 : 0) : 2;
+        column = player.grounded ? (Math.abs(player.vx) > 25 ? runningFrame % 2 : 0) : 2;
         if (shootCooldown > 0.16) column = 3;
       } else if (!player.grounded) {
         row = 2;
@@ -655,12 +735,19 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.fillStyle = "#aa6bd5";
         context.fillRect(x, player.y, player.width, player.height);
       }
+      if (player.doubleJumpFx > 0) {
+        const sparkle = Math.floor(player.doubleJumpFx * 40) % 2 === 0 ? "#fff3a5" : "#c987e8";
+        context.fillStyle = sparkle;
+        context.fillRect(x - 8, Math.round(player.y + 18), 7, 7);
+        context.fillRect(x + player.width + 4, Math.round(player.y + 31), 6, 6);
+        context.fillRect(x + 8, Math.round(player.y + player.height + 4), 5, 5);
+      }
       context.globalAlpha = 1;
     };
 
     const render = () => {
       drawBackground(context, level, cameraX);
-      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world >= 2));
+      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world >= 2, player.x));
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
       level.rewardBlocks.forEach((block) => {
         const x = Math.round(block.x - cameraX);
@@ -681,9 +768,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         const y = item.y + (1 - item.rise) * 48;
         const bob = Math.round(Math.sin(frame * 0.08 + item.x) * 4);
         if (item.kind === "apple") drawApple(context, x + 4, y + bob);
-        else drawCatPower(context, x, y + bob);
+        else if (item.kind === "cat") drawCatPower(context, x, y + bob);
+        else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2);
       });
-      enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX));
+      enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, enemy.kind === "wolf" && Math.abs(player.x - enemy.x) < 360));
       projectiles.forEach((ball) => {
         const x = Math.round(ball.x - cameraX);
         context.fillStyle = "#4b295f";
@@ -748,7 +836,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         </div>
         <div className="touch-group touch-actions">
           <button type="button" className="touch-button touch-yarn" aria-label="Lanzar bola de lana" {...bindTouch("shoot")}>🧶</button>
-          <button type="button" className="touch-button touch-jump" aria-label="Saltar" {...bindTouch("jump")}>↑</button>
+          <button type="button" className="touch-button touch-jump" aria-label="Saltar o hacer doble salto" {...bindTouch("jump")}>↑</button>
         </div>
       </div>
     </div>
