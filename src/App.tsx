@@ -249,7 +249,7 @@ export default function App() {
             <i className="hero-sparkle sparkle-three" />
           </div>
           <nav className="home-footer" aria-label="Opciones">
-            <button type="button" onClick={() => setMuted((value) => !value)}>{muted ? "🔇 Activar sonido" : "🔊 Sonido"}</button>
+            <button type="button" onClick={() => setMuted((value) => !value)}><PixelIcon kind={muted ? "mute" : "sound"} /> {muted ? "Activar sonido" : "Sonido"}</button>
             <button type="button" onClick={() => setShowAlbum(true)}>Álbum {progress.stickers.length}/{stickerCatalog.length}</button>
             <button type="button" onClick={() => setShowCredits(true)}>Créditos</button>
           </nav>
@@ -307,7 +307,7 @@ export default function App() {
               <span className={`power-chip power-${snapshot.power}`}>{snapshot.power === "cat" ? <><PixelIcon kind="yarn" /> Gato</> : snapshot.power === "apple" ? <><PixelIcon kind="apple" /> Protegida</> : "Noa"}</span>
             </div>
             <div className="hud-actions">
-              <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Activar sonido" : "Silenciar"}>{muted ? "🔇" : "🔊"}</button>
+              <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Activar sonido" : "Silenciar"}><PixelIcon kind={muted ? "mute" : "sound"} /></button>
               <button type="button" onClick={toggleFullscreen} aria-label="Pantalla completa">⛶</button>
               {screen === "game" && <button type="button" onClick={() => setPaused((value) => !value)} aria-label="Pausa">Ⅱ</button>}
             </div>
@@ -340,7 +340,7 @@ export default function App() {
               <div className="big-icon"><PixelIcon kind={activeLevel.boss ? "trophy" : "cat"} /></div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
               <h2>Pantalla {activeLevel.id} completada</h2>
               <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. {activeLevel.boss ? "El monstruo guardián ha dejado libre el camino." : "La siguiente aventura ya está abierta."}</p>
-              {snapshot.stickers.length > 0 && <p className="sticker-found">✨ Pegatina de esta pantalla guardada en el álbum.</p>}
+              {snapshot.stickers.length > 0 && <p className="sticker-found"><PixelIcon kind="sparkle" /> Pegatina de esta pantalla guardada en el álbum.</p>}
               <button className="pixel-button primary" type="button" onClick={nextLevel}>Siguiente pantalla ▶</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("map")}>Volver al mapa</button>
             </div></div>
@@ -357,7 +357,7 @@ export default function App() {
 
           {screen === "finished" && (
             <div className="modal-backdrop celebration"><div className="game-modal finale">
-              <div className="cat-party" aria-hidden="true">🐱 🍎 🐱 🧶 🐱</div><p className="eyebrow">Aventura completada</p>
+              <div className="cat-party" aria-hidden="true"><PixelIcon kind="cat" /><PixelIcon kind="apple" /><PixelIcon kind="cat" /><PixelIcon kind="yarn" /><PixelIcon kind="cat" /></div><p className="eyebrow">Aventura completada</p>
               <h2>¡Bravo, Super Noa!</h2><p>Los cinco guardianes son ahora amigos de Noa. Los gatitos y la tripulación celebran una fiesta entre las nubes. Fin… por ahora.</p>
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>Ver el mapa</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("home")}>Ir al inicio</button>
@@ -374,10 +374,10 @@ export default function App() {
             <div><span>◀ ▶</span><strong>Moverse</strong><small>Flechas o A y D</small></div>
             <div><span>↑ ↑</span><strong>Doble salto</strong><small>Pulsa dos veces para llegar más alto</small></div>
             <div><span>▣</span><strong>Abrir cajas</strong><small>Salta y golpea la huella desde abajo</small></div>
-            <div><span>🧶</span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
-            <div><span>🍎</span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
-            <div><span>🪨✋✌️</span><strong>Vencer al jefe</strong><small>Gana dos rondas; cada manzana permite repetir un duelo</small></div>
-            <div><span>✨</span><strong>Explorar arriba</strong><small>Las quince pegatinas están en rutas especiales</small></div>
+            <div><span><PixelIcon kind="yarn" /></span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
+            <div><span><PixelIcon kind="apple" /></span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
+            <div><span className="help-rps"><PixelIcon kind="rock" /><PixelIcon kind="paper" /><PixelIcon kind="scissors" /></span><strong>Vencer al jefe</strong><small>Gana dos rondas; cada manzana permite repetir un duelo</small></div>
+            <div><span><PixelIcon kind="sparkle" /></span><strong>Explorar arriba</strong><small>Las quince pegatinas están en rutas especiales</small></div>
           </div>
           <p className="help-note">Ramas elásticas, niebla que aparece al acercarte, aullidos, copas altas, barcos voladores y cañones. También puedes usar los botones grandes o un mando.</p>
           <button className="pixel-button primary" type="button" onClick={() => { setShowHelp(false); setScreen("map"); }}>¡Vamos!</button>
@@ -406,14 +406,14 @@ export default function App() {
               const found = progress.stickers.includes(sticker.id);
               return (
                 <article className={`sticker-card ${found ? "is-found" : "is-locked"}`} key={sticker.id}>
-                  <span aria-hidden="true">{found ? sticker.icon : "?"}</span>
+                  <span aria-hidden="true">{found ? <PixelIcon kind={sticker.icon} /> : "?"}</span>
                   <strong>{found ? sticker.name : `Mundo ${sticker.world}`}</strong>
                   <small>{found ? "¡Encontrada!" : sticker.hint}</small>
                 </article>
               );
             })}
           </div>
-          <p className="album-progress">✨ {progress.stickers.length} de {stickerCatalog.length}</p>
+          <p className="album-progress"><PixelIcon kind="sparkle" /> {progress.stickers.length} de {stickerCatalog.length}</p>
           <button className="pixel-button primary" type="button" onClick={() => setShowAlbum(false)}>Seguir explorando</button>
         </div></div>
       )}

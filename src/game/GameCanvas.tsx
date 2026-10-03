@@ -48,12 +48,58 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
+type RasterAssets = { enemies: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
 const enemyY = (enemy: LiveEnemy) =>
   enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
+
+const enemyAtlasCell = {
+  slime: [0, 0], beetle: [1, 0], cloud: [2, 0], wolf: [3, 0],
+  boar: [0, 1], bird: [1, 1], pirate: [2, 1], parrot: [3, 1],
+} as const;
+
+const enemyRasterSize = {
+  slime: [48, 50], beetle: [50, 48], cloud: [56, 43], wolf: [64, 58],
+  boar: [70, 58], bird: [52, 46], pirate: [52, 59], parrot: [58, 60],
+} as const;
+
+const createRasterImage = (src: string) => {
+  const image = new Image();
+  image.src = src;
+  return image;
+};
+
+const drawAtlasCell = (context: CanvasRenderingContext2D, image: HTMLImageElement, columns: number, rows: number, column: number, row: number, x: number, y: number, width: number, height: number, alpha = 1) => {
+  if (!image.complete || !image.naturalWidth) return false;
+  const cellWidth = image.naturalWidth / columns;
+  const cellHeight = image.naturalHeight / rows;
+  const inset = Math.max(4, Math.round(Math.min(cellWidth, cellHeight) * 0.025));
+  context.save();
+  context.globalAlpha = alpha;
+  context.drawImage(image, column * cellWidth + inset, row * cellHeight + inset, cellWidth - inset * 2, cellHeight - inset * 2, x, y, width, height);
+  context.restore();
+  return true;
+};
+
+const stampTileTexture = (context: CanvasRenderingContext2D, image: HTMLImageElement | undefined, tile: number, x: number, y: number, width: number, height: number, alpha = 0.28) => {
+  if (!image?.complete || !image.naturalWidth || width < 20 || height < 8) return;
+  const size = 54;
+  for (let stampX = x; stampX < x + width; stampX += size) {
+    drawAtlasCell(context, image, 2, 2, tile % 2, Math.floor(tile / 2), stampX, y, Math.min(size, x + width - stampX), height, alpha);
+  }
+};
+
+const drawEnemyAtlasSprite = (context: CanvasRenderingContext2D, image: HTMLImageElement, column: number, row: number, x: number, y: number, width: number, height: number) => {
+  const cellWidth = image.naturalWidth / 4;
+  const cellHeight = image.naturalHeight / 2;
+  const sourceTop = row === 0 ? cellHeight * 0.31 : cellHeight * 0.08;
+  const sourceHeight = row === 0 ? cellHeight * 0.67 : cellHeight * 0.84;
+  const inset = Math.round(cellWidth * 0.04);
+  context.drawImage(image, column * cellWidth + inset, row * cellHeight + sourceTop, cellWidth - inset * 2, sourceHeight, x, y, width, height);
+};
 
 const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number, color: string, shadow = "#bdd4dc") => {
   const px = Math.round(x);
@@ -288,11 +334,14 @@ function drawAmbientForeground(context: CanvasRenderingContext2D, level: Level, 
   }
 }
 
-function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, world: Level["world"], playerX: number, frame: number) {
+function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, world: Level["world"], playerX: number, frame: number, raster: RasterAssets) {
   const x = Math.round(platform.x - cameraX);
   const forest = world >= 2 && world <= 4;
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
   if (platform.kind === "ship") {
+    const shipBob = Math.round(Math.sin(frame * 0.075 + platform.x * 0.015) * 4);
+    context.save();
+    context.translate(0, shipBob);
     const mastX = x + Math.round(platform.width * 0.58);
     context.fillStyle = "#2a1a2e";
     context.fillRect(x + 7, platform.y - 5, platform.width - 14, 29);
@@ -342,6 +391,8 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fillRect(x + 35, platform.y + 31, 9, 5);
     context.fillStyle = "#563243";
     context.fillRect(x + 44, platform.y + 28, 6, 18);
+    stampTileTexture(context, raster.tiles[world], 2, x + 12, platform.y + 18, platform.width - 24, 50, 0.2);
+    context.restore();
     return;
   }
   if (platform.kind === "air-plank") {
@@ -354,6 +405,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fillRect(x + 28, platform.y + platform.height + 6, Math.max(24, platform.width - 56), 8);
     context.fillStyle = "#8a5a38";
     for (let board = 20; board < platform.width; board += 28) context.fillRect(x + board, platform.y + 3, 4, 11);
+    stampTileTexture(context, raster.tiles[world], 3, x + 4, platform.y, platform.width - 8, platform.height, 0.19);
     return;
   }
   if (platform.kind === "spring") {
@@ -378,6 +430,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fillStyle = "#b99ddd";
     context.fillRect(x + 8, platform.y + 16, platform.width - 16, 6);
     context.restore();
+    stampTileTexture(context, raster.tiles[world], 1, x, platform.y, platform.width, platform.height + 7, 0.18);
     return;
   }
   if (platform.kind === "canopy") {
@@ -395,6 +448,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
       context.fillStyle = "#9bc45c";
       context.fillRect(x + leaf + 4, platform.y - 3, 7, 4);
     }
+    stampTileTexture(context, raster.tiles[world], 2, x + 2, platform.y, platform.width - 4, platform.height, 0.22);
     return;
   }
   if (platform.kind === "branch") {
@@ -411,6 +465,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
       context.fillRect(x + leaf, platform.y - 7, 13, 8);
       context.fillRect(x + leaf + 8, platform.y - 11, 10, 8);
     }
+    stampTileTexture(context, raster.tiles[world], 3, x + 2, platform.y, platform.width - 4, platform.height, 0.2);
     return;
   }
   if (platform.kind === "stone") {
@@ -422,6 +477,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
       context.fillStyle = mark % 76 ? "#6d6a87" : "#49465f";
       context.fillRect(x + mark, platform.y + 11, 22, 6);
     }
+    stampTileTexture(context, raster.tiles[world], 1, x + 2, platform.y, platform.width - 4, platform.height, 0.2);
     return;
   }
   const earth = world === 1 ? "#9a5d3b" : world === 2 ? "#3c4c50" : world === 3 ? "#303846" : "#493d32";
@@ -443,6 +499,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fillRect(x + tile + 38, platform.y + 17, 5, 5);
     context.fillStyle = texture;
   }
+  stampTileTexture(context, raster.tiles[world], 0, x + 2, platform.y, platform.width - 4, platform.height, 0.19);
 }
 
 function drawApple(context: CanvasRenderingContext2D, x: number, y: number) {
@@ -514,10 +571,38 @@ function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number
   context.fillRect(x + 4, y + 4, 8, 5);
 }
 
-function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX: number, nearby: boolean) {
+function drawEnemyWarning(context: CanvasRenderingContext2D, x: number, y: number, kind: "wolf" | "boar") {
+  context.fillStyle = kind === "boar" ? "#fff0bd" : "#fff3c4";
+  context.fillRect(x - (kind === "boar" ? 5 : 9), y - 35, kind === "boar" ? 72 : 77, 24);
+  context.fillStyle = kind === "boar" ? "#4a2b2e" : "#3c294a";
+  context.font = "bold 12px monospace";
+  context.textAlign = "center";
+  context.fillText(kind === "boar" ? "¡OINK!" : "¡AUUU!", x + 30, y - 19);
+  context.textAlign = "start";
+}
+
+function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX: number, nearby: boolean, raster: RasterAssets) {
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
   const y = Math.round(enemyY(enemy));
+  if (raster.enemies.complete && raster.enemies.naturalWidth) {
+    if (nearby && (enemy.kind === "wolf" || enemy.kind === "boar")) drawEnemyWarning(context, x, y, enemy.kind);
+    const [column, row] = enemyAtlasCell[enemy.kind];
+    const [width, height] = enemyRasterSize[enemy.kind];
+    const flyingOffset = enemy.kind === "bird" || enemy.kind === "parrot" ? Math.round(Math.sin(enemy.phase * 4) * 3) : 0;
+    const drawX = x + Math.round((enemy.width - width) / 2);
+    const drawY = y + enemy.height - height + flyingOffset;
+    context.save();
+    if (enemy.vx < 0) {
+      context.translate(drawX + width, 0);
+      context.scale(-1, 1);
+      drawEnemyAtlasSprite(context, raster.enemies, column, row, 0, drawY, width, height);
+    } else {
+      drawEnemyAtlasSprite(context, raster.enemies, column, row, drawX, drawY, width, height);
+    }
+    context.restore();
+    return;
+  }
   const flying = enemy.kind === "bird" || enemy.kind === "parrot" || enemy.kind === "cloud";
   if (!flying) {
     context.save();
@@ -908,6 +993,16 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     sprite.src = "./assets/sprites/noa-sprite-sheet.png";
     const catJumpSprite = new Image();
     catJumpSprite.src = "./assets/sprites/noa-cat-jump.png";
+    const raster: RasterAssets = {
+      enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
+      tiles: {
+        1: createRasterImage("./assets/atlases/world-1-tiles-v1.png"),
+        2: createRasterImage("./assets/atlases/world-2-tiles-v1.png"),
+        3: createRasterImage("./assets/atlases/world-3-tiles-v1.png"),
+        4: createRasterImage("./assets/atlases/world-4-tiles-v1.png"),
+        5: createRasterImage("./assets/atlases/world-5-tiles-v1.png"),
+      },
+    };
     const player = createInitialPlayer(level);
     let enemies: LiveEnemy[] = level.enemies.map((item, index) => ({ ...item, vx: item.speed, active: true, phase: index }));
     const items: LiveItem[] = level.items.map((item) => ({ ...item, age: 99, rise: 1, fromBlock: false }));
@@ -1290,7 +1385,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
     const render = () => {
       drawBackground(context, level, cameraX, frame);
-      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame));
+      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame, raster));
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
       level.rewardBlocks.forEach((block) => {
         const x = Math.round(block.x - cameraX);
@@ -1315,7 +1410,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         else if (item.kind === "cat") drawCatPower(context, x, y + bob);
         else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2);
       });
-      enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, (enemy.kind === "wolf" || enemy.kind === "boar") && Math.abs(player.x - enemy.x) < 360));
+      enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, (enemy.kind === "wolf" || enemy.kind === "boar") && Math.abs(player.x - enemy.x) < 360, raster));
       cannonballs.forEach((ball) => drawCannonball(context, ball, cameraX));
       projectiles.forEach((ball) => {
         const x = Math.round(ball.x - cameraX);

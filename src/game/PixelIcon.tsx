@@ -1,4 +1,7 @@
-export type PixelIconKind = "apple" | "heart" | "sparkle" | "yarn" | "lock" | "trophy" | "cat";
+export type PixelIconKind =
+  | "apple" | "heart" | "sparkle" | "yarn" | "lock" | "trophy" | "cat"
+  | "sound" | "mute" | "bee" | "tree" | "paw" | "moon" | "pine" | "wolf"
+  | "crown" | "acorn" | "tooth" | "wheel" | "parrot" | "gem" | "rock" | "paper" | "scissors";
 
 type PixelIconProps = {
   kind: PixelIconKind;
