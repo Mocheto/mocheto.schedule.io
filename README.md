@@ -1,6 +1,6 @@
 # Super Noa
 
-Juego infantil de plataformas en 2D creado para navegador. Incluye dos mundos con dos pantallas cada uno, cinco vidas, puntos de control, controles táctiles, teclado y mando.
+Juego infantil de plataformas en 2D creado para navegador. Incluye tres mundos con dos pantallas cada uno, cinco vidas, puntos de control, cajas de recompensa, controles táctiles, teclado y mando.
 
 ## Desarrollo
 
@@ -22,7 +22,8 @@ La compilación estática se genera en `dist-pages/`. El workflow `.github/workf
 
 - Movimiento: flechas o `A`/`D`.
 - Salto: espacio, `W` o flecha arriba.
-- Bola de lana: `X` o `K`, después de recoger el potenciador de gato.
+- Cajas con huella: se abren saltando y golpeándolas desde abajo.
+- Bola de lana: `X` o `K`, después de recoger el potenciador de gato de una caja.
 - Pausa: `Esc`.
 - En móvil o tableta aparecen controles táctiles grandes.
 - También se admite un mando mediante Gamepad API.

@@ -2,10 +2,10 @@
 
 ## Música
 
-Las pistas `manzanos.mp3` y `gatitos.mp3` proceden del paquete [Platformer Chiptunes](https://opengameart.org/content/platformer-chiptunes), de Guy G. Gamerson.
+Las pistas `manzanos.mp3`, `gatitos.mp3` y `lobos.mp3` proceden del paquete [Platformer Chiptunes](https://opengameart.org/content/platformer-chiptunes), de Guy G. Gamerson.
 
 - Licencia declarada por el autor: [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
-- Archivos originales: `stage1.mp3` y `stage2.mp3`.
+- Archivos originales: `stage1.mp3`, `stage2.mp3` y `stage3.mp3`.
 - Descargados el 3 de octubre de 2026.
 
 La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y trazabilidad.
@@ -15,4 +15,3 @@ La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y traz
 - Diseño de Noa: interpretación pixelada original creada para Super Noa a partir de referencias privadas. Las fotografías no se distribuyen ni forman parte del repositorio.
 - Escenarios, objetos, enemigos e interfaz: creados específicamente para Super Noa.
 - Efectos de sonido: sintetizados en tiempo real mediante Web Audio API.
-

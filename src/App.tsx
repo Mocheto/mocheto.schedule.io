@@ -17,9 +17,11 @@ function readProgress(): Progress {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptyProgress;
     const saved = JSON.parse(raw) as Partial<Progress>;
+    const levelStats = saved.levelStats && typeof saved.levelStats === "object" ? saved.levelStats : {};
+    const legacyUnlocked = Math.max(0, Math.min(levels.length - 1, Number(saved.unlocked) || 0));
     return {
-      unlocked: Math.max(0, Math.min(levels.length - 1, Number(saved.unlocked) || 0)),
-      levelStats: saved.levelStats && typeof saved.levelStats === "object" ? saved.levelStats : {},
+      unlocked: levelStats["2-2"]?.completed ? Math.max(4, legacyUnlocked) : legacyUnlocked,
+      levelStats,
     };
   } catch {
     return emptyProgress;
@@ -60,7 +62,12 @@ export default function App() {
   }, [muted]);
 
   useEffect(() => {
-    const audio = new Audio(activeLevel.world === 1 ? "./assets/music/manzanos.mp3" : "./assets/music/gatitos.mp3");
+    const tracks = {
+      1: "./assets/music/manzanos.mp3",
+      2: "./assets/music/gatitos.mp3",
+      3: "./assets/music/lobos.mp3",
+    } as const;
+    const audio = new Audio(tracks[activeLevel.world]);
     audio.loop = true;
     audio.volume = 0.22;
     musicRef.current?.pause();
@@ -87,7 +94,7 @@ export default function App() {
     const gain = audioContext.createGain();
     const now = audioContext.currentTime;
     const notes: Record<SoundKind, [number, number, OscillatorType]> = {
-      apple: [660, 0.11, "square"], cat: [523, 0.28, "triangle"], jump: [360, 0.12, "square"],
+      apple: [660, 0.11, "square"], block: [410, 0.12, "square"], cat: [523, 0.28, "triangle"], jump: [360, 0.12, "square"],
       hurt: [145, 0.22, "sawtooth"], stomp: [210, 0.09, "square"], yarn: [760, 0.08, "triangle"],
       checkpoint: [880, 0.18, "triangle"], goal: [1046, 0.42, "square"],
     };
@@ -168,12 +175,12 @@ export default function App() {
           <div className="home-copy">
             <p className="eyebrow">Una aventura de 8 bits</p>
             <h1 id="game-title"><span>SUPER</span> NOA</h1>
-            <p className="home-lead">Cuatro pequeñas aventuras entre manzanos, ovillos y gatitos perdidos.</p>
+            <p className="home-lead">Seis aventuras entre manzanos, ovillos, gatitos y el misterioso bosque de los lobos.</p>
             <div className="home-actions">
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>▶ Jugar</button>
               <button className="pixel-button" type="button" onClick={() => setShowHelp(true)}>¿Cómo se juega?</button>
             </div>
-            {progress.unlocked > 0 && <p className="save-note">Partida guardada · {Object.keys(progress.levelStats).length}/4 pantallas</p>}
+            {progress.unlocked > 0 && <p className="save-note">Partida guardada · {Object.keys(progress.levelStats).length}/6 pantallas</p>}
           </div>
           <div className="hero-scene" aria-hidden="true">
             <div className="pixel-sun" />
@@ -198,12 +205,12 @@ export default function App() {
             </div>
           </header>
           <div className="world-list">
-            {[1, 2].map((world) => (
+            {[1, 2, 3].map((world) => (
               <article className={`world-card world-${world}`} key={world}>
                 <div className="world-heading">
                   <span className="world-number">Mundo {world}</span>
-                  <h3>{world === 1 ? "El Prado de las Manzanas" : "El Bosque de los Gatitos"}</h3>
-                  <p>{world === 1 ? "Sol, ramas anchas y manzanas crujientes." : "Luciérnagas, luna y suaves maullidos."}</p>
+                  <h3>{world === 1 ? "El Prado de las Manzanas" : world === 2 ? "El Bosque de los Gatitos" : "El Bosque de los Lobos"}</h3>
+                  <p>{world === 1 ? "Sol, ramas anchas y manzanas crujientes." : world === 2 ? "Luciérnagas, luna y suaves maullidos." : "Pinos, huellas y lobos enfadados."}</p>
                 </div>
                 <div className="level-row">
                   {levels.map((level, index) => {
@@ -289,6 +296,7 @@ export default function App() {
           <div className="help-grid">
             <div><span>◀ ▶</span><strong>Moverse</strong><small>Flechas o A y D</small></div>
             <div><span>↑</span><strong>Saltar</strong><small>Espacio, W o flecha arriba</small></div>
+            <div><span>▣</span><strong>Abrir cajas</strong><small>Salta y golpea la huella desde abajo</small></div>
             <div><span>🧶</span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
             <div><span>🍎</span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
           </div>
@@ -303,7 +311,7 @@ export default function App() {
           <p className="eyebrow">Hecho con cariño</p><h2>Créditos</h2>
           <p><strong>Super Noa</strong> es un juego original inspirado en los plataformas familiares de 8 bits.</p>
           <p>Personaje creado para este proyecto a partir de referencias privadas. Las fotografías originales no forman parte de la web.</p>
-          <p>Música: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
+          <p>Música de los tres mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
           <p>Efectos de sonido generados en el navegador. Diseño, escenarios y código creados para Super Noa.</p>
           <button className="pixel-button primary" type="button" onClick={() => setShowCredits(false)}>Cerrar</button>
         </div></div>

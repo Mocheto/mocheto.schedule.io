@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Level, GameSnapshot, Power, Rect } from "./types";
+import type { Level, GameSnapshot, LevelItem, Power, Rect } from "./types";
 
 const VIEW_WIDTH = 960;
 const VIEW_HEIGHT = 540;
@@ -7,7 +7,7 @@ const GRAVITY = 1650;
 const MOVE_SPEED = 250;
 const JUMP_SPEED = 625;
 
-type SoundKind = "apple" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal";
+type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal";
 
 type GameCanvasProps = {
   level: Level;
@@ -39,6 +39,7 @@ type Player = Rect & {
 };
 
 type LiveEnemy = Level["enemies"][number] & { vx: number; active: boolean; phase: number };
+type LiveItem = LevelItem & { age: number; rise: number };
 type Projectile = { x: number; y: number; vx: number; vy: number; life: number };
 
 const intersects = (a: Rect, b: Rect) =>
@@ -52,10 +53,11 @@ const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number,
 };
 
 function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number) {
-  const night = level.theme === "forest-night";
-  const forest = level.world === 2;
-  const sunset = level.theme === "orchard-sunset" || level.theme === "forest-dusk";
-  const sky = night ? "#24204f" : sunset ? "#f7a873" : "#91dcf4";
+  const night = level.theme === "forest-night" || level.theme === "wolf-moon";
+  const wolves = level.world === 3;
+  const forest = level.world >= 2;
+  const sunset = level.theme === "orchard-sunset" || level.theme === "forest-dusk" || level.theme === "wolf-pines";
+  const sky = night || level.theme === "wolf-moon" ? "#171a3d" : wolves ? "#8d7894" : sunset ? "#f7a873" : "#91dcf4";
   context.fillStyle = sky;
   context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
 
@@ -81,7 +83,7 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
     drawPixelCloud(context, x, 72 + (index % 3) * 48, cloudColor);
   }
 
-  const farColor = forest ? (night ? "#342c5f" : "#5d617b") : sunset ? "#c86d68" : "#6db6b1";
+  const farColor = wolves ? "#303956" : forest ? (night ? "#342c5f" : "#5d617b") : sunset ? "#c86d68" : "#6db6b1";
   context.fillStyle = farColor;
   context.beginPath();
   context.moveTo(0, 390);
@@ -100,11 +102,20 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
   for (let index = firstTree; index < firstTree + 9; index += 1) {
     const x = index * treeSpacing - cameraX * 0.45;
     const tall = 118 + ((index * 19) % 42);
-    context.fillStyle = night ? "#281c49" : forest ? "#3d665e" : "#725039";
+    context.fillStyle = wolves ? "#252a3c" : night ? "#281c49" : forest ? "#3d665e" : "#725039";
     context.fillRect(Math.round(x + 64), 430 - tall, 28, tall);
-    context.fillStyle = night ? "#40366d" : forest ? "#477d68" : "#4d9b63";
-    context.fillRect(Math.round(x + 18), 290 - (index % 2) * 18, 118, 76);
-    context.fillRect(Math.round(x), 325 - (index % 2) * 18, 155, 62);
+    context.fillStyle = wolves ? "#34485a" : night ? "#40366d" : forest ? "#477d68" : "#4d9b63";
+    if (wolves) {
+      context.beginPath();
+      context.moveTo(Math.round(x + 76), 250 - (index % 2) * 18);
+      context.lineTo(Math.round(x + 5), 370);
+      context.lineTo(Math.round(x + 148), 370);
+      context.closePath();
+      context.fill();
+    } else {
+      context.fillRect(Math.round(x + 18), 290 - (index % 2) * 18, 118, 76);
+      context.fillRect(Math.round(x), 325 - (index % 2) * 18, 155, 62);
+    }
     if (!forest) {
       context.fillStyle = "#e74b54";
       context.fillRect(Math.round(x + 35), 320, 10, 10);
@@ -184,6 +195,20 @@ function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number) {
   context.fillRect(x + 18, y + 23, 5, 4);
 }
 
+function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean) {
+  context.fillStyle = hit ? "#746b7c" : "#5a2e70";
+  context.fillRect(x, y, 48, 48);
+  context.fillStyle = hit ? "#958c9d" : "#c787e8";
+  context.fillRect(x + 5, y + 5, 38, 38);
+  context.fillStyle = hit ? "#5e5765" : "#fff0a0";
+  context.fillRect(x + 18, y + 12, 12, 12);
+  context.fillRect(x + 10, y + 13, 7, 8);
+  context.fillRect(x + 31, y + 13, 7, 8);
+  context.fillRect(x + 13, y + 27, 22, 11);
+  context.fillStyle = hit ? "#bbb2c0" : "#edc6fb";
+  context.fillRect(x + 4, y + 4, 8, 5);
+}
+
 function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX: number) {
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
@@ -209,7 +234,7 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillStyle = "#3b2c58";
     context.fillRect(x, y + 30, 12, 5);
     context.fillRect(x + 31, y + 30, 12, 5);
-  } else {
+  } else if (enemy.kind === "cloud") {
     context.fillStyle = "#ece8ff";
     context.fillRect(x + 2, y + 12, 40, 22);
     context.fillRect(x + 10, y + 4, 24, 25);
@@ -217,6 +242,21 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillRect(x + 12, y + 18, 5, 5);
     context.fillRect(x + 29, y + 18, 5, 5);
     context.fillRect(x + 19, y + 27, 9, 3);
+  } else {
+    context.fillStyle = "#312c42";
+    context.fillRect(x + 5, y + 11, 47, 26);
+    context.fillRect(x + 12, y + 3, 32, 26);
+    context.fillRect(x + 8, y - 3, 12, 14);
+    context.fillRect(x + 37, y - 3, 12, 14);
+    context.fillStyle = "#655d72";
+    context.fillRect(x + 15, y + 8, 27, 18);
+    context.fillStyle = "#f4cb68";
+    context.fillRect(x + 19, y + 13, 5, 5);
+    context.fillRect(x + 34, y + 13, 5, 5);
+    context.fillStyle = "#201a2b";
+    context.fillRect(x + 26, y + 22, 7, 6);
+    context.fillRect(x, y + 34, 16, 6);
+    context.fillRect(x + 42, y + 34, 16, 6);
   }
 }
 
@@ -326,7 +366,9 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot,
     sprite.src = "./assets/sprites/noa-sprite-sheet.png";
     const player = createInitialPlayer(level);
     let enemies: LiveEnemy[] = level.enemies.map((item, index) => ({ ...item, vx: item.speed, active: true, phase: index }));
+    const items: LiveItem[] = level.items.map((item) => ({ ...item, age: 99, rise: 1 }));
     const collected = new Set<string>();
+    const hitBlocks = new Set<string>();
     const projectiles: Projectile[] = [];
     let cameraX = 0;
     let apples = 0;
@@ -430,14 +472,40 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot,
         }
       }
 
+      for (const block of level.rewardBlocks) {
+        const horizontal = player.x + player.width > block.x && player.x < block.x + 48;
+        if (!horizontal) continue;
+        if (player.vy >= 0 && previousBottom <= block.y + 10 && player.y + player.height >= block.y) {
+          player.y = block.y - player.height;
+          player.vy = 0;
+          player.grounded = true;
+        } else if (player.vy < 0 && previousY >= block.y + 40 && player.y <= block.y + 48) {
+          player.y = block.y + 48;
+          player.vy = 95;
+          if (!hitBlocks.has(block.id)) {
+            hitBlocks.add(block.id);
+            items.push({ id: `${block.id}-reward`, kind: block.reward, x: block.x + 4, y: block.y - 42, age: 0, rise: 0 });
+            callbacksRef.current.playSound("block");
+          }
+        }
+      }
+
       if (player.y > VIEW_HEIGHT + 120) {
         callbacksRef.current.playSound("hurt");
         respawn();
       }
 
-      for (const item of level.items) {
+      for (const item of items) {
         if (collected.has(item.id)) continue;
-        const box = { x: item.x, y: item.y, width: 40, height: 40 };
+        item.age += delta;
+        item.rise = Math.min(1, item.rise + delta * 2.8);
+        if (item.age > 0.9 && item.rise === 1 && item.y < 410) {
+          item.x += delta * 42;
+          item.y = Math.min(410, item.y + delta * 115);
+        }
+        if (item.rise < 0.72) continue;
+        const itemY = item.y + (1 - item.rise) * 48;
+        const box = { x: item.x, y: itemY, width: 40, height: 40 };
         if (!intersects(player, box)) continue;
         collected.add(item.id);
         if (item.kind === "apple") {
@@ -537,6 +605,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot,
       if (sprite.complete && sprite.naturalWidth) {
         const cellWidth = sprite.naturalWidth / 4;
         const cellHeight = sprite.naturalHeight / 4;
+        const insetX = 14;
+        const insetY = 8;
         context.save();
         if (player.facing === -1) {
           context.translate(x + player.width / 2, 0);
@@ -545,10 +615,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot,
         }
         context.drawImage(
           sprite,
-          column * cellWidth,
-          row * cellHeight,
-          cellWidth,
-          cellHeight,
+          column * cellWidth + insetX,
+          row * cellHeight + insetY,
+          cellWidth - insetX * 2,
+          cellHeight - insetY * 2,
           x - 29,
           Math.round(player.y - 25),
           100,
@@ -564,14 +634,28 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot,
 
     const render = () => {
       drawBackground(context, level, cameraX);
-      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world === 2));
+      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world >= 2));
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
-      level.items.forEach((item) => {
+      level.rewardBlocks.forEach((block) => {
+        const x = Math.round(block.x - cameraX);
+        drawRewardBlock(context, x, block.y, hitBlocks.has(block.id));
+        if (!hitBlocks.has(block.id) && Math.abs(player.x - block.x) < 230) {
+          context.fillStyle = "#fff8d6";
+          context.fillRect(x - 58, block.y - 35, 164, 24);
+          context.fillStyle = "#4b295f";
+          context.font = "bold 12px monospace";
+          context.textAlign = "center";
+          context.fillText("¡SALTA BAJO LA HUELLA!", x + 24, block.y - 19);
+          context.textAlign = "start";
+        }
+      });
+      items.forEach((item) => {
         if (collected.has(item.id)) return;
         const x = Math.round(item.x - cameraX);
+        const y = item.y + (1 - item.rise) * 48;
         const bob = Math.round(Math.sin(frame * 0.08 + item.x) * 4);
-        if (item.kind === "apple") drawApple(context, x + 4, item.y + bob);
-        else drawCatPower(context, x, item.y + bob);
+        if (item.kind === "apple") drawApple(context, x + 4, y + bob);
+        else drawCatPower(context, x, y + bob);
       });
       enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX));
       projectiles.forEach((ball) => {

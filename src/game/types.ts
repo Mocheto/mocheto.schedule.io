@@ -1,4 +1,4 @@
-export type Theme = "orchard-day" | "orchard-sunset" | "forest-dusk" | "forest-night";
+export type Theme = "orchard-day" | "orchard-sunset" | "forest-dusk" | "forest-night" | "wolf-pines" | "wolf-moon";
 
 export type Rect = {
   x: number;
@@ -13,7 +13,7 @@ export type Platform = Rect & {
 
 export type Enemy = Rect & {
   id: string;
-  kind: "slime" | "beetle" | "cloud";
+  kind: "slime" | "beetle" | "cloud" | "wolf";
   minX: number;
   maxX: number;
   speed: number;
@@ -26,9 +26,16 @@ export type LevelItem = {
   y: number;
 };
 
+export type RewardBlock = {
+  id: string;
+  x: number;
+  y: number;
+  reward: "apple" | "cat";
+};
+
 export type Level = {
   id: string;
-  world: 1 | 2;
+  world: 1 | 2 | 3;
   screen: 1 | 2;
   title: string;
   subtitle: string;
@@ -39,6 +46,7 @@ export type Level = {
   platforms: Platform[];
   enemies: Enemy[];
   items: LevelItem[];
+  rewardBlocks: RewardBlock[];
   checkpoints: number[];
 };
 
@@ -50,4 +58,3 @@ export type GameSnapshot = {
   checkpoint: number;
   paused: boolean;
 };
-
