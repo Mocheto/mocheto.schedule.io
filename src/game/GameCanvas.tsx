@@ -488,6 +488,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
     const sprite = new Image();
     sprite.src = "./assets/sprites/noa-sprite-sheet.png";
+    const catJumpSprite = new Image();
+    catJumpSprite.src = "./assets/sprites/noa-cat-jump.png";
     const player = createInitialPlayer(level);
     let enemies: LiveEnemy[] = level.enemies.map((item, index) => ({ ...item, vx: item.speed, active: true, phase: index }));
     const items: LiveItem[] = level.items.map((item) => ({ ...item, age: 99, rise: 1, fromBlock: false }));
@@ -762,7 +764,9 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
       const flashing = player.invincible > 0 && Math.floor(player.invincible * 12) % 2 === 0;
       if (flashing) context.globalAlpha = 0.38;
-      if (sprite.complete && sprite.naturalWidth) {
+      const usesCleanCatJump = player.power === "cat" && !player.grounded;
+      const activeSprite = usesCleanCatJump ? catJumpSprite : sprite;
+      if (activeSprite.complete && activeSprite.naturalWidth) {
         const cellWidth = sprite.naturalWidth / 4;
         const cellHeight = sprite.naturalHeight / 4;
         const insetX = 14;
@@ -773,17 +777,21 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.scale(-1, 1);
           context.translate(-(x + player.width / 2), 0);
         }
-        context.drawImage(
-          sprite,
-          column * cellWidth + insetX,
-          row * cellHeight + insetY,
-          cellWidth - insetX * 2,
-          cellHeight - insetY * 2,
-          x - 29,
-          Math.round(player.y - 25),
-          100,
-          100,
-        );
+        if (usesCleanCatJump) {
+          context.drawImage(catJumpSprite, x - 29, Math.round(player.y - 25), 100, 100);
+        } else {
+          context.drawImage(
+            sprite,
+            column * cellWidth + insetX,
+            row * cellHeight + insetY,
+            cellWidth - insetX * 2,
+            cellHeight - insetY * 2,
+            x - 29,
+            Math.round(player.y - 25),
+            100,
+            100,
+          );
+        }
         context.restore();
       } else {
         context.fillStyle = "#aa6bd5";
