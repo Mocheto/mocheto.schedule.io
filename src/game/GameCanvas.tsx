@@ -14,6 +14,7 @@ type GameCanvasProps = {
   running: boolean;
   onLoseLife: () => void;
   onComplete: () => void;
+  onBossEncounter: () => void;
   onSnapshot: (snapshot: GameSnapshot) => void;
   playSound: (kind: SoundKind) => void;
 };
@@ -292,6 +293,28 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.fillRect(catX + 23, catY + 29, 6, 5);
 }
 
+function drawBossGate(context: CanvasRenderingContext2D, worldX: number, cameraX: number) {
+  const x = Math.round(worldX - cameraX);
+  context.fillStyle = "#24162f";
+  context.fillRect(x + 10, 326, 112, 130);
+  context.fillStyle = "#6d477e";
+  context.fillRect(x, 326, 18, 130);
+  context.fillRect(x + 114, 326, 18, 130);
+  context.fillRect(x, 314, 132, 22);
+  context.fillStyle = "#c78bea";
+  context.fillRect(x + 16, 302, 100, 30);
+  context.fillStyle = "#fff1a3";
+  context.font = "bold 15px monospace";
+  context.textAlign = "center";
+  context.fillText("DUELO", x + 66, 323);
+  context.fillStyle = "#fff3d2";
+  context.fillRect(x + 40, 362, 18, 18);
+  context.fillRect(x + 73, 362, 18, 18);
+  context.fillStyle = "#d85e73";
+  context.fillRect(x + 56, 397, 20, 12);
+  context.textAlign = "start";
+}
+
 function createInitialPlayer(level: Level): Player {
   return {
     x: level.start.x,
@@ -309,15 +332,15 @@ function createInitialPlayer(level: Level): Player {
   };
 }
 
-export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot, playSound }: GameCanvasProps) {
+export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<InputState>({ left: false, right: false, jump: false, shoot: false, jumpQueued: false, shootQueued: false });
   const runningRef = useRef(running);
-  const callbacksRef = useRef({ onLoseLife, onComplete, onSnapshot, playSound });
+  const callbacksRef = useRef({ onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound });
 
   useEffect(() => {
-    callbacksRef.current = { onLoseLife, onComplete, onSnapshot, playSound };
-  }, [onLoseLife, onComplete, onSnapshot, playSound]);
+    callbacksRef.current = { onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound };
+  }, [onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound]);
 
   useEffect(() => {
     runningRef.current = running;
@@ -572,7 +595,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot,
         completed = true;
         player.vx = 0;
         callbacksRef.current.playSound("goal");
-        completeTimer = window.setTimeout(() => callbacksRef.current.onComplete(), 650);
+        completeTimer = window.setTimeout(
+          () => level.boss ? callbacksRef.current.onBossEncounter() : callbacksRef.current.onComplete(),
+          650,
+        );
       }
 
       player.invincible = Math.max(0, player.invincible - delta);
@@ -667,7 +693,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onSnapshot,
         context.fillStyle = "#eee0ff";
         context.fillRect(x - 5, Math.round(ball.y) - 4, 10, 3);
       });
-      drawGoalCat(context, level.goalX, cameraX, level.id === "2-2");
+      if (level.boss) drawBossGate(context, level.goalX, cameraX);
+      else drawGoalCat(context, level.goalX, cameraX, false);
       drawPlayer();
 
       if (!runningRef.current) {

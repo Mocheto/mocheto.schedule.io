@@ -6,7 +6,8 @@ Super Noa es un juego React/Vite de plataformas dibujado sobre Canvas 2D.
 
 - `src/App.tsx`: navegación, HUD, progreso local, música y modales.
 - `src/game/GameCanvas.tsx`: bucle, física, controles y renderizado.
-- `src/game/levels.ts`: definición declarativa de las seis pantallas y sus cajas de recompensa.
+- `src/game/levels.ts`: definición declarativa de las nueve pantallas, sus cajas de recompensa y los tres encuentros finales.
+- `src/game/BossBattle.tsx`: duelos de piedra, papel o tijera contra los monstruos finales.
 - `src/game/types.ts`: tipos del motor y extensión futura.
 - `src/styles.css`: interfaz adaptable y controles táctiles.
 - `public/assets/`: hoja de animaciones y música.
@@ -31,4 +32,4 @@ npm run lint
 npm run build:pages
 ```
 
-Antes de publicar comprueba las seis pantallas, cajas golpeadas desde abajo, pérdida de vidas, reaparición, checkpoints, manzana, gato, lana, progreso, sonido, teclado y controles táctiles.
+Antes de publicar comprueba las nueve pantallas, los tres duelos, cajas golpeadas desde abajo, pérdida de vidas, reaparición, checkpoints, manzana, gato, lana, progreso, sonido, teclado y controles táctiles.

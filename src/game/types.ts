@@ -33,10 +33,12 @@ export type RewardBlock = {
   reward: "apple" | "cat";
 };
 
+export type BossId = "bramble-king" | "mist-countess" | "great-wolf";
+
 export type Level = {
   id: string;
   world: 1 | 2 | 3;
-  screen: 1 | 2;
+  screen: 1 | 2 | 3;
   title: string;
   subtitle: string;
   theme: Theme;
@@ -48,6 +50,7 @@ export type Level = {
   items: LevelItem[];
   rewardBlocks: RewardBlock[];
   checkpoints: number[];
+  boss?: BossId;
 };
 
 export type Power = "normal" | "apple" | "cat";

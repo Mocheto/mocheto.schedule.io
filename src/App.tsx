@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BossBattle } from "./game/BossBattle";
 import { GameCanvas, type SoundKind } from "./game/GameCanvas";
 import { levels, themeNames } from "./game/levels";
 import type { GameSnapshot } from "./game/types";
@@ -7,7 +8,7 @@ const STORAGE_KEY = "super-noa-progress-v1";
 
 type LevelStats = Record<string, { completed: boolean; bestApples: number }>;
 type Progress = { unlocked: number; levelStats: LevelStats };
-type Screen = "home" | "map" | "game" | "complete" | "gameover" | "finished";
+type Screen = "home" | "map" | "game" | "boss" | "complete" | "gameover" | "finished";
 
 const emptyProgress: Progress = { unlocked: 0, levelStats: {} };
 const emptySnapshot: GameSnapshot = { apples: 0, power: "normal", checkpoint: 0, paused: false };
@@ -18,9 +19,17 @@ function readProgress(): Progress {
     if (!raw) return emptyProgress;
     const saved = JSON.parse(raw) as Partial<Progress>;
     const levelStats = saved.levelStats && typeof saved.levelStats === "object" ? saved.levelStats : {};
-    const legacyUnlocked = Math.max(0, Math.min(levels.length - 1, Number(saved.unlocked) || 0));
+    const savedUnlocked = Math.max(0, Number(saved.unlocked) || 0);
+    const hasNewLevelStats = ["1-3", "2-3", "3-3"].some((id) => Object.hasOwn(levelStats, id));
+    const legacyIndexMap = [0, 1, 3, 4, 6, 7];
+    let unlocked = hasNewLevelStats
+      ? Math.min(levels.length - 1, savedUnlocked)
+      : legacyIndexMap[Math.min(legacyIndexMap.length - 1, savedUnlocked)];
+    levels.forEach((level, index) => {
+      if (levelStats[level.id]?.completed) unlocked = Math.max(unlocked, Math.min(levels.length - 1, index + 1));
+    });
     return {
-      unlocked: levelStats["2-2"]?.completed ? Math.max(4, legacyUnlocked) : legacyUnlocked,
+      unlocked,
       levelStats,
     };
   } catch {
@@ -72,7 +81,7 @@ export default function App() {
     audio.volume = 0.22;
     musicRef.current?.pause();
     musicRef.current = audio;
-    if (screen === "game" && !paused && !muted) void audio.play().catch(() => undefined);
+    if ((screen === "game" || screen === "boss") && !paused && !muted) void audio.play().catch(() => undefined);
     return () => audio.pause();
   }, [activeLevel.world, muted, paused, screen]);
 
@@ -147,6 +156,11 @@ export default function App() {
     setScreen(activeIndex === levels.length - 1 ? "finished" : "complete");
   }, [activeIndex, activeLevel.id, snapshot.apples]);
 
+  const handleBossEncounter = useCallback(() => {
+    setPaused(false);
+    setScreen("boss");
+  }, []);
+
   const nextLevel = () => {
     setActiveIndex(Math.min(levels.length - 1, activeIndex + 1));
     setLives(5);
@@ -175,12 +189,12 @@ export default function App() {
           <div className="home-copy">
             <p className="eyebrow">Una aventura de 8 bits</p>
             <h1 id="game-title"><span>SUPER</span> NOA</h1>
-            <p className="home-lead">Seis aventuras entre manzanos, ovillos, gatitos y el misterioso bosque de los lobos.</p>
+            <p className="home-lead">Nueve aventuras entre manzanos, ovillos, gatitos y tres grandes duelos de piedra, papel o tijera.</p>
             <div className="home-actions">
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>▶ Jugar</button>
               <button className="pixel-button" type="button" onClick={() => setShowHelp(true)}>¿Cómo se juega?</button>
             </div>
-            {progress.unlocked > 0 && <p className="save-note">Partida guardada · {Object.keys(progress.levelStats).length}/6 pantallas</p>}
+            {progress.unlocked > 0 && <p className="save-note">Partida guardada · {Object.values(progress.levelStats).filter((stats) => stats.completed).length}/9 pantallas</p>}
           </div>
           <div className="hero-scene" aria-hidden="true">
             <div className="pixel-sun" />
@@ -233,7 +247,7 @@ export default function App() {
         </section>
       )}
 
-      {(screen === "game" || screen === "complete" || screen === "gameover" || screen === "finished") && (
+      {(screen === "game" || screen === "boss" || screen === "complete" || screen === "gameover" || screen === "finished") && (
         <section className="play-screen">
           <header className="game-hud">
             <div className="hud-level"><span>{activeLevel.id}</span><strong>{activeLevel.title}</strong></div>
@@ -245,11 +259,15 @@ export default function App() {
             <div className="hud-actions">
               <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Activar sonido" : "Silenciar"}>{muted ? "🔇" : "🔊"}</button>
               <button type="button" onClick={toggleFullscreen} aria-label="Pantalla completa">⛶</button>
-              <button type="button" onClick={() => setPaused((value) => !value)} aria-label="Pausa">Ⅱ</button>
+              {screen === "game" && <button type="button" onClick={() => setPaused((value) => !value)} aria-label="Pausa">Ⅱ</button>}
             </div>
           </header>
-          <GameCanvas level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onSnapshot={setSnapshot} playSound={playSound} />
+          <GameCanvas level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSnapshot={setSnapshot} playSound={playSound} />
           <div className="level-caption"><span>{themeNames[activeLevel.theme]}</span><span>Bandera {snapshot.checkpoint}/{activeLevel.checkpoints.length}</span></div>
+
+          {screen === "boss" && activeLevel.boss && (
+            <BossBattle key={activeLevel.id} bossId={activeLevel.boss} onWin={handleComplete} playSound={playSound} />
+          )}
 
           {paused && screen === "game" && (
             <div className="modal-backdrop"><div className="game-modal compact">
@@ -261,9 +279,9 @@ export default function App() {
 
           {screen === "complete" && (
             <div className="modal-backdrop celebration"><div className="game-modal">
-              <div className="big-icon">🐱</div><p className="eyebrow">¡Gatito encontrado!</p>
+              <div className="big-icon">{activeLevel.boss ? "🏆" : "🐱"}</div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
               <h2>Pantalla {activeLevel.id} completada</h2>
-              <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. La siguiente aventura ya está abierta.</p>
+              <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. {activeLevel.boss ? "El monstruo guardián ha dejado libre el camino." : "La siguiente aventura ya está abierta."}</p>
               <button className="pixel-button primary" type="button" onClick={nextLevel}>Siguiente pantalla ▶</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("map")}>Volver al mapa</button>
             </div></div>
@@ -281,7 +299,7 @@ export default function App() {
           {screen === "finished" && (
             <div className="modal-backdrop celebration"><div className="game-modal finale">
               <div className="cat-party" aria-hidden="true">🐱 🍎 🐱 🧶 🐱</div><p className="eyebrow">Aventura completada</p>
-              <h2>¡Bravo, Super Noa!</h2><p>Todos los gatitos están a salvo y celebran una fiesta bajo la luna. Fin… por ahora.</p>
+              <h2>¡Bravo, Super Noa!</h2><p>Los tres guardianes son ahora amigos de Noa y todos los gatitos celebran una fiesta bajo la luna. Fin… por ahora.</p>
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>Ver el mapa</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("home")}>Ir al inicio</button>
             </div></div>
@@ -299,6 +317,7 @@ export default function App() {
             <div><span>▣</span><strong>Abrir cajas</strong><small>Salta y golpea la huella desde abajo</small></div>
             <div><span>🧶</span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
             <div><span>🍎</span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
+            <div><span>🪨✋✌️</span><strong>Vencer al jefe</strong><small>Gana dos rondas de piedra, papel o tijera</small></div>
           </div>
           <p className="help-note">También puedes usar los botones grandes de la pantalla o un mando.</p>
           <button className="pixel-button primary" type="button" onClick={() => { setShowHelp(false); setScreen("map"); }}>¡Vamos!</button>
@@ -312,7 +331,7 @@ export default function App() {
           <p><strong>Super Noa</strong> es un juego original inspirado en los plataformas familiares de 8 bits.</p>
           <p>Personaje creado para este proyecto a partir de referencias privadas. Las fotografías originales no forman parte de la web.</p>
           <p>Música de los tres mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
-          <p>Efectos de sonido generados en el navegador. Diseño, escenarios y código creados para Super Noa.</p>
+          <p>Los tres monstruos finales son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios, interfaz y código creados para Super Noa.</p>
           <button className="pixel-button primary" type="button" onClick={() => setShowCredits(false)}>Cerrar</button>
         </div></div>
       )}

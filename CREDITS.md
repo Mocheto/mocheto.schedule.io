@@ -14,4 +14,5 @@ La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y traz
 
 - Diseño de Noa: interpretación pixelada original creada para Super Noa a partir de referencias privadas. Las fotografías no se distribuyen ni forman parte del repositorio.
 - Escenarios, objetos, enemigos e interfaz: creados específicamente para Super Noa.
+- Monstruos finales: Rey Zarzal, Condesa Niebla y Gran Lobo son diseños pixelados originales generados para Super Noa. No copian personajes de Nintendo, Sega ni de otros juegos.
 - Efectos de sonido: sintetizados en tiempo real mediante Web Audio API.
