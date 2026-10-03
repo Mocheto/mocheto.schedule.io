@@ -200,7 +200,7 @@ export const levels: Level[] = [
     world: 3,
     screen: 2,
     title: "El corazón del bosque de los lobos",
-    subtitle: "La aventura más larga: lobos, luna y cuatro precipicios.",
+    subtitle: "La aventura más larga: lobos, luna y tres precipicios.",
     theme: "wolf-moon",
     width: 6200,
     start: { x: 80, y: 380 },
