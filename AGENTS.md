@@ -33,4 +33,4 @@ npm run lint
 npm run build:pages
 ```
 
-Antes de publicar comprueba las nueve pantallas, doble salto, muelles, niebla, avisos de lobos, pegatinas y álbum, los tres duelos, cajas golpeadas desde abajo, pérdida de vidas, reaparición, checkpoints, manzana, gato, lana, progreso, sonido, teclado y controles táctiles.
+Antes de publicar comprueba las nueve pantallas, doble salto, muelles, niebla, avisos de lobos, pegatinas y álbum, los tres duelos, el reintento gastando una manzana y el reinicio sin manzanas, cajas golpeadas desde abajo, pérdida de vidas, reaparición, checkpoints, manzana, gato, lana, progreso, sonido, teclado y controles táctiles.

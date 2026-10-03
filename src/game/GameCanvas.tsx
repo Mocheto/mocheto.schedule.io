@@ -7,7 +7,7 @@ const GRAVITY = 1650;
 const MOVE_SPEED = 250;
 const JUMP_SPEED = 625;
 
-type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl";
+type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl" | "countdown";
 
 type GameCanvasProps = {
   level: Level;

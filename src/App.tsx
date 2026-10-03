@@ -54,6 +54,7 @@ export default function App() {
   const [progress, setProgress] = useState<Progress>(readProgress);
   const [screen, setScreen] = useState<Screen>("home");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [levelRun, setLevelRun] = useState(0);
   const [lives, setLives] = useState(5);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(() => localStorage.getItem("super-noa-muted") === "true");
@@ -109,7 +110,7 @@ export default function App() {
       apple: [660, 0.11, "square"], block: [410, 0.12, "square"], cat: [523, 0.28, "triangle"], jump: [360, 0.12, "square"],
       hurt: [145, 0.22, "sawtooth"], stomp: [210, 0.09, "square"], yarn: [760, 0.08, "triangle"],
       checkpoint: [880, 0.18, "triangle"], goal: [1046, 0.42, "square"], sticker: [1174, 0.32, "triangle"],
-      howl: [196, 0.48, "sawtooth"],
+      howl: [196, 0.48, "sawtooth"], countdown: [330, 0.08, "square"],
     };
     const [frequency, duration, type] = notes[kind];
     oscillator.type = type;
@@ -130,6 +131,7 @@ export default function App() {
   const beginLevel = (index: number) => {
     if (index > progress.unlocked) return;
     setActiveIndex(index);
+    setLevelRun((current) => current + 1);
     setLives(5);
     setSnapshot(emptySnapshot);
     setPaused(false);
@@ -175,8 +177,23 @@ export default function App() {
     setScreen("boss");
   }, []);
 
+  const spendBossApple = useCallback(() => {
+    setSnapshot((current) => {
+      const apples = Math.max(0, current.apples - 1);
+      return { ...current, apples, power: apples === 0 && current.power === "apple" ? "normal" : current.power };
+    });
+  }, []);
+
+  const restartBossLevel = useCallback(() => {
+    setLevelRun((current) => current + 1);
+    setSnapshot(emptySnapshot);
+    setPaused(false);
+    setScreen("game");
+  }, []);
+
   const nextLevel = () => {
     setActiveIndex(Math.min(levels.length - 1, activeIndex + 1));
+    setLevelRun((current) => current + 1);
     setLives(5);
     setSnapshot(emptySnapshot);
     setPaused(false);
@@ -279,11 +296,19 @@ export default function App() {
               {screen === "game" && <button type="button" onClick={() => setPaused((value) => !value)} aria-label="Pausa">Ⅱ</button>}
             </div>
           </header>
-          <GameCanvas level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSnapshot={handleSnapshot} playSound={playSound} />
+          <GameCanvas key={`${activeLevel.id}-${levelRun}`} level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSnapshot={handleSnapshot} playSound={playSound} />
           <div className="level-caption"><span>{themeNames[activeLevel.theme]}</span><span>Bandera {snapshot.checkpoint}/{activeLevel.checkpoints.length}</span></div>
 
           {screen === "boss" && activeLevel.boss && (
-            <BossBattle key={activeLevel.id} bossId={activeLevel.boss} onWin={handleComplete} playSound={playSound} />
+            <BossBattle
+              key={`${activeLevel.id}-${levelRun}`}
+              bossId={activeLevel.boss}
+              apples={snapshot.apples}
+              onSpendApple={spendBossApple}
+              onRestartLevel={restartBossLevel}
+              onWin={handleComplete}
+              playSound={playSound}
+            />
           )}
 
           {paused && screen === "game" && (
@@ -335,7 +360,7 @@ export default function App() {
             <div><span>▣</span><strong>Abrir cajas</strong><small>Salta y golpea la huella desde abajo</small></div>
             <div><span>🧶</span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
             <div><span>🍎</span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
-            <div><span>🪨✋✌️</span><strong>Vencer al jefe</strong><small>Gana dos rondas de piedra, papel o tijera</small></div>
+            <div><span>🪨✋✌️</span><strong>Vencer al jefe</strong><small>Gana dos rondas; cada manzana permite repetir un duelo</small></div>
             <div><span>✨</span><strong>Explorar arriba</strong><small>Las nueve pegatinas están en rutas elevadas</small></div>
           </div>
           <p className="help-note">Ramas elásticas en los manzanos, niebla que aparece al acercarte y aullidos que avisan de los lobos. También puedes usar los botones grandes o un mando.</p>
