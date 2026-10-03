@@ -48,6 +48,9 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
+const enemyY = (enemy: LiveEnemy) =>
+  enemy.y + (enemy.kind === "bird" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
+
 const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number, color: string) => {
   context.fillStyle = color;
   context.fillRect(Math.round(x), Math.round(y + 12), 88, 22);
@@ -273,7 +276,7 @@ function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number
 function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX: number, nearby: boolean) {
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
-  const y = Math.round(enemy.y + (enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0));
+  const y = Math.round(enemyY(enemy));
   if (enemy.kind === "slime") {
     context.fillStyle = "#77cbe0";
     context.fillRect(x + 4, y + 8, 34, 28);
@@ -303,6 +306,28 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     context.fillRect(x + 12, y + 18, 5, 5);
     context.fillRect(x + 29, y + 18, 5, 5);
     context.fillRect(x + 19, y + 27, 9, 3);
+  } else if (enemy.kind === "bird") {
+    const flapUp = Math.sin(enemy.phase * 2) > 0;
+    context.fillStyle = "#3b2948";
+    context.fillRect(x + 11, y + 10, 26, 17);
+    context.fillRect(x + 28, y + 5, 13, 15);
+    context.fillStyle = "#c96f50";
+    context.fillRect(x + 15, y + 17, 18, 10);
+    context.fillStyle = "#f2c15d";
+    context.fillRect(x + 39, y + 11, 7, 5);
+    context.fillStyle = "#fff7d6";
+    context.fillRect(x + 34, y + 9, 3, 3);
+    context.fillStyle = "#24192f";
+    context.fillRect(x + 35, y + 9, 2, 2);
+    context.fillRect(x + 3, y + 13, 12, 5);
+    context.fillStyle = "#6f456f";
+    if (flapUp) {
+      context.fillRect(x + 13, y, 9, 14);
+      context.fillRect(x + 20, y + 5, 9, 12);
+    } else {
+      context.fillRect(x + 13, y + 21, 9, 10);
+      context.fillRect(x + 20, y + 18, 9, 10);
+    }
   } else if (enemy.kind === "boar") {
     if (nearby) {
       context.fillStyle = "#fff0bd";
@@ -686,7 +711,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         }
         const hitbox = {
           x: enemy.x,
-          y: enemy.y + (enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0),
+          y: enemyY(enemy),
           width: enemy.width,
           height: enemy.height,
         };
@@ -708,7 +733,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         ball.life -= delta;
         enemies.forEach((enemy) => {
           if (!enemy.active) return;
-          if (intersects({ x: ball.x - 10, y: ball.y - 10, width: 20, height: 20 }, enemy)) {
+          const enemyHitbox = { ...enemy, y: enemyY(enemy) };
+          if (intersects({ x: ball.x - 10, y: ball.y - 10, width: 20, height: 20 }, enemyHitbox)) {
             enemy.active = false;
             ball.life = 0;
             callbacksRef.current.playSound("stomp");

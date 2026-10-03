@@ -13,7 +13,7 @@ export type Platform = Rect & {
 
 export type Enemy = Rect & {
   id: string;
-  kind: "slime" | "beetle" | "cloud" | "wolf" | "boar";
+  kind: "slime" | "beetle" | "cloud" | "wolf" | "boar" | "bird";
   minX: number;
   maxX: number;
   speed: number;
