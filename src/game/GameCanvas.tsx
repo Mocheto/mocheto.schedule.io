@@ -1284,6 +1284,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     catJumpSprite.src = "./assets/sprites/noa-cat-jump-v2.png";
     const catYarnSprite = new Image();
     catYarnSprite.src = "./assets/sprites/noa-cat-yarn-v2.png";
+    const catRunSprite = new Image();
+    catRunSprite.src = "./assets/sprites/noa-cat-run-v2.png";
     const jumpSprite = new Image();
     jumpSprite.src = "./assets/sprites/noa-jump-v2.png";
     const raster: RasterAssets = {
@@ -1653,7 +1655,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
     const drawPlayer = () => {
       const x = Math.round(player.x - cameraX);
-      const runningFrame = Math.floor(frame / 7) % 4;
+      const runningFrame = Math.floor(frame / 12) % 4;
       let row = 0;
       let column = 0;
       if (player.power === "cat") {
@@ -1668,10 +1670,11 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
       const flashing = player.invincible > 0 && Math.floor(player.invincible * 12) % 2 === 0;
       if (flashing) context.globalAlpha = 0.38;
-      const usesCatYarnSprite = player.power === "cat" && player.grounded;
+      const usesCatYarnSprite = player.power === "cat" && player.grounded && Math.abs(player.vx) <= 25;
+      const usesCatRunSprite = player.power === "cat" && player.grounded && Math.abs(player.vx) > 25;
       const usesCleanCatJump = player.power === "cat" && !player.grounded;
       const usesCleanJump = player.power !== "cat" && !player.grounded;
-      const activeSprite = usesCatYarnSprite ? catYarnSprite : usesCleanCatJump ? catJumpSprite : usesCleanJump ? jumpSprite : sprite;
+      const activeSprite = usesCatYarnSprite ? catYarnSprite : usesCatRunSprite ? catRunSprite : usesCleanCatJump ? catJumpSprite : usesCleanJump ? jumpSprite : sprite;
       if (activeSprite.complete && activeSprite.naturalWidth) {
         const cellWidth = sprite.naturalWidth / 4;
         const cellHeight = sprite.naturalHeight / 4;
@@ -1690,6 +1693,11 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           // Sprite independiente con transparencia: se conservan las orejas,
           // la bola de lana y la punta de la cola.
           context.drawImage(catYarnSprite, x - 64, Math.round(player.y - 61), 165, 130);
+        } else if (usesCatRunSprite) {
+          // Al correr, Noa gata usa una pose propia y un pequeño balanceo de
+          // pasos, sin volver a la hoja de sprites que cortaba las orejas.
+          const stepBob = runningFrame % 2 === 0 ? 0 : 2;
+          context.drawImage(catRunSprite, x - 65, Math.round(player.y - 54 + stepBob), 170, 125);
         } else if (usesCleanCatJump) {
           // El PNG de salto incluye margen transparente para que no se corten
           // orejas ni cola. Lo ampliamos para conservar el tamaño de Noa.
