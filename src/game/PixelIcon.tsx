@@ -1,5 +1,5 @@
 export type PixelIconKind =
-  | "apple" | "heart" | "sparkle" | "yarn" | "lock" | "trophy" | "cat"
+  | "apple" | "heart" | "sparkle" | "yarn" | "lock" | "cat"
   | "sound" | "mute" | "bee" | "tree" | "paw" | "moon" | "pine" | "wolf"
   | "crown" | "acorn" | "tooth" | "wheel" | "parrot" | "gem" | "rock" | "paper" | "scissors";
 

@@ -51,7 +51,6 @@ button:focus-visible, a:focus-visible {
 .pixel-icon-yarn { border: .17em solid #392643; border-radius: 50%; background: repeating-linear-gradient(35deg, #c17bdc 0 .14em, #f0c6fb .14em .24em); }
 .pixel-icon-lock { width: .9em; height: .78em; margin-top: .22em; border: .14em solid #44304f; background: #f5ce63; }
 .pixel-icon-lock::before { content: ""; position: absolute; width: 55%; height: 55%; left: 22%; top: -65%; border: .13em solid #44304f; border-bottom: 0; }
-.pixel-icon-trophy { --icon-size: 1em; background: #ffd45f; clip-path: polygon(15% 0, 85% 0, 85% 12%, 100% 12%, 100% 48%, 82% 65%, 62% 65%, 62% 82%, 82% 82%, 82% 100%, 18% 100%, 18% 82%, 38% 82%, 38% 65%, 18% 65%, 0 48%, 0 12%, 15% 12%); filter: drop-shadow(.12em .12em 0 #754a3b); }
 .pixel-icon-cat { --icon-size: 1em; background: #c789e5; clip-path: polygon(0 0, 28% 18%, 72% 18%, 100% 0, 100% 75%, 82% 100%, 18% 100%, 0 75%); box-shadow: inset -.16em -.13em 0 #714681; }
 .pixel-icon-sound, .pixel-icon-mute { background: #e8d7f1; clip-path: polygon(0 37%, 27% 37%, 60% 10%, 60% 90%, 27% 63%, 0 63%); }
 .pixel-icon-sound::after, .pixel-icon-mute::after { content: ""; position: absolute; right: 0; top: 23%; width: 27%; height: 54%; border: .12em solid #e8d7f1; border-left: 0; }
@@ -301,7 +300,9 @@ h1 span {
 .game-modal .pixel-button { display: block; width: 100%; margin-top: 14px; }
 .big-icon { display: grid; place-items: center; min-height: 78px; font-size: 4.2rem; }
 .big-icon .pixel-icon { --icon-size: 1.1em; }
-.completion-cat { display: block; width: clamp(104px, 24vw, 148px); height: auto; image-rendering: pixelated; filter: drop-shadow(6px 7px 0 rgba(69, 38, 78, .2)); }
+.completion-cat, .completion-trophy { display: block; height: auto; image-rendering: pixelated; filter: drop-shadow(6px 7px 0 rgba(69, 38, 78, .2)); }
+.completion-cat { width: clamp(104px, 24vw, 148px); }
+.completion-trophy { width: clamp(120px, 28vw, 168px); }
 .cat-party { display: flex; justify-content: center; gap: 13px; margin-bottom: 20px; }
 .cat-party .pixel-icon { --icon-size: clamp(1.7rem, 7vw, 3rem); }
 .celebration::before { content: ""; position: fixed; inset: 0; pointer-events: none; background-image: radial-gradient(#ffd55f 3px, transparent 4px), radial-gradient(#d989ee 3px, transparent 4px), radial-gradient(#ee596c 3px, transparent 4px); background-size: 90px 90px, 110px 110px, 130px 130px; background-position: 0 0, 24px 31px, 53px 17px; animation: confetti 7s linear infinite; }
