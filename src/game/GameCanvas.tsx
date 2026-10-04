@@ -1670,10 +1670,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         const cellWidth = sprite.naturalWidth / 4;
         const cellHeight = sprite.naturalHeight / 4;
         const insetX = 14;
-        // Las figuras de filas contiguas rozan el borde de la hoja. Recortamos
-        // un poco más arriba y abajo para que no aparezcan trocitos de otra pose.
-        const rowInsetTop = [10, 14, 18, 18][row];
-        const rowInsetBottom = [14, 16, 20, 20][row];
+        // Las tres primeras filas comparten bordes muy juntos. La fila de gata,
+        // en cambio, empieza con las orejas pegadas arriba: no la recortamos.
+        const rowInsetTop = [10, 14, 18, 0][row];
+        const rowInsetBottom = [14, 16, 20, 0][row];
         context.save();
         if (player.facing === -1) {
           context.translate(x + player.width / 2, 0);
