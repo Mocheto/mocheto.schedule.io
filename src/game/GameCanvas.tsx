@@ -48,7 +48,7 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; collectibles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -83,6 +83,9 @@ const drawAtlasCell = (context: CanvasRenderingContext2D, image: HTMLImageElemen
   context.restore();
   return true;
 };
+
+const drawCollectibleSprite = (context: CanvasRenderingContext2D, image: HTMLImageElement, column: number, row: number, x: number, y: number, width: number, height: number) =>
+  drawAtlasCell(context, image, 4, 2, column, row, x, y, width, height);
 
 const stampTileTexture = (context: CanvasRenderingContext2D, image: HTMLImageElement | undefined, tile: number, x: number, y: number, width: number, height: number, alpha = 0.28) => {
   if (!image?.complete || !image.naturalWidth || width < 20 || height < 8) return;
@@ -122,7 +125,8 @@ const drawTinySparkle = (context: CanvasRenderingContext2D, x: number, y: number
   context.fillRect(Math.round(x), Math.round(y + 4 * scale), 11 * scale, 3 * scale);
 };
 
-function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, sunset: boolean, pirate: boolean, frame: number) {
+function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, sunset: boolean, pirate: boolean, frame: number, collectibles?: HTMLImageElement) {
+  if (collectibles && drawCollectibleSprite(context, collectibles, 0, 1, x - 2, y - 2, 84, 84)) return;
   context.fillStyle = sunset ? "#ffd084" : "#ffe36f";
   context.fillRect(x + 27, y, 14, 12);
   context.fillRect(x + 27, y + 68, 14, 12);
@@ -150,7 +154,8 @@ function drawHappySun(context: CanvasRenderingContext2D, x: number, y: number, s
   context.fillRect(x + 55, y + 44, 8, 5);
 }
 
-function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, catMoon: boolean, frame: number) {
+function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, catMoon: boolean, frame: number, collectibles?: HTMLImageElement) {
+  if (collectibles && drawCollectibleSprite(context, collectibles, 1, 1, x - 2, y - 2, 84, 84)) return;
   context.fillStyle = "#fff0ad";
   if (catMoon) {
     context.fillRect(x + 12, y + 3, 18, 20);
@@ -172,7 +177,7 @@ function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, 
   context.fillRect(x + 56, y + 47, 8, 5);
 }
 
-function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number) {
+function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number, collectibles?: HTMLImageElement) {
   const storm = level.theme === "boar-storm" || level.theme === "sky-storm";
   const night = level.theme === "forest-night" || level.theme === "wolf-moon" || level.theme === "boar-storm";
   const wolves = level.world === 3;
@@ -194,7 +199,7 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
   }
 
   if (night) {
-    drawHappyMoon(context, 770, 46, level.world === 2, frame);
+    drawHappyMoon(context, 770, 46, level.world === 2, frame, collectibles);
     context.fillStyle = "#f5dfff";
     for (let index = 0; index < 18; index += 1) {
       const x = (index * 157 + 43) % VIEW_WIDTH;
@@ -202,7 +207,7 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.fillRect(x, y, index % 3 === 0 ? 4 : 2, index % 3 === 0 ? 4 : 2);
     }
   } else {
-    drawHappySun(context, 770, 46, sunset || storm, pirates, frame);
+    drawHappySun(context, 770, 46, sunset || storm, pirates, frame, collectibles);
   }
 
   const cloudColor = level.theme === "sky-storm" ? "#aeb8ce" : storm ? "#77758b" : night ? "#5c548c" : boars ? "#ffe1b5" : sunset ? "#ffe0cf" : "#f8fdff";
@@ -502,7 +507,8 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
   stampTileTexture(context, raster.tiles[world], 0, x + 2, platform.y, platform.width - 4, platform.height, 0.19);
 }
 
-function drawApple(context: CanvasRenderingContext2D, x: number, y: number) {
+function drawApple(context: CanvasRenderingContext2D, x: number, y: number, collectibles?: HTMLImageElement) {
+  if (collectibles && drawCollectibleSprite(context, collectibles, 0, 0, x - 6, y - 11, 46, 46)) return;
   context.fillStyle = "#382332";
   context.fillRect(x + 1, y + 3, 30, 25);
   context.fillRect(x - 3, y + 8, 38, 14);
@@ -519,7 +525,8 @@ function drawApple(context: CanvasRenderingContext2D, x: number, y: number) {
   context.fillRect(x + 7, y + 22, 18, 5);
 }
 
-function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number) {
+function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number, collectibles?: HTMLImageElement) {
+  if (collectibles && drawCollectibleSprite(context, collectibles, 1, 0, x - 6, y - 12, 52, 52)) return;
   context.fillStyle = "#2d1d39";
   context.fillRect(x, y + 2, 40, 36);
   context.fillRect(x + 1, y - 9, 16, 18);
@@ -540,7 +547,8 @@ function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number) {
   context.fillRect(x + 16, y + 31, 9, 4);
 }
 
-function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pulse: number) {
+function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pulse: number, collectibles?: HTMLImageElement) {
+  if (collectibles && drawCollectibleSprite(context, collectibles, 2, 0, x - 5 - pulse, y - 5 - pulse, 48 + pulse * 2, 48 + pulse * 2)) return;
   context.fillStyle = "#4b295f";
   context.fillRect(x + 5, y, 28, 38);
   context.fillRect(x, y + 5, 38, 28);
@@ -555,7 +563,8 @@ function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pu
   context.fillRect(x + 12, y + 16, 14, 4);
 }
 
-function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean) {
+function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean, collectibles?: HTMLImageElement) {
+  if (collectibles && drawCollectibleSprite(context, collectibles, hit ? 3 : 2, 1, x - 4, y - 4, 56, 56)) return;
   context.fillStyle = "#2c1d38";
   context.fillRect(x - 3, y - 3, 54, 54);
   context.fillStyle = hit ? "#746b7c" : "#5a2e70";
@@ -863,7 +872,7 @@ function drawCheckpoint(context: CanvasRenderingContext2D, worldX: number, camer
   }
 }
 
-function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean) {
+function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement) {
   const x = Math.round(worldX - cameraX);
   context.fillStyle = "#6f4a32";
   context.fillRect(x + 63, 333, 7, 123);
@@ -874,6 +883,7 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.fillRect(x + 105, 350, 12, 12);
   const catX = x + 18;
   const catY = 400;
+  if (collectibles && drawCollectibleSprite(context, collectibles, 3, 0, catX - 8, catY - 15, 64, 64)) return;
   context.fillStyle = "#352841";
   context.fillRect(catX + 1, catY + 5, 48, 48);
   context.fillRect(catX + 2, catY - 3, 18, 21);
@@ -995,6 +1005,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     catJumpSprite.src = "./assets/sprites/noa-cat-jump.png";
     const raster: RasterAssets = {
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
+      collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
       tiles: {
         1: createRasterImage("./assets/atlases/world-1-tiles-v1.png"),
         2: createRasterImage("./assets/atlases/world-2-tiles-v1.png"),
@@ -1384,12 +1395,12 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     };
 
     const render = () => {
-      drawBackground(context, level, cameraX, frame);
+      drawBackground(context, level, cameraX, frame, raster.collectibles);
       level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame, raster));
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
       level.rewardBlocks.forEach((block) => {
         const x = Math.round(block.x - cameraX);
-        drawRewardBlock(context, x, block.y, hitBlocks.has(block.id));
+        drawRewardBlock(context, x, block.y, hitBlocks.has(block.id), raster.collectibles);
         if (!hitBlocks.has(block.id) && Math.abs(player.x - block.x) < 230) {
           context.fillStyle = "#fff8d6";
           context.fillRect(x - 58, block.y - 35, 164, 24);
@@ -1406,9 +1417,9 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         const x = Math.round(item.x - cameraX);
         const y = item.y + (1 - item.rise) * 48;
         const bob = Math.round(Math.sin(frame * 0.08 + item.x) * 4);
-        if (item.kind === "apple") drawApple(context, x + 4, y + bob);
-        else if (item.kind === "cat") drawCatPower(context, x, y + bob);
-        else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2);
+        if (item.kind === "apple") drawApple(context, x + 4, y + bob, raster.collectibles);
+        else if (item.kind === "cat") drawCatPower(context, x, y + bob, raster.collectibles);
+        else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2, raster.collectibles);
       });
       enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, (enemy.kind === "wolf" || enemy.kind === "boar") && Math.abs(player.x - enemy.x) < 360, raster));
       cannonballs.forEach((ball) => drawCannonball(context, ball, cameraX));
@@ -1438,7 +1449,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.restore();
       });
       if (level.boss) drawBossGate(context, level.goalX, cameraX);
-      else drawGoalCat(context, level.goalX, cameraX, false);
+      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles);
       drawPlayer();
       drawAmbientForeground(context, level, cameraX, frame);
 
