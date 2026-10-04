@@ -301,6 +301,7 @@ h1 span {
 .game-modal .pixel-button { display: block; width: 100%; margin-top: 14px; }
 .big-icon { display: grid; place-items: center; min-height: 78px; font-size: 4.2rem; }
 .big-icon .pixel-icon { --icon-size: 1.1em; }
+.completion-cat { display: block; width: clamp(104px, 24vw, 148px); height: auto; image-rendering: pixelated; filter: drop-shadow(6px 7px 0 rgba(69, 38, 78, .2)); }
 .cat-party { display: flex; justify-content: center; gap: 13px; margin-bottom: 20px; }
 .cat-party .pixel-icon { --icon-size: clamp(1.7rem, 7vw, 3rem); }
 .celebration::before { content: ""; position: fixed; inset: 0; pointer-events: none; background-image: radial-gradient(#ffd55f 3px, transparent 4px), radial-gradient(#d989ee 3px, transparent 4px), radial-gradient(#ee596c 3px, transparent 4px); background-size: 90px 90px, 110px 110px, 130px 130px; background-position: 0 0, 24px 31px, 53px 17px; animation: confetti 7s linear infinite; }

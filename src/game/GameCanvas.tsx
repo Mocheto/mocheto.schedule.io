@@ -402,6 +402,32 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
   const x = Math.round(platform.x - cameraX);
   const forest = world >= 2 && world <= 4;
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
+  if (platform.kind === "cave-wall") {
+    context.fillStyle = "#160e28";
+    context.fillRect(x - 4, platform.y - 4, platform.width + 8, platform.height + 8);
+    context.fillStyle = "#30204d";
+    context.fillRect(x, platform.y, platform.width, platform.height);
+    for (let tileY = platform.y; tileY < platform.y + platform.height; tileY += 96) {
+      for (let tileX = x; tileX < x + platform.width; tileX += 112) {
+        drawAtlasCell(
+          context,
+          raster.cave,
+          4,
+          2,
+          2,
+          0,
+          tileX,
+          tileY,
+          Math.min(116, x + platform.width - tileX),
+          Math.min(100, platform.y + platform.height - tileY),
+          0.78,
+        );
+      }
+    }
+    context.fillStyle = "rgba(205,145,255,.35)";
+    context.fillRect(x, platform.y, platform.width, 5);
+    return;
+  }
   if (platform.kind === "cave-ground") {
     context.fillStyle = "#211636";
     context.fillRect(x - 3, platform.y - 3, platform.width + 6, platform.height + 3);
@@ -1238,8 +1264,21 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       input.shootQueued = false;
       previousShoot = shoot;
 
+      const previousX = player.x;
       player.x += player.vx * delta;
       player.x = Math.max(0, Math.min(level.width - player.width, player.x));
+      for (const platform of level.platforms) {
+        if (platform.kind !== "cave-wall") continue;
+        const vertical = player.y + player.height > platform.y && player.y < platform.y + platform.height;
+        if (!vertical) continue;
+        if (player.vx > 0 && previousX + player.width <= platform.x && player.x + player.width > platform.x) {
+          player.x = platform.x - player.width;
+          player.vx = 0;
+        } else if (player.vx < 0 && previousX >= platform.x + platform.width && player.x < platform.x + platform.width) {
+          player.x = platform.x + platform.width;
+          player.vx = 0;
+        }
+      }
       const previousY = player.y;
       const previousBottom = previousY + player.height;
       player.vy += GRAVITY * delta;
@@ -1260,6 +1299,12 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
             player.vy = 0;
             player.grounded = true;
             player.jumpsUsed = 0;
+          }
+        } else if (platform.kind === "cave-wall" && horizontal && player.vy < 0) {
+          const platformBottom = platform.y + platform.height;
+          if (previousY >= platformBottom - 10 && player.y <= platformBottom) {
+            player.y = platformBottom;
+            player.vy = 0;
           }
         }
       }

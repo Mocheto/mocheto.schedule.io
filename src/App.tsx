@@ -337,7 +337,7 @@ export default function App() {
 
           {screen === "complete" && (
             <div className="modal-backdrop celebration"><div className="game-modal">
-              <div className="big-icon"><PixelIcon kind={activeLevel.boss ? "trophy" : "cat"} /></div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
+              <div className="big-icon">{activeLevel.boss ? <PixelIcon kind="trophy" /> : <img className="completion-cat" src="./assets/sprites/completion-cat-v1.png" alt="Gatito feliz rescatado" />}</div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
               <h2>Pantalla {activeLevel.id} completada</h2>
               <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. {activeLevel.boss ? "El monstruo guardián ha dejado libre el camino." : "La siguiente aventura ya está abierta."}</p>
               {snapshot.stickers.length > 0 && <p className="sticker-found"><PixelIcon kind="sparkle" /> Pegatina de esta pantalla guardada en el álbum.</p>}

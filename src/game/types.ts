@@ -8,7 +8,7 @@ export type Rect = {
 };
 
 export type Platform = Rect & {
-  kind?: "ground" | "branch" | "stone" | "spring" | "mist" | "canopy" | "ship" | "air-plank" | "cave-ground" | "cave-ledge";
+  kind?: "ground" | "branch" | "stone" | "spring" | "mist" | "canopy" | "ship" | "air-plank" | "cave-ground" | "cave-ledge" | "cave-wall";
 };
 
 export type Enemy = Rect & {
