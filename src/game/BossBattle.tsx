@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { SoundKind } from "./GameCanvas";
-import { PixelIcon } from "./PixelIcon";
+import { GameAssetIcon } from "./GameAssetIcon";
 import type { BossId } from "./types";
 
 type Choice = "rock" | "paper" | "scissors";
@@ -159,7 +159,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onAba
               <span>NOA <strong>{battle.noaScore}</strong></span><b>—</b><span><strong>{battle.bossScore}</strong> JEFE</span>
             </div>
             <div className="duel-attempts" aria-label={`${apples} reintentos disponibles`}>
-              <span><PixelIcon kind="apple" /> × {apples}</span><small>{apples === 1 ? "reintento" : "reintentos"}</small>
+              <span><GameAssetIcon kind="apple" /> × {apples}</span><small>{apples === 1 ? "reintento" : "reintentos"}</small>
             </div>
           </div>
         </header>
@@ -210,7 +210,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onAba
           </div>
         )}
         {battle.status === "revealed" && <button className="pixel-button primary duel-next" type="button" onClick={nextRound}>Siguiente ronda ▶</button>}
-        {battle.status === "lost" && apples > 0 && <button className="pixel-button primary duel-next apple-retry" type="button" onClick={retryWithApple}><PixelIcon kind="apple" /> Usar una manzana y repetir</button>}
+        {battle.status === "lost" && apples > 0 && <button className="pixel-button primary duel-next apple-retry" type="button" onClick={retryWithApple}><GameAssetIcon kind="apple" /> Usar una manzana y repetir</button>}
         {battle.status === "lost" && apples === 0 && <button className="pixel-button primary duel-next restart-level" type="button" onClick={onRestartLevel}>↺ Volver a empezar la pantalla</button>}
         {battle.status === "won" && <button className="pixel-button primary duel-next" type="button" onClick={() => { playSound("goal"); onWin(); }}>Continuar la aventura ▶</button>}
         {battle.status !== "won" && <button className="text-button duel-abandon" type="button" onClick={abandonBattle}>🏳 Rendirse y volver al mapa</button>}

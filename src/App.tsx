@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BossBattle } from "./game/BossBattle";
+import { GameAssetIcon } from "./game/GameAssetIcon";
 import { PixelIcon } from "./game/PixelIcon";
 import { GameCanvas, type SoundKind } from "./game/GameCanvas";
 import { levels, themeNames } from "./game/levels";
@@ -14,6 +15,7 @@ type Screen = "home" | "map" | "game" | "boss" | "complete" | "gameover" | "fini
 
 const emptyProgress: Progress = { unlocked: 0, levelStats: {}, stickers: [], secretUnlocked: false };
 const emptySnapshot: GameSnapshot = { apples: 0, stickers: [], power: "normal", checkpoint: 0, paused: false };
+const MAX_LIVES = 3;
 const secretLevelIndex = levels.findIndex((level) => level.world === 6);
 const campaignLevelCount = secretLevelIndex === -1 ? levels.length : secretLevelIndex;
 const worldCatalog = [
@@ -67,7 +69,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [activeIndex, setActiveIndex] = useState(0);
   const [levelRun, setLevelRun] = useState(0);
-  const [lives, setLives] = useState(5);
+  const [lives, setLives] = useState(MAX_LIVES);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(() => localStorage.getItem("super-noa-muted") === "true");
   const [showHelp, setShowHelp] = useState(false);
@@ -150,7 +152,7 @@ export default function App() {
     if (index === secretLevelIndex ? !progress.secretUnlocked : index > progress.unlocked) return;
     setActiveIndex(index);
     setLevelRun((current) => current + 1);
-    setLives(5);
+    setLives(MAX_LIVES);
     setSnapshot(emptySnapshot);
     setPaused(false);
     setScreen("game");
@@ -202,7 +204,7 @@ export default function App() {
     window.setTimeout(() => {
       setActiveIndex(secretLevelIndex);
       setLevelRun((current) => current + 1);
-      setLives(5);
+      setLives(MAX_LIVES);
       setSnapshot(emptySnapshot);
       setScreen("game");
     }, 1800);
@@ -230,7 +232,7 @@ export default function App() {
   const nextLevel = () => {
     setActiveIndex(Math.min(levels.length - 1, activeIndex + 1));
     setLevelRun((current) => current + 1);
-    setLives(5);
+    setLives(MAX_LIVES);
     setSnapshot(emptySnapshot);
     setPaused(false);
     setScreen("game");
@@ -240,7 +242,7 @@ export default function App() {
     if (!window.confirm("¿Empezar de nuevo? Se borrarán las pantallas, las manzanas y las pegatinas guardadas.")) return;
     setProgress(emptyProgress);
     setActiveIndex(0);
-    setLives(5);
+    setLives(MAX_LIVES);
   };
 
   const toggleFullscreen = () => {
@@ -267,7 +269,7 @@ export default function App() {
           <div className="hero-scene" aria-hidden="true">
             <img className="hero-backdrop" src="./assets/home-adventure-v2.png" alt="" />
             <div className="hero-rays" />
-            <img className="hero-sprite hero-cat-sprite" src="./assets/sprites/noa-cat-jump.png" alt="" />
+            <img className="hero-sprite hero-cat-sprite" src="./assets/sprites/noa-cat-jump-v2.png" alt="" />
           </div>
           <nav className="home-footer" aria-label="Opciones">
             <button type="button" onClick={() => setMuted((value) => !value)}><PixelIcon kind={muted ? "mute" : "sound"} /> {muted ? "Activar sonido" : "Sonido"}</button>
@@ -282,7 +284,7 @@ export default function App() {
           <header className="map-header">
             <div><p className="eyebrow">Elige una pantalla</p><h2>El mapa de Noa</h2></div>
             <div className="map-actions">
-              <span className="apple-total"><PixelIcon kind="apple" /> {totalApples}</span>
+              <span className="apple-total"><GameAssetIcon kind="apple" /> {totalApples}</span>
               <button className="album-button" type="button" onClick={() => setShowAlbum(true)}><PixelIcon kind="sparkle" /> {progress.stickers.filter((id) => albumStickers.some((sticker) => sticker.id === id)).length}/{albumStickers.length}</button>
               <button className="icon-button" type="button" onClick={() => setScreen("home")} aria-label="Volver al inicio">⌂</button>
             </div>
@@ -305,7 +307,7 @@ export default function App() {
                       <button className={`level-card ${stats?.completed ? "is-complete" : ""}`} type="button" disabled={!unlocked} onClick={() => beginLevel(index)} key={level.id}>
                         <span className="level-id">{unlocked ? level.id : <PixelIcon kind="lock" />}</span>
                         <strong>{level.title}</strong>
-                        <small>{stats?.completed ? <>✓ Completada · <PixelIcon kind="apple" /> {stats.bestApples}</> : unlocked ? "Lista para jugar" : "Completa la anterior"}</small>
+                        <small>{stats?.completed ? <>✓ Completada · <GameAssetIcon kind="apple" /> {stats.bestApples}</> : unlocked ? "Lista para jugar" : "Completa la anterior"}</small>
                       </button>
                     );
                   })}
@@ -332,10 +334,10 @@ export default function App() {
           <header className="game-hud">
             <div className="hud-level"><span>{activeLevel.id}</span><strong>{activeLevel.title}</strong></div>
             <div className="hud-stats">
-              <span aria-label={`${lives} vidas`}><PixelIcon kind="heart" /> × {lives}</span>
-              <span aria-label={`${snapshot.apples} manzanas`}><PixelIcon kind="apple" /> × {snapshot.apples}</span>
+              <span aria-label={`${lives} vidas`}><GameAssetIcon kind="heart" /> × {lives}</span>
+              <span aria-label={`${snapshot.apples} manzanas`}><GameAssetIcon kind="apple" /> × {snapshot.apples}</span>
               <span aria-label={`${snapshot.stickers.length} pegatinas encontradas`}><PixelIcon kind="sparkle" /> × {snapshot.stickers.length}</span>
-              <span className={`power-chip power-${snapshot.power}`}>{snapshot.power === "cat" ? <><PixelIcon kind="yarn" /> Gato</> : snapshot.power === "apple" ? <><PixelIcon kind="apple" /> Protegida</> : "Noa"}</span>
+              <span className={`power-chip power-${snapshot.power}`}>{snapshot.power === "cat" ? <><PixelIcon kind="yarn" /> Gato</> : snapshot.power === "apple" ? <><GameAssetIcon kind="apple" /> Protegida</> : "Noa"}</span>
             </div>
             <div className="hud-actions">
               <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Activar sonido" : "Silenciar"}><PixelIcon kind={muted ? "mute" : "sound"} /></button>
@@ -381,8 +383,8 @@ export default function App() {
 
           {screen === "gameover" && (
             <div className="modal-backdrop"><div className="game-modal">
-              <div className="big-icon"><PixelIcon kind="apple" /></div><p className="eyebrow">Casi, casi…</p><h2>¡Otra oportunidad!</h2>
-              <p>Las cinco vidas vuelven a estar listas. El camino ya te lo sabes.</p>
+              <div className="big-icon"><GameAssetIcon kind="apple" /></div><p className="eyebrow">Casi, casi…</p><h2>¡Otra oportunidad!</h2>
+              <p>Las tres vidas vuelven a estar listas. El camino ya te lo sabes.</p>
               <button className="pixel-button primary" type="button" onClick={() => beginLevel(activeIndex)}>Reintentar</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("map")}>Volver al mapa</button>
             </div></div>
@@ -390,7 +392,7 @@ export default function App() {
 
           {screen === "finished" && (
             <div className="modal-backdrop celebration"><div className="game-modal finale">
-              <div className="cat-party" aria-hidden="true"><PixelIcon kind="cat" /><PixelIcon kind="apple" /><PixelIcon kind="cat" /><PixelIcon kind="yarn" /><PixelIcon kind="cat" /></div><p className="eyebrow">Aventura completada</p>
+              <div className="cat-party" aria-hidden="true"><PixelIcon kind="cat" /><GameAssetIcon kind="apple" /><PixelIcon kind="cat" /><PixelIcon kind="yarn" /><PixelIcon kind="cat" /></div><p className="eyebrow">Aventura completada</p>
               <h2>¡Bravo, Super Noa!</h2><p>Los cinco guardianes son ahora amigos de Noa. Los gatitos y la tripulación celebran una fiesta entre las nubes. Fin… por ahora.</p>
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>Ver el mapa</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("home")}>Ir al inicio</button>
@@ -412,7 +414,7 @@ export default function App() {
           <p className="help-mobile-tip"><strong>En móvil:</strong> puedes mantener una flecha con un dedo y tocar <b>SALTAR</b> con el otro.</p>
           <div className="help-grid">
             <div><span><PixelIcon kind="yarn" /></span><strong>Bola de lana</strong><small>Cuando Noa tenga orejas de gato, toca <b>LANA</b>.</small></div>
-            <div><span><PixelIcon kind="apple" /></span><strong>Manzana escudo</strong><small>La manzana salva a Noa de un golpe.</small></div>
+            <div><span><GameAssetIcon kind="apple" /></span><strong>Manzana escudo</strong><small>La manzana salva a Noa de un golpe.</small></div>
             <div><span className="help-rps"><PixelIcon kind="rock" /><PixelIcon kind="paper" /><PixelIcon kind="scissors" /></span><strong>Duelo final</strong><small>Gana dos rondas de piedra, papel o tijera.</small></div>
             <div><span><PixelIcon kind="sparkle" /></span><strong>Mira arriba</strong><small>Las pegatinas se esconden en caminos altos.</small></div>
           </div>

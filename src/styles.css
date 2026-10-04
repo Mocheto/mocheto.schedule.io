@@ -43,6 +43,10 @@ button:focus-visible, a:focus-visible {
   vertical-align: -.18em;
   image-rendering: pixelated;
 }
+.game-asset-icon { --icon-size: 1.15em; display: inline-block; width: var(--icon-size); height: var(--icon-size); overflow: hidden; vertical-align: -.18em; image-rendering: pixelated; }
+.game-asset-icon img { display: block; max-width: none; image-rendering: pixelated; }
+.game-asset-apple img { width: 400%; height: 200%; }
+.game-asset-heart img { width: 100%; height: 100%; object-fit: contain; }
 .pixel-icon-apple { background: #e74755; clip-path: polygon(19% 19%, 45% 19%, 45% 8%, 59% 8%, 59% 19%, 84% 19%, 100% 36%, 100% 78%, 82% 100%, 18% 100%, 0 78%, 0 36%); box-shadow: inset -.22em -.2em 0 #b83245, inset .22em .18em 0 #ff7780; }
 .pixel-icon-apple::before { content: ""; position: absolute; width: 22%; height: 25%; left: 48%; top: -9%; background: #5b382e; }
 .pixel-icon-apple::after { content: ""; position: absolute; width: 35%; height: 22%; left: 60%; top: 0; background: #72bc5e; clip-path: polygon(0 0, 100% 0, 65% 100%, 0 75%); }
@@ -323,12 +327,13 @@ h1 span {
 .game-modal .eyebrow { color: #8b4b9b; }
 .game-modal .pixel-button { display: block; width: 100%; margin-top: 14px; }
 .big-icon { display: grid; place-items: center; min-height: 78px; font-size: 4.2rem; }
-.big-icon .pixel-icon { --icon-size: 1.1em; }
+.big-icon .pixel-icon, .big-icon .game-asset-icon { --icon-size: 1.1em; }
 .completion-cat, .completion-trophy { display: block; height: auto; image-rendering: pixelated; filter: drop-shadow(6px 7px 0 rgba(69, 38, 78, .2)); }
 .completion-cat { width: clamp(104px, 24vw, 148px); }
 .completion-trophy { width: clamp(120px, 28vw, 168px); }
 .cat-party { display: flex; justify-content: center; gap: 13px; margin-bottom: 20px; }
 .cat-party .pixel-icon { --icon-size: clamp(1.7rem, 7vw, 3rem); }
+.cat-party .game-asset-icon { --icon-size: clamp(1.7rem, 7vw, 3rem); }
 .celebration::before { content: ""; position: fixed; inset: 0; pointer-events: none; background-image: radial-gradient(#ffd55f 3px, transparent 4px), radial-gradient(#d989ee 3px, transparent 4px), radial-gradient(#ee596c 3px, transparent 4px); background-size: 90px 90px, 110px 110px, 130px 130px; background-position: 0 0, 24px 31px, 53px 17px; animation: confetti 7s linear infinite; }
 @keyframes confetti { to { background-position-y: 630px, 770px, 910px; } }
 .modal-close { position: absolute; top: 12px; right: 12px; width: 42px; height: 42px; border: 3px solid var(--ink); color: var(--ink); background: #eeddf5; font-size: 1.6rem; cursor: pointer; }

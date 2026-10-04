@@ -1081,18 +1081,28 @@ function drawCaveEntrance(context: CanvasRenderingContext2D, worldX: number, cam
   }
 }
 
-function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement) {
+function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement, rescueProgress = 0, surfaceY = 456) {
   const x = Math.round(worldX - cameraX);
-  context.fillStyle = "#6f4a32";
-  context.fillRect(x + 63, 333, 7, 123);
-  context.fillStyle = "#c68ee9";
-  context.fillRect(x + 70, 339, 68, 36);
+  const rescued = rescueProgress > 0;
+  const catBob = rescued ? Math.round(Math.sin(rescueProgress * 18) * 5) : 0;
+  context.fillStyle = "#4a2d46";
+  context.fillRect(x + 69, surfaceY - 220, 10, 220);
+  context.fillStyle = "#f4db93";
+  context.fillRect(x + 72, surfaceY - 215, 4, 207);
+  context.fillStyle = "#7b4f94";
+  context.fillRect(x + 79, surfaceY - 210, 82, 51);
+  context.fillStyle = "#d99df0";
+  context.fillRect(x + 84, surfaceY - 205, 72, 41);
   context.fillStyle = "#fff3ad";
-  context.fillRect(x + 81, 350, 12, 12);
-  context.fillRect(x + 105, 350, 12, 12);
+  context.fillRect(x + 98, surfaceY - 192, 12, 12);
+  context.fillRect(x + 124, surfaceY - 192, 12, 12);
+  context.fillStyle = "#6ab86a";
+  context.fillRect(x + 59, surfaceY - 6, 31, 6);
+  context.fillRect(x + 65, surfaceY - 12, 18, 6);
   const catX = x + 18;
-  const catY = 400;
-  if (collectibles && drawCollectibleSprite(context, collectibles, 3, 0, catX - 8, catY - 15, 64, 64)) return;
+  const catY = surfaceY - 58 + catBob;
+  if (collectibles) drawCollectibleSprite(context, collectibles, 3, 0, catX - 8, catY - 15, 64, 64);
+  else {
   context.fillStyle = "#352841";
   context.fillRect(catX + 1, catY + 5, 48, 48);
   context.fillRect(catX + 2, catY - 3, 18, 21);
@@ -1106,6 +1116,30 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.fillRect(catX + 33, catY + 20, 5, 6);
   context.fillStyle = "#df79a9";
   context.fillRect(catX + 23, catY + 29, 6, 5);
+  }
+  if (!rescued) return;
+  const sparkleSize = 7 + Math.round(Math.min(1, rescueProgress) * 7);
+  drawTinySparkle(context, x + 12, surfaceY - 94 - sparkleSize, "#fff0a1");
+  drawTinySparkle(context, x + 116, surfaceY - 84 + sparkleSize, "#f2b9ff");
+  drawTinySparkle(context, x + 151, surfaceY - 118, "#fff0a1");
+  context.save();
+  context.globalAlpha = Math.min(1, rescueProgress * 2.4);
+  const panelX = Math.round(VIEW_WIDTH / 2 - 195);
+  context.fillStyle = "rgba(42, 25, 58, .88)";
+  context.fillRect(panelX - 5, 55, 400, 74);
+  context.fillStyle = "#fff8e9";
+  context.fillRect(panelX, 60, 390, 64);
+  context.fillStyle = "#f1d7f7";
+  context.fillRect(panelX + 6, 66, 378, 52);
+  context.fillStyle = "#6d3e82";
+  context.font = "bold 21px monospace";
+  context.textAlign = "center";
+  context.fillText("¡GATITO RESCATADO!", VIEW_WIDTH / 2, 91);
+  context.fillStyle = "#473052";
+  context.font = "bold 13px monospace";
+  context.fillText("NOA HA ENCONTRADO UN AMIGO", VIEW_WIDTH / 2, 111);
+  context.textAlign = "start";
+  context.restore();
 }
 
 function drawBossGate(context: CanvasRenderingContext2D, worldX: number, cameraX: number) {
@@ -1273,6 +1307,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const bursts: PixelBurst[] = [];
     const cannons: LiveCannon[] = (level.cannons ?? []).map((item, index) => ({ ...item, cooldown: 0.8 + index * 0.22 }));
     const cannonballs: Cannonball[] = [];
+    const goalSurfaceY = level.platforms.find((platform) => level.goalX >= platform.x && level.goalX <= platform.x + platform.width)?.y ?? 456;
     let cameraX = 0;
     let apples = 0;
     let checkpointIndex = -1;
@@ -1287,6 +1322,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     let animationId = 0;
     let completeTimer = 0;
     let vineStartedFrame = -1;
+    let goalCelebrationFrame = -1;
 
     const respawn = () => {
       player.x = respawnX;
@@ -1586,11 +1622,18 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
       if (!completed && player.x + player.width >= level.goalX) {
         completed = true;
+        goalCelebrationFrame = frame;
+        player.x = level.goalX - 48;
+        player.y = goalSurfaceY - player.height;
         player.vx = 0;
+        player.vy = 0;
+        player.grounded = true;
+        player.jumpsUsed = 0;
+        player.facing = 1;
         callbacksRef.current.playSound("goal");
         completeTimer = window.setTimeout(
           () => level.boss ? callbacksRef.current.onBossEncounter() : callbacksRef.current.onComplete(),
-          650,
+          level.boss ? 850 : 1450,
         );
       }
 
@@ -1735,7 +1778,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.restore();
       });
       if (level.boss) drawBossGate(context, level.goalX, cameraX);
-      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles);
+      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles, goalCelebrationFrame < 0 ? 0 : Math.min(1, (frame - goalCelebrationFrame) / 22), goalSurfaceY);
       drawPlayer();
       drawAmbientForeground(context, level, cameraX, frame);
       if (level.id === "1-1" && player.x >= 130 && player.x < 1120) drawDoubleJumpTip(context);
