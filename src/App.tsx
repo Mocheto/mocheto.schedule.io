@@ -16,7 +16,7 @@ const emptyProgress: Progress = { unlocked: 0, levelStats: {}, stickers: [] };
 const emptySnapshot: GameSnapshot = { apples: 0, stickers: [], power: "normal", checkpoint: 0, paused: false };
 const worldCatalog = [
   { id: 1, name: "El Prado de las Manzanas", description: "Sol, ramas anchas y manzanas crujientes." },
-  { id: 2, name: "El Bosque de los Gatitos", description: "Luciérnagas, luna y suaves maullidos." },
+  { id: 2, name: "El Bosque de los Gatitos", description: "Luciérnagas, cristales, murciélagos y una cueva de lava." },
   { id: 3, name: "El Bosque de los Lobos", description: "Pinos, luna llena y lobos enfadados." },
   { id: 4, name: "El Bosque de los Jabalíes", description: "Bellotas, copas altas y jabalíes salvajes." },
   { id: 5, name: "La Flota de las Nubes", description: "Barcos voladores, piratas, loros y cañones." },

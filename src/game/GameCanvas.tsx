@@ -48,7 +48,7 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; collectibles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -56,7 +56,7 @@ const intersects = (a: Rect, b: Rect) =>
 const positiveModulo = (value: number, divisor: number) => ((value % divisor) + divisor) % divisor;
 
 const enemyY = (enemy: LiveEnemy) =>
-  enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
+  enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" || enemy.kind === "bat" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
 
 const enemyAtlasCell = {
   slime: [0, 0], beetle: [1, 0], cloud: [2, 0], wolf: [3, 0],
@@ -179,7 +179,60 @@ function drawHappyMoon(context: CanvasRenderingContext2D, x: number, y: number, 
   context.fillRect(x + 56, y + 47, 8, 5);
 }
 
-function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number, collectibles?: HTMLImageElement) {
+function drawCaveBackground(context: CanvasRenderingContext2D, cameraX: number, frame: number, cave: HTMLImageElement) {
+  context.fillStyle = "#120d24";
+  context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+  context.fillStyle = "#20183c";
+  context.fillRect(0, 118, VIEW_WIDTH, 338);
+
+  const wallOffset = positiveModulo(cameraX * 0.08, 210);
+  for (let index = -1; index < 6; index += 1) {
+    const x = index * 210 - wallOffset;
+    drawAtlasCell(context, cave, 4, 2, 2, 0, x, 105 + (index % 2) * 28, 210, 270, 0.28);
+  }
+
+  context.fillStyle = "#2b2050";
+  context.fillRect(0, 0, VIEW_WIDTH, 38);
+  const ceilingOffset = positiveModulo(cameraX * 0.2, 150);
+  for (let index = -1; index < 8; index += 1) {
+    const x = index * 150 - ceilingOffset;
+    const depth = 58 + positiveModulo(index * 17, 48);
+    context.beginPath();
+    context.moveTo(x, 28);
+    context.lineTo(x + 42, 28);
+    context.lineTo(x + 72, depth);
+    context.lineTo(x + 102, 28);
+    context.lineTo(x + 150, 28);
+    context.lineTo(x + 150, 0);
+    context.lineTo(x, 0);
+    context.closePath();
+    context.fill();
+  }
+
+  const lavaY = 454 + Math.round(Math.sin(frame * 0.08) * 2);
+  context.fillStyle = "#7b1838";
+  context.fillRect(0, 448, VIEW_WIDTH, VIEW_HEIGHT - 448);
+  for (let x = -positiveModulo(cameraX * 0.28, 176) - 30; x < VIEW_WIDTH + 176; x += 176) {
+    drawAtlasCell(context, cave, 4, 2, 3, 0, x, lavaY, 184, 100);
+  }
+  context.fillStyle = frame % 28 < 14 ? "#ffd05a" : "#ff8a35";
+  for (let index = 0; index < 8; index += 1) {
+    const x = positiveModulo(index * 151 - cameraX * 0.35, VIEW_WIDTH + 40) - 20;
+    const y = 474 + positiveModulo(index * 23, 44);
+    context.fillRect(Math.round(x), y, index % 2 ? 6 : 9, 4);
+  }
+
+  for (let index = 0; index < 7; index += 1) {
+    const x = index * 190 - positiveModulo(cameraX * 0.32, 190) - 20;
+    drawAtlasCell(context, cave, 4, 2, 3, 1, x, 350 + (index % 2) * 24, 66, 82, 0.72);
+  }
+}
+
+function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number, raster: RasterAssets) {
+  if (level.theme === "crystal-cave") {
+    drawCaveBackground(context, cameraX, frame, raster.cave);
+    return;
+  }
   const storm = level.theme === "boar-storm" || level.theme === "sky-storm";
   const night = level.theme === "forest-night" || level.theme === "wolf-moon" || level.theme === "boar-storm";
   const wolves = level.world === 3;
@@ -201,7 +254,7 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
   }
 
   if (night) {
-    drawHappyMoon(context, 770, 46, level.world === 2, frame, collectibles);
+    drawHappyMoon(context, 770, 46, level.world === 2, frame, raster.collectibles);
     context.fillStyle = "#f5dfff";
     for (let index = 0; index < 18; index += 1) {
       const x = (index * 157 + 43) % VIEW_WIDTH;
@@ -209,7 +262,7 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.fillRect(x, y, index % 3 === 0 ? 4 : 2, index % 3 === 0 ? 4 : 2);
     }
   } else {
-    drawHappySun(context, 770, 46, sunset || storm, pirates, frame, collectibles);
+    drawHappySun(context, 770, 46, sunset || storm, pirates, frame, raster.collectibles);
   }
 
   const cloudColor = level.theme === "sky-storm" ? "#aeb8ce" : storm ? "#77758b" : night ? "#5c548c" : boars ? "#ffe1b5" : sunset ? "#ffe0cf" : "#f8fdff";
@@ -349,6 +402,24 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
   const x = Math.round(platform.x - cameraX);
   const forest = world >= 2 && world <= 4;
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
+  if (platform.kind === "cave-ground") {
+    context.fillStyle = "#211636";
+    context.fillRect(x - 3, platform.y - 3, platform.width + 6, platform.height + 3);
+    context.fillStyle = "#38265a";
+    context.fillRect(x, platform.y, platform.width, platform.height);
+    for (let tileX = x; tileX < x + platform.width; tileX += 112) {
+      drawAtlasCell(context, raster.cave, 4, 2, 0, 0, tileX, platform.y - 5, Math.min(116, x + platform.width - tileX), platform.height + 12);
+    }
+    return;
+  }
+  if (platform.kind === "cave-ledge") {
+    context.fillStyle = "#1b122e";
+    context.fillRect(x - 3, platform.y - 3, platform.width + 6, platform.height + 7);
+    for (let tileX = x; tileX < x + platform.width; tileX += 104) {
+      drawAtlasCell(context, raster.cave, 4, 2, 1, 0, tileX, platform.y - 6, Math.min(108, x + platform.width - tileX), 55);
+    }
+    return;
+  }
   if (platform.kind === "ship") {
     const shipBob = Math.round(Math.sin(frame * 0.075 + platform.x * 0.015) * 4);
     context.save();
@@ -600,6 +671,34 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
   const y = Math.round(enemyY(enemy));
+  if (enemy.kind === "bat") {
+    const wingFrame = Math.floor(enemy.phase * 3.2) % 2;
+    const width = 62;
+    const height = 50;
+    const drawX = x + Math.round((enemy.width - width) / 2);
+    const drawY = y + enemy.height - height;
+    if (raster.cave.complete && raster.cave.naturalWidth) {
+      context.save();
+      if (enemy.vx < 0) {
+        context.translate(drawX + width, 0);
+        context.scale(-1, 1);
+        drawAtlasCell(context, raster.cave, 4, 2, wingFrame, 1, 0, drawY, width, height);
+      } else {
+        drawAtlasCell(context, raster.cave, 4, 2, wingFrame, 1, drawX, drawY, width, height);
+      }
+      context.restore();
+    } else {
+      context.fillStyle = "#2a193f";
+      context.fillRect(x + 12, y + 9, 24, 22);
+      context.fillStyle = "#a65ad0";
+      context.fillRect(x, y + (wingFrame ? 15 : 4), 16, 12);
+      context.fillRect(x + 32, y + (wingFrame ? 15 : 4), 16, 12);
+      context.fillStyle = "#ffd66b";
+      context.fillRect(x + 18, y + 15, 4, 4);
+      context.fillRect(x + 27, y + 15, 4, 4);
+    }
+    return;
+  }
   if (raster.enemies.complete && raster.enemies.naturalWidth) {
     if (nearby && (enemy.kind === "wolf" || enemy.kind === "boar")) drawEnemyWarning(context, x, y, enemy.kind);
     const [column, row] = enemyAtlasCell[enemy.kind];
@@ -878,6 +977,17 @@ function drawCheckpoint(context: CanvasRenderingContext2D, worldX: number, camer
   }
 }
 
+function drawCaveEntrance(context: CanvasRenderingContext2D, worldX: number, cameraX: number, cave: HTMLImageElement) {
+  const x = Math.round(worldX - cameraX);
+  if (x < -190 || x > VIEW_WIDTH + 40) return;
+  if (!drawAtlasCell(context, cave, 4, 2, 2, 1, x, 286, 178, 174)) {
+    context.fillStyle = "#2a1b40";
+    context.fillRect(x, 320, 178, 136);
+    context.fillStyle = "#0d0917";
+    context.fillRect(x + 42, 350, 94, 106);
+  }
+}
+
 function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement) {
   const x = Math.round(worldX - cameraX);
   context.fillStyle = "#6f4a32";
@@ -1012,6 +1122,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const raster: RasterAssets = {
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
       collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
+      cave: createRasterImage("./assets/atlases/cave-v1.png"),
       tiles: {
         1: createRasterImage("./assets/atlases/world-1-tiles-v1.png"),
         2: createRasterImage("./assets/atlases/world-2-tiles-v1.png"),
@@ -1401,8 +1512,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     };
 
     const render = () => {
-      drawBackground(context, level, cameraX, frame, raster.collectibles);
+      drawBackground(context, level, cameraX, frame, raster);
       level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame, raster));
+      if (level.id === "2-1") drawCaveEntrance(context, level.goalX - 125, cameraX, raster.cave);
+      if (level.id === "2-2") drawCaveEntrance(context, -18, cameraX, raster.cave);
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
       level.rewardBlocks.forEach((block) => {
         const x = Math.round(block.x - cameraX);
