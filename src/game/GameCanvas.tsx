@@ -53,6 +53,8 @@ type RasterAssets = { enemies: HTMLImageElement; collectibles: HTMLImageElement;
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
+const positiveModulo = (value: number, divisor: number) => ((value % divisor) + divisor) % divisor;
+
 const enemyY = (enemy: LiveEnemy) =>
   enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
 
@@ -228,8 +230,11 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.fillRect(Math.round(x + 48), 395 + (index % 2) * 55, 28, 15);
     }
   } else {
-    for (let x = -120 - ((cameraX * 0.18) % 180); x < VIEW_WIDTH + 180; x += 180) {
-      const peak = 270 + (Math.abs(Math.floor((x + cameraX) / 180)) % 3) * 30;
+    const mountainScroll = cameraX * 0.18;
+    const firstMountain = Math.floor(mountainScroll / 180) - 1;
+    for (let index = firstMountain; index < firstMountain + 8; index += 1) {
+      const x = index * 180 - mountainScroll;
+      const peak = 270 + positiveModulo(index, 3) * 30;
       context.beginPath();
       context.moveTo(x, 430);
       context.lineTo(x + 72, peak);
@@ -248,11 +253,12 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
     }
   }
 
-  const treeSpacing = forest ? 155 : 220;
-  const firstTree = Math.floor((cameraX * 0.45) / treeSpacing) - 1;
-  for (let index = firstTree; !pirates && index < firstTree + 9; index += 1) {
+  const treeSpacing = level.world === 2 ? 190 : forest ? 165 : 220;
+  const firstTree = Math.floor((cameraX * 0.45) / treeSpacing) - 2;
+  const visibleTrees = Math.ceil(VIEW_WIDTH / treeSpacing) + 4;
+  for (let index = firstTree; !pirates && index < firstTree + visibleTrees; index += 1) {
     const x = index * treeSpacing - cameraX * 0.45;
-    const tall = 118 + ((index * 19) % 42);
+    const tall = 118 + positiveModulo(index * 19, 42);
     context.fillStyle = boars ? "#50372f" : wolves ? "#252a3c" : night ? "#281c49" : forest ? "#3d665e" : "#725039";
     context.fillRect(Math.round(x + 64), 430 - tall, 28, tall);
     context.fillStyle = boars ? "#7d5238" : wolves ? "#394256" : night ? "#493b77" : forest ? "#56806b" : "#9a6748";
@@ -280,18 +286,19 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
       context.fillRect(Math.round(x + 30), 311 - (index % 2) * 20, 8, 8);
       context.fillRect(Math.round(x + 110), 300 - (index % 2) * 20, 8, 8);
     } else {
-      const crownY = 290 - (index % 2) * 18;
+      const crownY = 290 - positiveModulo(index, 2) * 18;
+      const crownInset = level.world === 2 ? 12 : 0;
       context.fillStyle = forest ? (night ? "#302754" : "#365b4f") : "#356f47";
-      context.fillRect(Math.round(x + 19), crownY - 9, 110, 87);
-      context.fillRect(Math.round(x - 5), crownY + 26, 165, 66);
+      context.fillRect(Math.round(x + 19 + crownInset), crownY - 9, 110 - crownInset * 2, 87);
+      context.fillRect(Math.round(x - 5 + crownInset), crownY + 26, 165 - crownInset * 2, 66);
       context.fillRect(Math.round(x + 45), crownY - 25, 61, 35);
       context.fillStyle = night ? "#40366d" : forest ? "#477d68" : "#4d9b63";
-      context.fillRect(Math.round(x + 24), crownY - 4, 99, 74);
-      context.fillRect(Math.round(x + 2), crownY + 31, 151, 52);
+      context.fillRect(Math.round(x + 24 + crownInset), crownY - 4, 99 - crownInset * 2, 74);
+      context.fillRect(Math.round(x + 2 + crownInset), crownY + 31, 151 - crownInset * 2, 52);
       context.fillRect(Math.round(x + 50), crownY - 19, 51, 25);
       context.fillStyle = night ? "#574982" : forest ? "#609478" : "#69b66f";
-      context.fillRect(Math.round(x + 18), crownY + 7, 44, 13);
-      context.fillRect(Math.round(x + 84), crownY + 48, 49, 11);
+      context.fillRect(Math.round(x + 18 + crownInset), crownY + 7, 44, 13);
+      context.fillRect(Math.round(x + 84 - crownInset), crownY + 48, 49, 11);
     }
     if (!forest) {
       context.fillStyle = "#e74b54";
@@ -319,7 +326,7 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
 }
 
 function drawAmbientForeground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number) {
-  if (level.world >= 2 && level.world <= 4) {
+  if (level.world >= 3 && level.world <= 4) {
     const leafColor = level.world === 3 ? "#263645" : level.world === 4 ? "#40573b" : "#3c6857";
     context.fillStyle = leafColor;
     for (let index = 0; index < 8; index += 1) {
@@ -329,12 +336,11 @@ function drawAmbientForeground(context: CanvasRenderingContext2D, level: Level, 
       context.fillRect(x, y, 34, 12);
       context.fillRect(x + (side < 0 ? 10 : -10), y + 9, 29, 10);
     }
-    if (level.world === 2) {
-      for (let index = 0; index < 8; index += 1) {
-        const x = (index * 139 + frame * 0.35) % VIEW_WIDTH;
-        const y = 120 + ((index * 67 + frame * 0.2) % 310);
-        drawTinySparkle(context, x, y, index % 2 ? "#f4d76f" : "#cfa5ef");
-      }
+  } else if (level.world === 2) {
+    for (let index = 0; index < 8; index += 1) {
+      const x = positiveModulo(index * 139 + frame * 0.35, VIEW_WIDTH);
+      const y = 120 + positiveModulo(index * 67 + frame * 0.2, 310);
+      drawTinySparkle(context, x, y, index % 2 ? "#f4d76f" : "#cfa5ef");
     }
   }
 }
