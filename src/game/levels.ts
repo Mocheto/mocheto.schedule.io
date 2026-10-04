@@ -656,7 +656,7 @@ export const levels: Level[] = [
       apple("cs-a5", 4030, 195), apple("cs-a6", 4585, 170),
       sticker("sticker-s-3", 5195, 130), apple("cs-a7", 5500, 370),
     ],
-    rewardBlocks: [reward("cs-r1", 2240, 270, "apple"), reward("cs-r2", 4920, 240)],
+    rewardBlocks: [reward("cs-r1", 2240, 225, "apple"), reward("cs-r2", 4920, 195)],
     checkpoints: [680, 1600, 2980, 4370, 5300],
     boss: "rainbow-queen",
   },

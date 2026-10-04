@@ -268,9 +268,6 @@ export default function App() {
             <img className="hero-backdrop" src="./assets/home-adventure-v2.png" alt="" />
             <div className="hero-rays" />
             <img className="hero-sprite hero-cat-sprite" src="./assets/sprites/noa-cat-jump.png" alt="" />
-            <i className="hero-sparkle sparkle-one" />
-            <i className="hero-sparkle sparkle-two" />
-            <i className="hero-sparkle sparkle-three" />
           </div>
           <nav className="home-footer" aria-label="Opciones">
             <button type="button" onClick={() => setMuted((value) => !value)}><PixelIcon kind={muted ? "mute" : "sound"} /> {muted ? "Activar sonido" : "Sonido"}</button>
