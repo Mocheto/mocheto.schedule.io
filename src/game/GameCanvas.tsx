@@ -1282,6 +1282,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     sprite.src = "./assets/sprites/noa-sprite-sheet.png";
     const catJumpSprite = new Image();
     catJumpSprite.src = "./assets/sprites/noa-cat-jump-v2.png";
+    const catYarnSprite = new Image();
+    catYarnSprite.src = "./assets/sprites/noa-cat-yarn-v2.png";
+    const jumpSprite = new Image();
+    jumpSprite.src = "./assets/sprites/noa-jump-v2.png";
     const raster: RasterAssets = {
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
       collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
@@ -1664,8 +1668,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
       const flashing = player.invincible > 0 && Math.floor(player.invincible * 12) % 2 === 0;
       if (flashing) context.globalAlpha = 0.38;
+      const usesCatYarnSprite = player.power === "cat" && player.grounded;
       const usesCleanCatJump = player.power === "cat" && !player.grounded;
-      const activeSprite = usesCleanCatJump ? catJumpSprite : sprite;
+      const usesCleanJump = player.power !== "cat" && !player.grounded;
+      const activeSprite = usesCatYarnSprite ? catYarnSprite : usesCleanCatJump ? catJumpSprite : usesCleanJump ? jumpSprite : sprite;
       if (activeSprite.complete && activeSprite.naturalWidth) {
         const cellWidth = sprite.naturalWidth / 4;
         const cellHeight = sprite.naturalHeight / 4;
@@ -1680,10 +1686,18 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.scale(-1, 1);
           context.translate(-(x + player.width / 2), 0);
         }
-        if (usesCleanCatJump) {
+        if (usesCatYarnSprite) {
+          // Sprite independiente con transparencia: se conservan las orejas,
+          // la bola de lana y la punta de la cola.
+          context.drawImage(catYarnSprite, x - 64, Math.round(player.y - 61), 165, 130);
+        } else if (usesCleanCatJump) {
           // El PNG de salto incluye margen transparente para que no se corten
           // orejas ni cola. Lo ampliamos para conservar el tamaño de Noa.
           context.drawImage(catJumpSprite, x - 48, Math.round(player.y - 45), 140, 140);
+        } else if (usesCleanJump) {
+          // La pose de salto normal también vive fuera de la hoja para que el
+          // pelo no quede recortado al cruzar el borde de su celda.
+          context.drawImage(jumpSprite, x - 50, Math.round(player.y - 37), 145, 125);
         } else {
           context.drawImage(
             sprite,
