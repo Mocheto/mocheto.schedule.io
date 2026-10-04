@@ -1281,7 +1281,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const sprite = new Image();
     sprite.src = "./assets/sprites/noa-sprite-sheet.png";
     const catJumpSprite = new Image();
-    catJumpSprite.src = "./assets/sprites/noa-cat-jump.png";
+    catJumpSprite.src = "./assets/sprites/noa-cat-jump-v2.png";
     const raster: RasterAssets = {
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
       collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
@@ -1669,7 +1669,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       if (activeSprite.complete && activeSprite.naturalWidth) {
         const cellWidth = sprite.naturalWidth / 4;
         const cellHeight = sprite.naturalHeight / 4;
-        const insetX = 14;
+        const insetX = row === 3 ? 0 : 14;
         // Las tres primeras filas comparten bordes muy juntos. La fila de gata,
         // en cambio, empieza con las orejas pegadas arriba: no la recortamos.
         const rowInsetTop = [10, 14, 18, 0][row];
@@ -1681,7 +1681,9 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.translate(-(x + player.width / 2), 0);
         }
         if (usesCleanCatJump) {
-          context.drawImage(catJumpSprite, x - 29, Math.round(player.y - 25), 100, 100);
+          // El PNG de salto incluye margen transparente para que no se corten
+          // orejas ni cola. Lo ampliamos para conservar el tamaño de Noa.
+          context.drawImage(catJumpSprite, x - 48, Math.round(player.y - 45), 140, 140);
         } else {
           context.drawImage(
             sprite,
@@ -1736,7 +1738,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.fillStyle = "#4b295f";
           context.font = "bold 12px monospace";
           context.textAlign = "center";
-          context.fillText(block.reward === "secret-vine" ? "¿QUÉ ESCONDE ESTE BLOQUE?" : "¡SALTA BAJO LA HUELLA!", x + 24, block.y - 19);
+          context.fillText(block.reward === "secret-vine" ? "¿QUÉ ESCONDE ESTE BLOQUE?" : "¡SALTA BAJO EL GATITO!", x + 24, block.y - 19);
           context.textAlign = "start";
         }
       });
