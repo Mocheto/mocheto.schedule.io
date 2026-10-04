@@ -402,18 +402,22 @@ export default function App() {
       {showHelp && (
         <div className="modal-backdrop"><div className="game-modal help-modal">
           <button className="modal-close" type="button" onClick={() => setShowHelp(false)} aria-label="Cerrar">×</button>
-          <p className="eyebrow">Es muy fácil</p><h2>Cómo jugar</h2>
-          <div className="help-grid">
-            <div><span>◀ ▶</span><strong>Moverse</strong><small>Flechas o A y D</small></div>
-            <div><span>↑ ↑</span><strong>Doble salto</strong><small>Pulsa dos veces para llegar más alto</small></div>
-            <div><span>▣</span><strong>Abrir cajas</strong><small>Salta y golpea la huella desde abajo</small></div>
-            <div><span><PixelIcon kind="yarn" /></span><strong>Lanzar</strong><small>X o K, después de coger el gato</small></div>
-            <div><span><PixelIcon kind="apple" /></span><strong>Protegerse</strong><small>Una manzana protege de un golpe</small></div>
-            <div><span className="help-rps"><PixelIcon kind="rock" /><PixelIcon kind="paper" /><PixelIcon kind="scissors" /></span><strong>Vencer al jefe</strong><small>Gana dos rondas; cada manzana permite repetir un duelo</small></div>
-            <div><span><PixelIcon kind="sparkle" /></span><strong>Explorar arriba</strong><small>Las quince pegatinas están en rutas especiales</small></div>
+          <p className="eyebrow">Ayuda a Noa</p><h2>¿Cómo se juega?</h2>
+          <p className="help-intro">¡Camina, salta y busca caminos secretos!</p>
+          <div className="help-first-steps">
+            <div><b>1</b><span className="help-control-icon">◀ ▶</span><strong>Camina</strong><small>Mantén pulsada una flecha.</small></div>
+            <div className="help-double-jump"><b>2</b><span className="help-control-icon">↑ + ↑</span><strong>Haz un doble salto</strong><small>Toca <em>SALTAR</em>. En el aire, ¡tócalo otra vez!</small></div>
+            <div><b>3</b><span className="help-control-icon">▣</span><strong>Abre las cajas</strong><small>Salta y golpea la caja por debajo.</small></div>
           </div>
-          <p className="help-note">Ramas elásticas, niebla que aparece al acercarte, aullidos, copas altas, barcos voladores y cañones. También puedes usar los botones grandes o un mando.</p>
-          <button className="pixel-button primary" type="button" onClick={() => { setShowHelp(false); setScreen("map"); }}>¡Vamos!</button>
+          <p className="help-mobile-tip"><strong>En móvil:</strong> puedes mantener una flecha con un dedo y tocar <b>SALTAR</b> con el otro.</p>
+          <div className="help-grid">
+            <div><span><PixelIcon kind="yarn" /></span><strong>Bola de lana</strong><small>Cuando Noa tenga orejas de gato, toca <b>LANA</b>.</small></div>
+            <div><span><PixelIcon kind="apple" /></span><strong>Manzana escudo</strong><small>La manzana salva a Noa de un golpe.</small></div>
+            <div><span className="help-rps"><PixelIcon kind="rock" /><PixelIcon kind="paper" /><PixelIcon kind="scissors" /></span><strong>Duelo final</strong><small>Gana dos rondas de piedra, papel o tijera.</small></div>
+            <div><span><PixelIcon kind="sparkle" /></span><strong>Mira arriba</strong><small>Las pegatinas se esconden en caminos altos.</small></div>
+          </div>
+          <p className="help-note">Con teclado: A/D o flechas para caminar, espacio para saltar y X/K para lanzar lana. También puedes usar un mando.</p>
+          <button className="pixel-button primary" type="button" onClick={() => { setShowHelp(false); setScreen("map"); }}>¡Lista para jugar!</button>
         </div></div>
       )}
 

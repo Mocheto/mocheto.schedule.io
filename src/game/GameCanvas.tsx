@@ -30,6 +30,8 @@ type InputState = {
   shootQueued: boolean;
 };
 
+type TouchKey = "left" | "right" | "jump" | "shoot";
+
 type Player = Rect & {
   vx: number;
   vy: number;
@@ -1153,9 +1155,32 @@ function createInitialPlayer(level: Level): Player {
   };
 }
 
+function drawDoubleJumpTip(context: CanvasRenderingContext2D) {
+  const x = 238;
+  const y = 48;
+  const width = 484;
+  const height = 82;
+  context.fillStyle = "#352044";
+  context.fillRect(x - 5, y - 5, width + 10, height + 10);
+  context.fillStyle = "#fff8e9";
+  context.fillRect(x, y, width, height);
+  context.fillStyle = "#f0ddf7";
+  context.fillRect(x + 7, y + 7, width - 14, height - 14);
+  context.fillStyle = "#6f3c86";
+  context.font = "bold 17px monospace";
+  context.textAlign = "center";
+  context.fillText("¡PRUEBA EL DOBLE SALTO!", x + width / 2, y + 29);
+  context.fillStyle = "#352044";
+  context.font = "bold 14px monospace";
+  context.fillText("TOCA SALTAR  ↑   Y EN EL AIRE  ↑  OTRA VEZ", x + width / 2, y + 58);
+  context.textAlign = "start";
+}
+
 export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncounter, onSecretExit, onSnapshot, playSound }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<InputState>({ left: false, right: false, jump: false, shoot: false, jumpQueued: false, shootQueued: false });
+  const heldKeysRef = useRef(new Set<string>());
+  const touchPointersRef = useRef<Partial<Record<TouchKey, number>>>({});
   const runningRef = useRef(running);
   const callbacksRef = useRef({ onLoseLife, onComplete, onBossEncounter, onSecretExit, onSnapshot, playSound });
 
@@ -1169,10 +1194,15 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
   useEffect(() => {
     const input = inputRef.current;
+    const heldKeys = heldKeysRef.current;
+    const syncKeyboardDirections = () => {
+      input.left = heldKeys.has("ArrowLeft") || heldKeys.has("KeyA") || touchPointersRef.current.left !== undefined;
+      input.right = heldKeys.has("ArrowRight") || heldKeys.has("KeyD") || touchPointersRef.current.right !== undefined;
+    };
     const onKeyDown = (event: KeyboardEvent) => {
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space"].includes(event.code)) event.preventDefault();
-      if (event.code === "ArrowLeft" || event.code === "KeyA") input.left = true;
-      if (event.code === "ArrowRight" || event.code === "KeyD") input.right = true;
+      heldKeys.add(event.code);
+      syncKeyboardDirections();
       if (event.code === "ArrowUp" || event.code === "KeyW" || event.code === "Space") {
         if (!input.jump) input.jumpQueued = true;
         input.jump = true;
@@ -1183,12 +1213,20 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
     };
     const onKeyUp = (event: KeyboardEvent) => {
-      if (event.code === "ArrowLeft" || event.code === "KeyA") input.left = false;
-      if (event.code === "ArrowRight" || event.code === "KeyD") input.right = false;
-      if (event.code === "ArrowUp" || event.code === "KeyW" || event.code === "Space") input.jump = false;
-      if (event.code === "KeyX" || event.code === "KeyK") input.shoot = false;
+      heldKeys.delete(event.code);
+      syncKeyboardDirections();
+      if (event.code === "ArrowUp" || event.code === "KeyW" || event.code === "Space") {
+        input.jump = heldKeys.has("ArrowUp") || heldKeys.has("KeyW") || heldKeys.has("Space") || touchPointersRef.current.jump !== undefined;
+      }
+      if (event.code === "KeyX" || event.code === "KeyK") {
+        input.shoot = heldKeys.has("KeyX") || heldKeys.has("KeyK") || touchPointersRef.current.shoot !== undefined;
+      }
     };
-    const clear = () => Object.assign(input, { left: false, right: false, jump: false, shoot: false, jumpQueued: false, shootQueued: false });
+    const clear = () => {
+      heldKeys.clear();
+      touchPointersRef.current = {};
+      Object.assign(input, { left: false, right: false, jump: false, shoot: false, jumpQueued: false, shootQueued: false });
+    };
     window.addEventListener("keydown", onKeyDown, { passive: false });
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", clear);
@@ -1700,6 +1738,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles);
       drawPlayer();
       drawAmbientForeground(context, level, cameraX, frame);
+      if (level.id === "1-1" && player.x >= 130 && player.x < 1120) drawDoubleJumpTip(context);
 
       if (!runningRef.current) {
         context.fillStyle = "rgba(34, 24, 57, 0.42)";
@@ -1724,23 +1763,42 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     };
   }, [level]);
 
-  const bindTouch = (key: keyof InputState) => ({
-    onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
-      event.preventDefault();
+  const keyboardKeepsPressed = (key: TouchKey) => key === "left"
+    ? heldKeysRef.current.has("ArrowLeft") || heldKeysRef.current.has("KeyA")
+    : key === "right"
+      ? heldKeysRef.current.has("ArrowRight") || heldKeysRef.current.has("KeyD")
+      : key === "jump"
+        ? heldKeysRef.current.has("ArrowUp") || heldKeysRef.current.has("KeyW") || heldKeysRef.current.has("Space")
+        : heldKeysRef.current.has("KeyX") || heldKeysRef.current.has("KeyK");
+
+  const handleTouchStart = (key: TouchKey, event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (touchPointersRef.current[key] !== undefined) return;
+    touchPointersRef.current[key] = event.pointerId;
+    try {
       event.currentTarget.setPointerCapture(event.pointerId);
-      inputRef.current[key] = true;
-      if (key === "jump") inputRef.current.jumpQueued = true;
-      if (key === "shoot") inputRef.current.shootQueued = true;
-    },
-    onPointerUp: (event: React.PointerEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      inputRef.current[key] = false;
-    },
-    onPointerCancel: () => {
-      inputRef.current[key] = false;
-    },
-    onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => event.preventDefault(),
-  });
+    } catch {
+      // Algunos navegadores móviles no permiten capturar dos botones a la vez.
+    }
+    inputRef.current[key] = true;
+    if (key === "jump") inputRef.current.jumpQueued = true;
+    if (key === "shoot") inputRef.current.shootQueued = true;
+  };
+
+  const handleTouchEnd = (key: TouchKey, event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (touchPointersRef.current[key] !== event.pointerId) return;
+    delete touchPointersRef.current[key];
+    inputRef.current[key] = keyboardKeepsPressed(key);
+  };
+
+  const handleTouchCancel = (key: TouchKey, event: React.PointerEvent<HTMLButtonElement>) => {
+    if (touchPointersRef.current[key] !== event.pointerId) return;
+    delete touchPointersRef.current[key];
+    inputRef.current[key] = keyboardKeepsPressed(key);
+  };
+
+  const preventTouchMenu = (event: React.MouseEvent<HTMLButtonElement>) => event.preventDefault();
 
   return (
     <div className="game-frame">
@@ -1749,12 +1807,12 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       </div>
       <div className="touch-controls" aria-label="Controles táctiles">
         <div className="touch-group touch-move">
-          <button type="button" className="touch-button" aria-label="Mover a la izquierda" {...bindTouch("left")}>◀</button>
-          <button type="button" className="touch-button" aria-label="Mover a la derecha" {...bindTouch("right")}>▶</button>
+          <button type="button" className="touch-button touch-direction" aria-label="Mover a la izquierda" onPointerDown={(event) => handleTouchStart("left", event)} onPointerUp={(event) => handleTouchEnd("left", event)} onPointerCancel={(event) => handleTouchCancel("left", event)} onLostPointerCapture={(event) => handleTouchCancel("left", event)} onContextMenu={preventTouchMenu}><span>◀</span><small>IZQ.</small></button>
+          <button type="button" className="touch-button touch-direction" aria-label="Mover a la derecha" onPointerDown={(event) => handleTouchStart("right", event)} onPointerUp={(event) => handleTouchEnd("right", event)} onPointerCancel={(event) => handleTouchCancel("right", event)} onLostPointerCapture={(event) => handleTouchCancel("right", event)} onContextMenu={preventTouchMenu}><span>▶</span><small>DER.</small></button>
         </div>
         <div className="touch-group touch-actions">
-          <button type="button" className="touch-button touch-yarn" aria-label="Lanzar bola de lana" {...bindTouch("shoot")}><PixelIcon kind="yarn" /></button>
-          <button type="button" className="touch-button touch-jump" aria-label="Saltar o hacer doble salto" {...bindTouch("jump")}>↑</button>
+          <button type="button" className="touch-button touch-yarn" aria-label="Lanzar bola de lana" onPointerDown={(event) => handleTouchStart("shoot", event)} onPointerUp={(event) => handleTouchEnd("shoot", event)} onPointerCancel={(event) => handleTouchCancel("shoot", event)} onLostPointerCapture={(event) => handleTouchCancel("shoot", event)} onContextMenu={preventTouchMenu}><PixelIcon kind="yarn" /><small>LANA</small></button>
+          <button type="button" className="touch-button touch-jump" aria-label="Saltar; vuelve a tocar para hacer doble salto" onPointerDown={(event) => handleTouchStart("jump", event)} onPointerUp={(event) => handleTouchEnd("jump", event)} onPointerCancel={(event) => handleTouchCancel("jump", event)} onLostPointerCapture={(event) => handleTouchCancel("jump", event)} onContextMenu={preventTouchMenu}><span className="touch-jump-arrows">↑<i>↑</i></span><small>SALTAR</small></button>
         </div>
       </div>
     </div>
