@@ -4,7 +4,7 @@ export type StickerDefinition = {
   id: string;
   name: string;
   icon: PixelIconKind;
-  world: 1 | 2 | 3 | 4 | 5;
+  world: 1 | 2 | 3 | 4 | 5 | 6;
   hint: string;
 };
 
@@ -24,4 +24,7 @@ export const stickerCatalog: StickerDefinition[] = [
   { id: "sticker-5-1", name: "Timón sonriente", icon: "wheel", world: 5, hint: "Busca en la plataforma más alta entre los barcos." },
   { id: "sticker-5-2", name: "Loro aventurero", icon: "parrot", world: 5, hint: "Sigue a los loros por encima de las velas." },
   { id: "sticker-5-3", name: "Tesoro del cielo", icon: "gem", world: 5, hint: "Está entre los últimos cañones, antes del capitán." },
+  { id: "sticker-s-1", name: "Pluma celeste", icon: "sparkle", world: 6, hint: "Vuela por la primera nube alta." },
+  { id: "sticker-s-2", name: "Herradura arcoíris", icon: "crown", world: 6, hint: "Busca entre los unicornios de las nubes." },
+  { id: "sticker-s-3", name: "Estrella secreta", icon: "gem", world: 6, hint: "Está muy cerca del palacio del cielo." },
 ];

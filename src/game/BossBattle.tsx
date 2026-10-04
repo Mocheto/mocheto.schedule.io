@@ -23,6 +23,7 @@ type BossBattleProps = {
   apples: number;
   onSpendApple: () => void;
   onRestartLevel: () => void;
+  onAbandon: () => void;
   onWin: () => void;
   playSound: (kind: SoundKind) => void;
 };
@@ -33,12 +34,13 @@ const choices: Array<{ id: Choice; label: string }> = [
   { id: "scissors", label: "Tijera" },
 ];
 
-const bosses: Record<BossId, { name: string; assetPrefix: string; intro: string }> = {
+const bosses: Record<BossId, { name: string; assetPrefix: string; intro: string; sheet?: boolean }> = {
   "bramble-king": { name: "Rey Zarzal", assetPrefix: "./assets/sprites/boss-rey-zarzal", intro: "El guardián de las raíces te reta a un duelo." },
   "mist-countess": { name: "Condesa Niebla", assetPrefix: "./assets/sprites/boss-condesa-niebla", intro: "La guardiana de las grutas quiere probar tu ingenio." },
   "great-wolf": { name: "Gran Lobo", assetPrefix: "./assets/sprites/boss-gran-lobo", intro: "El rey de las huellas te espera para el último duelo." },
   "great-boar": { name: "Gran Jabalí", assetPrefix: "./assets/sprites/boss-gran-jabali", intro: "El guardián de las bellotas protege las copas del bosque." },
   "sky-captain": { name: "Capitán Celeste", assetPrefix: "./assets/sprites/boss-capitan-celeste", intro: "El capitán de la flota te reta por el tesoro de las nubes." },
+  "rainbow-queen": { name: "Reina Arcoíris", assetPrefix: "./assets/sprites/boss-reina-arcoiris-sheet-v1.png", intro: "La guardiana del cielo quiere comprobar tu magia.", sheet: true },
 };
 
 const choiceById = Object.fromEntries(choices.map((choice) => [choice.id, choice])) as Record<Choice, (typeof choices)[number]>;
@@ -65,11 +67,11 @@ function getRuleText(noa: Choice, boss: Choice) {
   return "Las tijeras cortan el papel.";
 }
 
-function BossSprite({ assetPrefix, frame, name }: { assetPrefix: string; frame: number; name: string }) {
+function BossSprite({ assetPrefix, frame, name, sheet = false }: { assetPrefix: string; frame: number; name: string; sheet?: boolean }) {
   const gesture = frame === 1 ? "piedra" : frame === 2 ? "papel" : frame === 3 ? "tijera" : frame === 4 ? "derrota" : "reto";
   return (
-    <div className={`boss-sprite-window ${assetPrefix.includes("gran-jabali") || assetPrefix.includes("capitan-celeste") ? "clean-frame" : ""}`} role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
-      <img className="boss-sprite-frame" src={`${assetPrefix}-${frame}.png`} alt="" />
+    <div className={`boss-sprite-window ${sheet || assetPrefix.includes("gran-jabali") || assetPrefix.includes("capitan-celeste") ? "clean-frame" : ""}`} role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
+      <img className={sheet ? "boss-sprite-sheet" : "boss-sprite-frame"} src={sheet ? assetPrefix : `${assetPrefix}-${frame}.png`} style={sheet ? { "--boss-frame": frame } as CSSProperties : undefined} alt="" />
     </div>
   );
 }
@@ -85,7 +87,7 @@ function NoaDuelSprite({ frame }: { frame: number | null }) {
   );
 }
 
-export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin, playSound }: BossBattleProps) {
+export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onAbandon, onWin, playSound }: BossBattleProps) {
   const boss = bosses[bossId];
   const [battle, setBattle] = useState<BattleState>({ noaScore: 0, bossScore: 0, status: "choosing" });
   const [countdown, setCountdown] = useState(3);
@@ -125,6 +127,9 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
     onSpendApple();
     setHistory([]);
     setBattle({ noaScore: 0, bossScore: 0, status: "choosing" });
+  };
+  const abandonBattle = () => {
+    if (window.confirm("¿Quieres rendirte y volver al mapa? Podrás intentar este duelo otra vez cuando quieras.")) onAbandon();
   };
   const choicesRevealed = battle.status !== "choosing" && battle.status !== "countdown";
   const visibleWinner = choicesRevealed ? battle.roundWinner : undefined;
@@ -181,7 +186,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
           </div>
           <div className="duel-versus" aria-hidden="true">VS</div>
           <div className={`duel-fighter ${visibleWinner === "boss" ? "round-winner" : visibleWinner === "noa" ? "round-loser" : ""}`}>
-            <BossSprite assetPrefix={boss.assetPrefix} frame={bossFrame} name={boss.name} />
+            <BossSprite assetPrefix={boss.assetPrefix} frame={bossFrame} name={boss.name} sheet={boss.sheet} />
             <strong>{boss.name}</strong>
             <div className={`gesture-card ${battle.status === "countdown" ? "is-hidden" : ""}`}>
               <span>{choicesRevealed && battle.bossChoice ? <RpsIcon choice={battle.bossChoice} /> : "?"}</span>
@@ -208,6 +213,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onWin
         {battle.status === "lost" && apples > 0 && <button className="pixel-button primary duel-next apple-retry" type="button" onClick={retryWithApple}><PixelIcon kind="apple" /> Usar una manzana y repetir</button>}
         {battle.status === "lost" && apples === 0 && <button className="pixel-button primary duel-next restart-level" type="button" onClick={onRestartLevel}>↺ Volver a empezar la pantalla</button>}
         {battle.status === "won" && <button className="pixel-button primary duel-next" type="button" onClick={() => { playSound("goal"); onWin(); }}>Continuar la aventura ▶</button>}
+        {battle.status !== "won" && <button className="text-button duel-abandon" type="button" onClick={abandonBattle}>🏳 Rendirse y volver al mapa</button>}
 
         <p className="duel-rules"><span><RpsIcon choice="rock" small /> gana a <RpsIcon choice="scissors" small /></span><span><RpsIcon choice="scissors" small /> gana a <RpsIcon choice="paper" small /></span><span><RpsIcon choice="paper" small /> gana a <RpsIcon choice="rock" small /></span></p>
       </section>

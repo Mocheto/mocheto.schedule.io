@@ -251,6 +251,8 @@ h1 span {
 .world-3 { background-color: #293e4b; }
 .world-4 { background-color: #5c4d31; }
 .world-5 { background-color: #356b82; }
+.world-6 { background: linear-gradient(145deg, #4e70b8, #8f62b7); }
+.world-6 .world-number { background: #f7b8ef; }
 .world-number { display: inline-block; color: var(--ink); background: var(--gold); padding: 7px 11px; border: 3px solid var(--ink); font-weight: 900; }
 .world-heading h3 { margin: 17px 0 7px; font-size: clamp(1.5rem, 3vw, 2.35rem); line-height: 1; color: #fff; text-shadow: 3px 3px 0 rgba(30,16,39,.45); }
 .world-heading p { margin: 0; font-family: system-ui, sans-serif; color: rgba(255,255,255,.9); }
@@ -283,6 +285,20 @@ h1 span {
 .game-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 4px solid #120b1d; border-top: 0; background: #5c4980; overflow: hidden; touch-action: none; }
 .game-stage canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 .level-caption { width: min(1200px, calc(100vw - 32px)); display: flex; justify-content: space-between; padding: 9px 14px; border: 4px solid #120b1d; border-top: 0; color: #d8c9e1; background: #2c1d3b; font-size: .72rem; }
+
+.secret-transition { position: fixed; z-index: 60; inset: 0; display: grid; place-content: center; justify-items: center; overflow: hidden; padding: 24px; text-align: center; color: #3b2554; background: linear-gradient(#65c5ef, #d9f5ff 62%, #f4d9ff); }
+.secret-transition::before, .secret-transition::after { content: ""; position: absolute; width: 62vw; height: 16vw; min-height: 90px; border-radius: 50%; background: #fff; box-shadow: 14vw 1vw 0 #f6efff, -18vw 4vw 0 #fff; animation: secret-cloud-slide 1.8s ease-in-out both; }
+.secret-transition::before { top: 6%; left: -20%; }
+.secret-transition::after { right: -20%; bottom: 5%; animation-direction: reverse; }
+.secret-transition > * { position: relative; z-index: 2; }
+.secret-transition h2 { max-width: 760px; margin: 10px 0; color: #4b2a68; font-size: clamp(2rem, 7vw, 4.8rem); text-shadow: 3px 3px 0 #fff; }
+.secret-transition p { font-family: system-ui, sans-serif; font-weight: 800; }
+.secret-transition .eyebrow { color: #8b397e; }
+.secret-vine-rise { width: 76px; height: 220px; margin-bottom: -45px; border: 8px solid #236955; border-block: 0; border-radius: 48% 52% 35% 65%; background: linear-gradient(90deg, #4aac55 0 25%, #a8e850 25% 48%, #398f4c 48% 72%, #18564d 72%); box-shadow: -34px 45px 0 -20px #75ca4d, 38px 92px 0 -21px #9ce259, -30px 148px 0 -19px #58b84e; transform-origin: bottom; animation: secret-vine-grow 1.2s cubic-bezier(.2,.8,.3,1) both; }
+.transition-clouds { color: #fff; font-size: clamp(3rem, 12vw, 8rem); letter-spacing: -.35em; filter: drop-shadow(0 12px 0 #c0b6e8); animation: transition-float .7s ease-in-out infinite alternate; }
+@keyframes secret-vine-grow { from { transform: scaleY(0); opacity: .3; } }
+@keyframes secret-cloud-slide { from { transform: translateX(-18vw); } to { transform: translateX(7vw); } }
+@keyframes transition-float { to { transform: translateY(-12px); } }
 
 .touch-controls { position: absolute; z-index: 5; inset: auto 0 max(12px, env(safe-area-inset-bottom)); display: none; justify-content: space-between; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); pointer-events: none; }
 .touch-group { display: flex; align-items: end; gap: 10px; pointer-events: auto; }
@@ -351,6 +367,7 @@ h1 span {
 .boss-theme-great-wolf::before { background-image: repeating-linear-gradient(75deg, transparent 0 70px, #33495a 72px 92px, transparent 94px 150px); }
 .boss-theme-great-boar::before { background-image: repeating-linear-gradient(105deg, transparent 0 64px, #557348 66px 88px, transparent 90px 142px); }
 .boss-theme-sky-captain::before { background-image: linear-gradient(180deg, transparent 0 58%, #77bed4 58% 64%, transparent 64%), repeating-linear-gradient(90deg, transparent 0 72px, #6f4735 74px 118px, transparent 120px 185px); }
+.boss-theme-rainbow-queen::before { background-image: linear-gradient(135deg, transparent 0 30%, rgba(236,111,167,.65) 30% 34%, rgba(255,224,104,.65) 34% 38%, rgba(112,189,232,.65) 38% 42%, transparent 42%), radial-gradient(ellipse at 20% 80%, #fff 0 12%, transparent 13%), radial-gradient(ellipse at 82% 78%, #fff 0 14%, transparent 15%); }
 .boss-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .boss-header h2 { margin: 0; color: var(--ink); font-size: clamp(1.7rem, 4vw, 3.2rem); line-height: 1; letter-spacing: -.055em; }
 .boss-header p:not(.eyebrow) { margin: 9px 0 0; font-family: system-ui, sans-serif; color: #6e5a73; }
@@ -389,6 +406,7 @@ h1 span {
 .boss-sprite-window { position: relative; width: clamp(86px, 18vw, 210px); aspect-ratio: 434.4 / 724; overflow: hidden; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
 .boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; clip-path: inset(0 5%); transform: scaleX(1.1); image-rendering: pixelated; }
 .boss-sprite-window.clean-frame .boss-sprite-frame { clip-path: none; transform: none; }
+.boss-sprite-sheet { display: block; width: 500%; max-width: none; height: 100%; object-fit: fill; image-rendering: pixelated; transform: translateX(calc(var(--boss-frame) * -20%)); }
 .duel-noa-sprite { display: grid; place-items: center; width: clamp(86px, 16vw, 175px); aspect-ratio: 524 / 724; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
 .duel-noa-sprite > img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .duel-noa-idle { width: 84%; aspect-ratio: .89; background-position: 0 0; background-repeat: no-repeat; background-size: 400% 400%; image-rendering: pixelated; }
@@ -413,6 +431,8 @@ h1 span {
 .duel-next { display: block; width: min(460px, 100%); margin: 16px auto 0; }
 .apple-retry { background: #d75961; }
 .restart-level { background: #77508c; }
+.duel-abandon { display: block; margin: 14px auto 0; color: #7a5268; font-family: system-ui, sans-serif; font-size: .82rem; }
+.duel-abandon:hover { color: #b23f58; }
 .duel-rules { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px 20px; margin: 18px 0 0; color: #6f5a75; font-family: system-ui, sans-serif; font-size: .82rem; font-weight: 750; }
 .duel-rules > span { display: inline-flex; align-items: center; gap: 5px; }
 .rps-icon { position: relative; display: inline-block; width: .86em; height: .86em; vertical-align: -.1em; image-rendering: pixelated; filter: drop-shadow(.07em .07em 0 #352044); }

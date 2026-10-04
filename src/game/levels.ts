@@ -19,6 +19,7 @@ const caveWall = (x: number, y: number, width: number, height: number): Platform
 
 const ship = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 26, kind: "ship" });
 const airPlank = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 18, kind: "air-plank" });
+const cloudFloor = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 28, kind: "cloud-floor" });
 
 const enemy = (
   id: string,
@@ -33,8 +34,8 @@ const enemy = (
   kind,
   x,
   y,
-  width: kind === "boar" ? 60 : kind === "wolf" ? 56 : kind === "bird" || kind === "parrot" || kind === "pirate" || kind === "bat" ? 46 : 42,
-  height: kind === "boar" ? 42 : kind === "wolf" ? 40 : kind === "pirate" ? 50 : kind === "bird" || kind === "parrot" || kind === "bat" ? 32 : 36,
+  width: kind === "boar" ? 60 : kind === "wolf" ? 56 : kind === "sky-unicorn" ? 58 : kind === "bird" || kind === "parrot" || kind === "pirate" || kind === "bat" ? 46 : 42,
+  height: kind === "boar" ? 42 : kind === "wolf" ? 40 : kind === "sky-unicorn" ? 42 : kind === "pirate" ? 50 : kind === "bird" || kind === "parrot" || kind === "bat" ? 32 : 36,
   minX,
   maxX,
   speed,
@@ -62,6 +63,7 @@ export const themeNames: Record<Theme, string> = {
   "boar-storm": "Tormenta de bellotas",
   "sky-pirates": "La flota de las nubes",
   "sky-storm": "La tormenta del Capitán Celeste",
+  "secret-sky": "El reino secreto de las nubes",
 };
 
 export const levels: Level[] = [
@@ -505,7 +507,10 @@ export const levels: Level[] = [
       apple("a9", 4700, 410), apple("a10", 5090, 155), sticker("sticker-4-3", 6080, 155),
       apple("a11", 6750, 410), apple("a12", 7120, 165),
     ],
-    rewardBlocks: [reward("r1", 1080, 225), reward("r2", 3650, 225, "apple"), reward("r3", 6570, 225)],
+    rewardBlocks: [
+      reward("r1", 1080, 225), reward("r2", 3650, 225, "apple"), reward("r3", 6570, 225),
+      reward("bloque-secreto", 3205, 112, "secret-vine"),
+    ],
     checkpoints: [1000, 1780, 2590, 3500, 4470, 5450, 6440, 7040],
     boss: "great-boar",
   },
@@ -615,6 +620,45 @@ export const levels: Level[] = [
     ],
     checkpoints: [1340, 2730, 4130, 5530, 6920, 7560],
     boss: "sky-captain",
+  },
+  {
+    id: "S-1",
+    world: 6,
+    screen: 1,
+    title: "El reino secreto de las nubes",
+    subtitle: "Corre por las nubes, reúne tres insignias y conoce a la Reina Arcoíris.",
+    theme: "secret-sky",
+    width: 5900,
+    start: { x: 80, y: 340 },
+    goalX: 5700,
+    platforms: [
+      cloudFloor(0, 438, 520), cloudFloor(650, 390, 390), cloudFloor(1160, 325, 320),
+      cloudFloor(1580, 420, 430), cloudFloor(2130, 345, 300), cloudFloor(2540, 260, 310),
+      cloudFloor(2960, 410, 430), cloudFloor(3500, 330, 330), cloudFloor(3940, 245, 300),
+      cloudFloor(4350, 405, 380), cloudFloor(4840, 315, 330), cloudFloor(5280, 420, 620),
+      cloudFloor(330, 310, 170), cloudFloor(840, 235, 165), cloudFloor(1780, 255, 170),
+      cloudFloor(3200, 235, 170), cloudFloor(4530, 220, 170), cloudFloor(5140, 180, 170),
+    ],
+    enemies: [
+      enemy("ave-c1", "bird", 720, 220, 610, 1080, 70),
+      enemy("uni-c1", "sky-unicorn", 1690, 378, 1610, 1940, 46),
+      enemy("ave-c2", "bird", 2220, 165, 2060, 2500, 76),
+      enemy("uni-c2", "sky-unicorn", 3010, 368, 2980, 3320, 50),
+      enemy("ave-c3", "bird", 3630, 160, 3450, 3890, 80),
+      enemy("uni-c3", "sky-unicorn", 4420, 363, 4380, 4680, 54),
+      enemy("ave-c4", "bird", 4960, 145, 4770, 5260, 84),
+      enemy("uni-c4", "sky-unicorn", 5380, 378, 5330, 5620, 58),
+    ],
+    items: [
+      apple("cs-a1", 350, 260), apple("cs-a2", 900, 185),
+      sticker("sticker-s-1", 1250, 275), apple("cs-a3", 1835, 205),
+      apple("cs-a4", 2600, 210), sticker("sticker-s-2", 3255, 185),
+      apple("cs-a5", 4030, 195), apple("cs-a6", 4585, 170),
+      sticker("sticker-s-3", 5195, 130), apple("cs-a7", 5500, 370),
+    ],
+    rewardBlocks: [reward("cs-r1", 2240, 270, "apple"), reward("cs-r2", 4920, 240)],
+    checkpoints: [680, 1600, 2980, 4370, 5300],
+    boss: "rainbow-queen",
   },
 ];
 

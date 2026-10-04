@@ -16,6 +16,7 @@ type GameCanvasProps = {
   onLoseLife: () => void;
   onComplete: () => void;
   onBossEncounter: () => void;
+  onSecretExit: () => void;
   onSnapshot: (snapshot: GameSnapshot) => void;
   playSound: (kind: SoundKind) => void;
 };
@@ -48,7 +49,7 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -233,6 +234,28 @@ function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX
     drawCaveBackground(context, cameraX, frame, raster.cave);
     return;
   }
+  if (level.theme === "secret-sky") {
+    context.fillStyle = "#77cdf5";
+    context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+    context.fillStyle = "#c6efff";
+    context.fillRect(0, 255, VIEW_WIDTH, 285);
+    for (let index = 0; index < 12; index += 1) {
+      const x = index * 190 - positiveModulo(cameraX * 0.12, 190) - 70;
+      drawPixelCloud(context, x, 48 + positiveModulo(index * 67, 250), index % 2 ? "#fff8ff" : "#f7edff", "#c4bff2");
+    }
+    const rainbowX = 710 - positiveModulo(cameraX * 0.04, 900);
+    ["#ec6fa7", "#f4ad55", "#ffe56d", "#79d18d", "#70bde8", "#aa83dc"].forEach((color, index) => {
+      context.strokeStyle = color;
+      context.lineWidth = 9;
+      context.beginPath();
+      context.arc(rainbowX, 310, 155 - index * 9, Math.PI, Math.PI * 2);
+      context.stroke();
+    });
+    for (let index = 0; index < 14; index += 1) {
+      drawTinySparkle(context, positiveModulo(index * 173 - cameraX * 0.2, VIEW_WIDTH), 55 + positiveModulo(index * 83, 350), index % 2 ? "#fff5a9" : "#f9d3ff", index % 3 === 0 ? 2 : 1);
+    }
+    return;
+  }
   const storm = level.theme === "boar-storm" || level.theme === "sky-storm";
   const night = level.theme === "forest-night" || level.theme === "wolf-moon" || level.theme === "boar-storm";
   const wolves = level.world === 3;
@@ -402,6 +425,14 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
   const x = Math.round(platform.x - cameraX);
   const forest = world >= 2 && world <= 4;
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
+  if (platform.kind === "cloud-floor") {
+    context.fillStyle = "rgba(178,164,232,.75)";
+    context.fillRect(x + 14, platform.y + 19, Math.max(0, platform.width - 28), platform.height + 12);
+    for (let tileX = x; tileX < x + platform.width; tileX += 150) {
+      drawAtlasCell(context, raster.secret, 2, 2, 1, 1, tileX - 8, platform.y - 30, Math.min(172, x + platform.width - tileX + 18), 74);
+    }
+    return;
+  }
   if (platform.kind === "cave-wall") {
     context.fillStyle = "#160e28";
     context.fillRect(x - 4, platform.y - 4, platform.width + 8, platform.height + 8);
@@ -683,6 +714,24 @@ function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number
   context.fillRect(x + 4, y + 4, 8, 5);
 }
 
+function drawSecretBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean, secret: HTMLImageElement) {
+  if (!hit && drawAtlasCell(context, secret, 2, 2, 1, 0, x - 5, y - 5, 60, 60)) return;
+  context.fillStyle = hit ? "#b8acc2" : "#f4c548";
+  context.fillRect(x, y, 48, 48);
+}
+
+function drawSecretVine(context: CanvasRenderingContext2D, x: number, blockY: number, progress: number, secret: HTMLImageElement) {
+  const height = Math.max(1, Math.round((blockY + 80) * progress));
+  context.save();
+  context.beginPath();
+  context.rect(x - 28, blockY - height, 104, height + 10);
+  context.clip();
+  for (let y = blockY - 115; y > blockY - height - 115; y -= 105) {
+    drawAtlasCell(context, secret, 2, 2, 0, 1, x - 27, y, 104, 128);
+  }
+  context.restore();
+}
+
 function drawEnemyWarning(context: CanvasRenderingContext2D, x: number, y: number, kind: "wolf" | "boar") {
   context.fillStyle = kind === "boar" ? "#fff0bd" : "#fff3c4";
   context.fillRect(x - (kind === "boar" ? 5 : 9), y - 35, kind === "boar" ? 72 : 77, 24);
@@ -697,6 +746,22 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
   const y = Math.round(enemyY(enemy));
+  if (enemy.kind === "sky-unicorn") {
+    const width = 76;
+    const height = 64;
+    const drawX = x + Math.round((enemy.width - width) / 2);
+    const drawY = y + enemy.height - height;
+    context.save();
+    if (enemy.vx < 0) {
+      context.translate(drawX + width, 0);
+      context.scale(-1, 1);
+      drawAtlasCell(context, raster.secret, 2, 2, 0, 0, 0, drawY, width, height);
+    } else {
+      drawAtlasCell(context, raster.secret, 2, 2, 0, 0, drawX, drawY, width, height);
+    }
+    context.restore();
+    return;
+  }
   if (enemy.kind === "bat") {
     const wingFrame = Math.floor(enemy.phase * 3.2) % 2;
     const width = 62;
@@ -1088,15 +1153,15 @@ function createInitialPlayer(level: Level): Player {
   };
 }
 
-export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound }: GameCanvasProps) {
+export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncounter, onSecretExit, onSnapshot, playSound }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<InputState>({ left: false, right: false, jump: false, shoot: false, jumpQueued: false, shootQueued: false });
   const runningRef = useRef(running);
-  const callbacksRef = useRef({ onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound });
+  const callbacksRef = useRef({ onLoseLife, onComplete, onBossEncounter, onSecretExit, onSnapshot, playSound });
 
   useEffect(() => {
-    callbacksRef.current = { onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound };
-  }, [onLoseLife, onComplete, onBossEncounter, onSnapshot, playSound]);
+    callbacksRef.current = { onLoseLife, onComplete, onBossEncounter, onSecretExit, onSnapshot, playSound };
+  }, [onLoseLife, onComplete, onBossEncounter, onSecretExit, onSnapshot, playSound]);
 
   useEffect(() => {
     runningRef.current = running;
@@ -1149,12 +1214,14 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
       collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
       cave: createRasterImage("./assets/atlases/cave-v1.png"),
+      secret: createRasterImage("./assets/atlases/secret-sky-v1.png"),
       tiles: {
         1: createRasterImage("./assets/atlases/world-1-tiles-v1.png"),
         2: createRasterImage("./assets/atlases/world-2-tiles-v1.png"),
         3: createRasterImage("./assets/atlases/world-3-tiles-v1.png"),
         4: createRasterImage("./assets/atlases/world-4-tiles-v1.png"),
         5: createRasterImage("./assets/atlases/world-5-tiles-v1.png"),
+        6: createRasterImage("./assets/atlases/secret-sky-v1.png"),
       },
     };
     const player = createInitialPlayer(level);
@@ -1181,6 +1248,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     let lastSnapshot = 0;
     let animationId = 0;
     let completeTimer = 0;
+    let vineStartedFrame = -1;
 
     const respawn = () => {
       player.x = respawnX;
@@ -1322,8 +1390,16 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           player.vy = 95;
           if (!hitBlocks.has(block.id)) {
             hitBlocks.add(block.id);
-            items.push({ id: `${block.id}-reward`, kind: block.reward, x: block.x + 4, y: block.y - 42, age: 0, rise: 0, fromBlock: true });
             callbacksRef.current.playSound("block");
+            if (block.reward === "secret-vine") {
+              completed = true;
+              vineStartedFrame = frame;
+              player.vx = 0;
+              callbacksRef.current.playSound("checkpoint");
+              completeTimer = window.setTimeout(() => callbacksRef.current.onSecretExit(), 1500);
+            } else {
+              items.push({ id: `${block.id}-reward`, kind: block.reward, x: block.x + 4, y: block.y - 42, age: 0, rise: 0, fromBlock: true });
+            }
           }
         }
       }
@@ -1564,14 +1640,19 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
       level.rewardBlocks.forEach((block) => {
         const x = Math.round(block.x - cameraX);
-        drawRewardBlock(context, x, block.y, hitBlocks.has(block.id), raster.collectibles);
+        if (block.reward === "secret-vine") {
+          drawSecretBlock(context, x, block.y, hitBlocks.has(block.id), raster.secret);
+          if (hitBlocks.has(block.id)) drawSecretVine(context, x, block.y, Math.min(1, (frame - vineStartedFrame) / 70), raster.secret);
+        } else {
+          drawRewardBlock(context, x, block.y, hitBlocks.has(block.id), raster.collectibles);
+        }
         if (!hitBlocks.has(block.id) && Math.abs(player.x - block.x) < 230) {
           context.fillStyle = "#fff8d6";
-          context.fillRect(x - 58, block.y - 35, 164, 24);
+          context.fillRect(x - 66, block.y - 35, 180, 24);
           context.fillStyle = "#4b295f";
           context.font = "bold 12px monospace";
           context.textAlign = "center";
-          context.fillText("¡SALTA BAJO LA HUELLA!", x + 24, block.y - 19);
+          context.fillText(block.reward === "secret-vine" ? "¿QUÉ ESCONDE ESTE BLOQUE?" : "¡SALTA BAJO LA HUELLA!", x + 24, block.y - 19);
           context.textAlign = "start";
         }
       });
