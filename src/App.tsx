@@ -321,7 +321,7 @@ export default function App() {
 
       {screen === "secret-transition" && (
         <section className="secret-transition" aria-live="polite">
-          <div className="secret-vine-rise" aria-hidden="true" />
+          <img className="secret-vine-rise" src="./assets/sprites/secret-vine-transition-v1.png" alt="" aria-hidden="true" />
           <p className="eyebrow">¡Pasadizo secreto!</p>
           <h2>Subiendo al Reino de las Nubes…</h2>
           <p>La enredadera mágica lleva a Noa por encima del bosque.</p>

@@ -509,7 +509,7 @@ export const levels: Level[] = [
     ],
     rewardBlocks: [
       reward("r1", 1080, 225), reward("r2", 3650, 225, "apple"), reward("r3", 6570, 225),
-      reward("bloque-secreto", 3205, 112, "secret-vine"),
+      reward("bloque-secreto", 3205, 70, "secret-vine"),
     ],
     checkpoints: [1000, 1780, 2590, 3500, 4470, 5450, 6440, 7040],
     boss: "great-boar",

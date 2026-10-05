@@ -298,7 +298,7 @@ h1 span {
 .secret-transition h2 { max-width: 760px; margin: 10px 0; color: #4b2a68; font-size: clamp(2rem, 7vw, 4.8rem); text-shadow: 3px 3px 0 #fff; }
 .secret-transition p { font-family: system-ui, sans-serif; font-weight: 800; }
 .secret-transition .eyebrow { color: #8b397e; }
-.secret-vine-rise { width: 76px; height: 220px; margin-bottom: -45px; border: 8px solid #236955; border-block: 0; border-radius: 48% 52% 35% 65%; background: linear-gradient(90deg, #4aac55 0 25%, #a8e850 25% 48%, #398f4c 48% 72%, #18564d 72%); box-shadow: -34px 45px 0 -20px #75ca4d, 38px 92px 0 -21px #9ce259, -30px 148px 0 -19px #58b84e; transform-origin: bottom; animation: secret-vine-grow 1.2s cubic-bezier(.2,.8,.3,1) both; }
+.secret-vine-rise { display: block; width: clamp(104px, 16vw, 172px); height: 260px; margin-bottom: -45px; object-fit: contain; object-position: bottom; image-rendering: pixelated; transform-origin: bottom; animation: secret-vine-grow 1.2s cubic-bezier(.2,.8,.3,1) both; }
 .transition-clouds { color: #fff; font-size: clamp(3rem, 12vw, 8rem); letter-spacing: -.35em; filter: drop-shadow(0 12px 0 #c0b6e8); animation: transition-float .7s ease-in-out infinite alternate; }
 @keyframes secret-vine-grow { from { transform: scaleY(0); opacity: .3; } }
 @keyframes secret-cloud-slide { from { transform: translateX(-18vw); } to { transform: translateX(7vw); } }
