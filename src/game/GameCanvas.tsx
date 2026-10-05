@@ -1357,6 +1357,15 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     let vineStartedFrame = -1;
     let goalCelebrationFrame = -1;
 
+    const enterSecretVine = () => {
+      if (completed) return;
+      completed = true;
+      player.vx = 0;
+      player.vy = 0;
+      callbacksRef.current.playSound("checkpoint");
+      completeTimer = window.setTimeout(() => callbacksRef.current.onSecretExit(), 700);
+    };
+
     const respawn = () => {
       player.x = respawnX;
       player.y = level.start.y;
@@ -1501,16 +1510,20 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
             hitBlocks.add(block.id);
             callbacksRef.current.playSound("block");
             if (block.reward === "secret-vine") {
-              completed = true;
               vineStartedFrame = frame;
-              player.vx = 0;
-              callbacksRef.current.playSound("checkpoint");
-              completeTimer = window.setTimeout(() => callbacksRef.current.onSecretExit(), 1500);
             } else {
               items.push({ id: `${block.id}-reward`, kind: block.reward, x: block.x + 4, y: block.y - 42, age: 0, rise: 0, fromBlock: true });
             }
           }
         }
+      }
+
+      const secretVine = level.rewardBlocks.find((block) => block.reward === "secret-vine");
+      if (secretVine && vineStartedFrame >= 0) {
+        const growth = Math.min(1, (frame - vineStartedFrame) / 70);
+        const vineHeight = Math.max(1, Math.round((secretVine.y + 80) * growth));
+        const vineHitbox = { x: secretVine.x - 28, y: secretVine.y - vineHeight, width: 104, height: vineHeight + 48 };
+        if (growth >= 0.65 && intersects(player, vineHitbox)) enterSecretVine();
       }
 
       if (player.y > VIEW_HEIGHT + 120) {
@@ -1802,6 +1815,14 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.font = "bold 12px monospace";
           context.textAlign = "center";
           context.fillText(block.reward === "secret-vine" ? "¿QUÉ ESCONDE ESTE BLOQUE?" : "¡SALTA BAJO EL GATITO!", x + 24, block.y - 19);
+          context.textAlign = "start";
+        } else if (block.reward === "secret-vine" && vineStartedFrame >= 0 && !completed && Math.abs(player.x - block.x) < 250) {
+          context.fillStyle = "#fff8d6";
+          context.fillRect(x - 65, block.y - 40, 180, 24);
+          context.fillStyle = "#3f7651";
+          context.font = "bold 12px monospace";
+          context.textAlign = "center";
+          context.fillText("¡TOCA LA ENREDADERA!", x + 24, block.y - 24);
           context.textAlign = "start";
         }
       });
