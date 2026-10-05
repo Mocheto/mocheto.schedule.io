@@ -70,7 +70,7 @@ function getRuleText(noa: Choice, boss: Choice) {
 function BossSprite({ assetPrefix, frame, name, sheet = false }: { assetPrefix: string; frame: number; name: string; sheet?: boolean }) {
   const gesture = frame === 1 ? "piedra" : frame === 2 ? "papel" : frame === 3 ? "tijera" : frame === 4 ? "derrota" : "reto";
   return (
-    <div className={`boss-sprite-window ${sheet || assetPrefix.includes("gran-jabali") || assetPrefix.includes("capitan-celeste") ? "clean-frame" : ""}`} role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
+    <div className={`boss-sprite-window ${sheet ? "is-sheet" : ""}`} role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
       <img className={sheet ? "boss-sprite-sheet" : "boss-sprite-frame"} src={sheet ? assetPrefix : `${assetPrefix}-${frame}.png`} style={sheet ? { "--boss-frame": frame } as CSSProperties : undefined} alt="" />
     </div>
   );
@@ -197,6 +197,13 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onAba
 
         <div className={`round-message result-${visibleWinner ?? "none"}`} aria-live="polite">
           <strong>{battle.status === "countdown" ? "Piedra, papel…" : battle.status === "won" ? "¡Noa gana el duelo!" : battle.status === "lost" ? `Esta vez gana ${boss.name}` : visibleWinner === "noa" ? "¡Ronda para Noa!" : visibleWinner === "boss" ? `Ronda para ${boss.name}` : visibleWinner === "tie" ? "¡Empate!" : "Piedra, papel o tijera"}</strong>
+          {choicesRevealed && battle.noaChoice && battle.bossChoice && (
+            <div className="round-choice-spotlight" aria-label={`Noa elige ${choiceById[battle.noaChoice].label} y ${boss.name} elige ${choiceById[battle.bossChoice].label}`}>
+              <span><small>NOA</small><RpsIcon choice={battle.noaChoice} /><b>{choiceById[battle.noaChoice].label}</b></span>
+              <em>VS</em>
+              <span><small>{boss.name.toUpperCase()}</small><RpsIcon choice={battle.bossChoice} /><b>{choiceById[battle.bossChoice].label}</b></span>
+            </div>
+          )}
           <span>{battle.status === "countdown" ? "Los dos gestos aparecerán a la vez." : battle.status === "won" ? `${boss.name} sonríe y deja libre el camino.` : battle.status === "lost" ? apples > 0 ? "Puedes gastar una manzana para repetir el duelo." : "No quedan manzanas: toca recorrer de nuevo la pantalla." : roundText}</span>
         </div>
 

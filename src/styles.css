@@ -411,7 +411,7 @@ h1 span {
 .round-history .history-noa b { color: #2f7b43; }
 .round-history .history-boss { border-color: #a64a5a; background: #f9dfe3; }
 .round-history .history-boss b { color: #a02e42; }
-.duel-arena { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: clamp(8px, 3vw, 32px); min-height: 310px; margin: 14px 0 8px; }
+.duel-arena { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: clamp(8px, 3vw, 32px); min-height: 350px; margin: 14px 0 8px; }
 .duel-fighter { display: grid; justify-items: center; align-content: end; min-width: 0; transition: transform .18s ease; }
 .duel-fighter > strong { max-width: 100%; margin: 5px 0 8px; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .duel-fighter.round-winner { animation: duel-winner .5s steps(2, end) 2; }
@@ -427,9 +427,9 @@ h1 span {
 .duel-versus { align-self: center; border: 4px solid var(--ink); padding: 9px; color: #fff; background: var(--apple); font-size: clamp(1rem, 3vw, 1.8rem); font-weight: 900; transform: rotate(-5deg); }
 .duel-countdown { position: absolute; z-index: 5; top: 40%; left: 50%; display: grid; place-items: center; width: clamp(78px, 13vw, 128px); aspect-ratio: 1; border: 7px solid #fff8e9; color: #fff; background: #d74656; box-shadow: 0 0 0 6px #2e1b38, 10px 10px 0 rgba(46, 27, 56, .3); font-size: clamp(2.1rem, 7vw, 4.8rem); font-weight: 950; transform: translate(-50%, -50%) rotate(-5deg); animation: countdown-pop .36s steps(2, end); }
 @keyframes countdown-pop { from { opacity: .35; transform: translate(-50%, -50%) rotate(6deg) scale(.45); } }
-.boss-sprite-window { position: relative; width: clamp(86px, 18vw, 210px); aspect-ratio: 434.4 / 724; overflow: hidden; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
-.boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; clip-path: inset(0 5%); transform: scaleX(1.1); image-rendering: pixelated; }
-.boss-sprite-window.clean-frame .boss-sprite-frame { clip-path: none; transform: none; }
+.boss-sprite-window { position: relative; display: grid; place-items: center; width: clamp(155px, 24vw, 280px); height: clamp(230px, 31vw, 340px); overflow: visible; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
+.boss-sprite-window.is-sheet { overflow: hidden; }
+.boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .boss-sprite-sheet { display: block; width: 500%; max-width: none; height: 100%; object-fit: fill; image-rendering: pixelated; transform: translateX(calc(var(--boss-frame) * -20%)); }
 .duel-noa-sprite { display: grid; place-items: center; width: clamp(86px, 16vw, 175px); aspect-ratio: 524 / 724; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
 .duel-noa-sprite > img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
@@ -442,6 +442,13 @@ h1 span {
 .round-message { display: grid; gap: 5px; min-height: 72px; border: 4px solid #513061; padding: 12px 18px; text-align: center; background: #fffdf6; }
 .round-message strong { font-size: clamp(1.05rem, 2.5vw, 1.45rem); }
 .round-message span { font-family: system-ui, sans-serif; color: #67566d; }
+.round-choice-spotlight { display: flex; align-items: center; justify-content: center; gap: clamp(12px, 4vw, 34px); margin: 4px auto; padding: 8px 18px; border: 3px dashed currentColor; color: #513061; background: rgba(255,255,255,.72); animation: choice-spotlight .42s cubic-bezier(.2, 1.5, .5, 1); }
+.round-choice-spotlight > span { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 9px; color: #40264e; }
+.round-choice-spotlight small { grid-column: 1 / -1; color: #806589; font-size: .68rem; font-weight: 900; letter-spacing: .08em; }
+.round-choice-spotlight .rps-icon { width: clamp(2.4rem, 7vw, 4.2rem); height: clamp(2.4rem, 7vw, 4.2rem); }
+.round-choice-spotlight b { font-size: clamp(1rem, 2.8vw, 1.45rem); }
+.round-choice-spotlight em { padding: 5px 8px; border: 3px solid #513061; color: #fff; background: #d74656; font-style: normal; font-weight: 950; transform: rotate(-5deg); }
+@keyframes choice-spotlight { from { opacity: 0; transform: scale(.56); } 68% { transform: scale(1.08); } }
 .round-message.result-noa { border-color: #3f8452; background: #e5f4dd; }
 .round-message.result-boss { border-color: #a64a5a; background: #f9dfe3; }
 .round-message.result-tie { border-color: #9a7c30; background: #fff2c8; }
