@@ -1553,18 +1553,19 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           warnedEnemies.add(enemy.id);
           callbacksRef.current.playSound(enemy.kind === "boar" ? "snort" : "howl");
         }
-        if (enemy.kind === "boar" && enemyDistance < 310) {
+        // Primero resolvemos el borde de la ruta. Hacerlo después de decidir
+        // la carga hacía que el jabalí se invirtiera dos veces por frame.
+        if (enemy.x <= enemy.minX) {
+          enemy.x = enemy.minX;
+          enemy.vx = Math.abs(enemy.vx);
+        } else if (enemy.x >= enemy.maxX) {
+          enemy.x = enemy.maxX;
+          enemy.vx = -Math.abs(enemy.vx);
+        }
+        if (enemy.kind === "boar" && enemyDistance < 310 && player.x >= enemy.minX && player.x <= enemy.maxX) {
           const chargeSpeed = Math.max(82, Math.abs(enemy.vx));
           const wantsLeft = player.x < enemy.x;
-          // Al llegar al borde de su ruta no intenta cargar fuera de ella: gira
-          // y continúa caminando, en lugar de alternar de dirección cada frame.
-          if (wantsLeft && enemy.x <= enemy.minX + 2) enemy.vx = chargeSpeed;
-          else if (!wantsLeft && enemy.x >= enemy.maxX - 2) enemy.vx = -chargeSpeed;
-          else enemy.vx = wantsLeft ? -chargeSpeed : chargeSpeed;
-        }
-        if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
-          enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
-          enemy.vx *= -1;
+          enemy.vx = wantsLeft ? -chargeSpeed : chargeSpeed;
         }
         const hitbox = {
           x: enemy.x,
