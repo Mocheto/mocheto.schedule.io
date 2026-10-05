@@ -106,8 +106,9 @@ const drawEnemyAtlasSprite = (context: CanvasRenderingContext2D, image: HTMLImag
   const cellHeight = image.naturalHeight / 2;
   const sourceTop = row === 0 ? cellHeight * 0.31 : cellHeight * 0.08;
   const sourceHeight = row === 0 ? cellHeight * 0.67 : cellHeight * 0.84;
-  const inset = Math.round(cellWidth * 0.04);
-  context.drawImage(image, column * cellWidth + inset, row * cellHeight + sourceTop, cellWidth - inset * 2, sourceHeight, x, y, width, height);
+  // Los jabalíes y pájaros ocupan el ancho completo de su celda: no añadimos
+  // margen lateral al leer el atlas para no cortarles el hocico ni el pico.
+  context.drawImage(image, column * cellWidth, row * cellHeight + sourceTop, cellWidth, sourceHeight, x, y, width, height);
 };
 
 const drawPixelCloud = (context: CanvasRenderingContext2D, x: number, y: number, color: string, shadow = "#bdd4dc") => {
