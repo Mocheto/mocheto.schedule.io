@@ -1288,6 +1288,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     catYarnSprite.src = "./assets/sprites/noa-cat-yarn-v2.png";
     const catThrowSprite = new Image();
     catThrowSprite.src = "./assets/sprites/noa-cat-throw-v1.png";
+    const yarnBallSprite = new Image();
+    yarnBallSprite.src = "./assets/sprites/yarn-ball-v1.png";
     const catRunSprite = new Image();
     catRunSprite.src = "./assets/sprites/noa-cat-run-v2.png";
     const jumpSprite = new Image();
@@ -1789,12 +1791,20 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       cannonballs.forEach((ball) => drawCannonball(context, ball, cameraX));
       projectiles.forEach((ball) => {
         const x = Math.round(ball.x - cameraX);
-        context.fillStyle = "#4b295f";
-        context.fillRect(x - 11, Math.round(ball.y) - 11, 22, 22);
-        context.fillStyle = "#c78bea";
-        context.fillRect(x - 8, Math.round(ball.y) - 8, 16, 16);
-        context.fillStyle = "#eee0ff";
-        context.fillRect(x - 5, Math.round(ball.y) - 4, 10, 3);
+        const y = Math.round(ball.y);
+        if (yarnBallSprite.complete && yarnBallSprite.naturalWidth) {
+          // El ovillo es un recurso independiente para conservar su silueta redonda.
+          const pulse = frame % 8 < 4 ? 0 : 1;
+          context.drawImage(yarnBallSprite, x - 17, y - 17 - pulse, 34, 34);
+        } else {
+          // Solo se usa durante la carga inicial del sprite.
+          context.fillStyle = "#4b295f";
+          context.fillRect(x - 11, y - 11, 22, 22);
+          context.fillStyle = "#c78bea";
+          context.fillRect(x - 8, y - 8, 16, 16);
+          context.fillStyle = "#eee0ff";
+          context.fillRect(x - 5, y - 4, 10, 3);
+        }
       });
       bursts.forEach((burst) => {
         const x = Math.round(burst.x - cameraX);
