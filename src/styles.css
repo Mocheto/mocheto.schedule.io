@@ -428,6 +428,7 @@ h1 span {
 .duel-countdown { position: absolute; z-index: 5; top: 40%; left: 50%; display: grid; place-items: center; width: clamp(78px, 13vw, 128px); aspect-ratio: 1; border: 7px solid #fff8e9; color: #fff; background: #d74656; box-shadow: 0 0 0 6px #2e1b38, 10px 10px 0 rgba(46, 27, 56, .3); font-size: clamp(2.1rem, 7vw, 4.8rem); font-weight: 950; transform: translate(-50%, -50%) rotate(-5deg); animation: countdown-pop .36s steps(2, end); }
 @keyframes countdown-pop { from { opacity: .35; transform: translate(-50%, -50%) rotate(6deg) scale(.45); } }
 .boss-sprite-window { position: relative; display: grid; place-items: center; width: clamp(155px, 24vw, 280px); height: clamp(230px, 31vw, 340px); overflow: visible; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
+.boss-sprite-window.is-wide-sprite { width: clamp(205px, 31vw, 340px); height: clamp(165px, 25vw, 270px); }
 .boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .duel-noa-sprite { display: grid; place-items: center; width: clamp(86px, 16vw, 175px); aspect-ratio: 524 / 724; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
 .duel-noa-sprite > img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }

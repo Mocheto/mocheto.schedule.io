@@ -52,7 +52,7 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
 const intersects = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -794,6 +794,24 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
     }
     return;
   }
+  if ((enemy.kind === "boar" || enemy.kind === "bird") && (enemy.kind === "boar" ? raster.boar : raster.bird).complete && (enemy.kind === "boar" ? raster.boar : raster.bird).naturalWidth) {
+    if (nearby && enemy.kind === "boar") drawEnemyWarning(context, x, y, "boar");
+    const sprite = enemy.kind === "boar" ? raster.boar : raster.bird;
+    const [width, height] = enemyRasterSize[enemy.kind];
+    const flyingOffset = enemy.kind === "bird" ? Math.round(Math.sin(enemy.phase * 4) * 3) : 0;
+    const drawX = x + Math.round((enemy.width - width) / 2);
+    const drawY = y + enemy.height - height + flyingOffset;
+    context.save();
+    if (enemy.vx < 0) {
+      context.translate(drawX + width, 0);
+      context.scale(-1, 1);
+      context.drawImage(sprite, 0, 0, sprite.naturalWidth, sprite.naturalHeight, 0, drawY, width, height);
+    } else {
+      context.drawImage(sprite, drawX, drawY, width, height);
+    }
+    context.restore();
+    return;
+  }
   if (raster.enemies.complete && raster.enemies.naturalWidth) {
     if (nearby && (enemy.kind === "wolf" || enemy.kind === "boar")) drawEnemyWarning(context, x, y, enemy.kind);
     const [column, row] = enemyAtlasCell[enemy.kind];
@@ -1297,6 +1315,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     jumpSprite.src = "./assets/sprites/noa-jump-v2.png";
     const raster: RasterAssets = {
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
+      boar: createRasterImage("./assets/sprites/enemy-boar-v2.png"),
+      bird: createRasterImage("./assets/sprites/enemy-bird-v2.png"),
       collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
       cave: createRasterImage("./assets/atlases/cave-v1.png"),
       secret: createRasterImage("./assets/atlases/secret-sky-v1.png"),

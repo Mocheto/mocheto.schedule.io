@@ -69,8 +69,9 @@ function getRuleText(noa: Choice, boss: Choice) {
 
 function BossSprite({ assetPrefix, frame, name }: { assetPrefix: string; frame: number; name: string }) {
   const gesture = frame === 1 ? "piedra" : frame === 2 ? "papel" : frame === 3 ? "tijera" : frame === 4 ? "derrota" : "reto";
+  const isWideSprite = assetPrefix.includes("reina-arcoiris");
   return (
-    <div className="boss-sprite-window" role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
+    <div className={`boss-sprite-window ${isWideSprite ? "is-wide-sprite" : ""}`} role="img" aria-label={`${name} hace el gesto de ${gesture}`}>
       <img className="boss-sprite-frame" src={`${assetPrefix}-${frame}.png`} alt="" />
     </div>
   );
