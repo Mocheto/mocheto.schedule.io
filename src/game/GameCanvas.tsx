@@ -43,6 +43,7 @@ type Player = Rect & {
   jumpBuffer: number;
   jumpsUsed: number;
   doubleJumpFx: number;
+  shootFx: number;
 };
 
 type LiveEnemy = Level["enemies"][number] & { vx: number; active: boolean; phase: number };
@@ -1186,6 +1187,7 @@ function createInitialPlayer(level: Level): Player {
     jumpBuffer: 0,
     jumpsUsed: 0,
     doubleJumpFx: 0,
+    shootFx: 0,
   };
 }
 
@@ -1284,6 +1286,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     catJumpSprite.src = "./assets/sprites/noa-cat-jump-v2.png";
     const catYarnSprite = new Image();
     catYarnSprite.src = "./assets/sprites/noa-cat-yarn-v2.png";
+    const catThrowSprite = new Image();
+    catThrowSprite.src = "./assets/sprites/noa-cat-throw-v1.png";
     const catRunSprite = new Image();
     catRunSprite.src = "./assets/sprites/noa-cat-run-v2.png";
     const jumpSprite = new Image();
@@ -1339,6 +1343,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       player.invincible = 1.4;
       player.jumpsUsed = 0;
       player.doubleJumpFx = 0;
+      player.shootFx = 0;
       projectiles.length = 0;
       cannonballs.length = 0;
       callbacksRef.current.onLoseLife();
@@ -1407,6 +1412,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           life: 2.2,
         });
         shootCooldown = 0.35;
+        player.shootFx = 0.24;
         callbacksRef.current.playSound("yarn");
       }
       input.shootQueued = false;
@@ -1645,6 +1651,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
       player.invincible = Math.max(0, player.invincible - delta);
       player.doubleJumpFx = Math.max(0, player.doubleJumpFx - delta);
+      player.shootFx = Math.max(0, player.shootFx - delta);
       cameraX += (Math.max(0, Math.min(level.width - VIEW_WIDTH, player.x - 330)) - cameraX) * Math.min(1, delta * 5);
 
       if (now - lastSnapshot > 130) {
@@ -1670,11 +1677,12 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
       const flashing = player.invincible > 0 && Math.floor(player.invincible * 12) % 2 === 0;
       if (flashing) context.globalAlpha = 0.38;
+      const usesCatThrowSprite = player.power === "cat" && player.shootFx > 0;
       const usesCatYarnSprite = player.power === "cat" && player.grounded && Math.abs(player.vx) <= 25;
       const usesCatRunSprite = player.power === "cat" && player.grounded && Math.abs(player.vx) > 25;
       const usesCleanCatJump = player.power === "cat" && !player.grounded;
       const usesCleanJump = player.power !== "cat" && !player.grounded;
-      const activeSprite = usesCatYarnSprite ? catYarnSprite : usesCatRunSprite ? catRunSprite : usesCleanCatJump ? catJumpSprite : usesCleanJump ? jumpSprite : sprite;
+      const activeSprite = usesCatThrowSprite ? catThrowSprite : usesCatYarnSprite ? catYarnSprite : usesCatRunSprite ? catRunSprite : usesCleanCatJump ? catJumpSprite : usesCleanJump ? jumpSprite : sprite;
       if (activeSprite.complete && activeSprite.naturalWidth) {
         const cellWidth = sprite.naturalWidth / 4;
         const cellHeight = sprite.naturalHeight / 4;
@@ -1689,7 +1697,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.scale(-1, 1);
           context.translate(-(x + player.width / 2), 0);
         }
-        if (usesCatYarnSprite) {
+        if (usesCatThrowSprite) {
+          // Pose exclusiva de lanzamiento: deja claro que Noa ha disparado la lana.
+          context.drawImage(catThrowSprite, x - 65, Math.round(player.y - 55), 175, 130);
+        } else if (usesCatYarnSprite) {
           // Sprite independiente con transparencia: se conservan las orejas,
           // la bola de lana y la punta de la cola.
           context.drawImage(catYarnSprite, x - 64, Math.round(player.y - 61), 165, 130);
