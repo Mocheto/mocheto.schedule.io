@@ -427,8 +427,8 @@ h1 span {
 .duel-versus { align-self: center; border: 4px solid var(--ink); padding: 9px; color: #fff; background: var(--apple); font-size: clamp(1rem, 3vw, 1.8rem); font-weight: 900; transform: rotate(-5deg); }
 .duel-countdown { position: absolute; z-index: 5; top: 40%; left: 50%; display: grid; place-items: center; width: clamp(78px, 13vw, 128px); aspect-ratio: 1; border: 7px solid #fff8e9; color: #fff; background: #d74656; box-shadow: 0 0 0 6px #2e1b38, 10px 10px 0 rgba(46, 27, 56, .3); font-size: clamp(2.1rem, 7vw, 4.8rem); font-weight: 950; transform: translate(-50%, -50%) rotate(-5deg); animation: countdown-pop .36s steps(2, end); }
 @keyframes countdown-pop { from { opacity: .35; transform: translate(-50%, -50%) rotate(6deg) scale(.45); } }
-.boss-sprite-window { position: relative; display: grid; place-items: center; width: clamp(155px, 24vw, 280px); height: clamp(230px, 31vw, 340px); overflow: visible; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
-.boss-sprite-window.is-wide-sprite { width: clamp(205px, 31vw, 340px); height: clamp(165px, 25vw, 270px); }
+.boss-sprite-window { position: relative; display: grid; place-items: center; width: clamp(155px, 24vw, 280px); max-width: 100%; height: clamp(230px, 31vw, 340px); overflow: hidden; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
+.boss-sprite-window.is-wide-sprite { width: min(100%, clamp(205px, 31vw, 340px)); height: clamp(165px, 25vw, 270px); }
 .boss-sprite-frame { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .duel-noa-sprite { display: grid; place-items: center; width: clamp(86px, 16vw, 175px); aspect-ratio: 524 / 724; image-rendering: pixelated; filter: drop-shadow(7px 8px 0 rgba(46, 27, 56, .22)); }
 .duel-noa-sprite > img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
@@ -566,6 +566,7 @@ h1 span {
   .round-history { margin-top: 7px; }
   .round-history li { padding: 2px 5px; font-size: .72rem; }
   .duel-arena { min-height: 215px; margin-top: 6px; }
+  .boss-sprite-window.is-wide-sprite { width: min(185px, 100%); height: 150px; }
   .duel-fighter > strong { font-size: .67rem; }
   .gesture-card { display: grid; gap: 2px; min-width: 0; width: 100%; padding: 5px 3px; }
   .gesture-card span { font-size: 1.55rem; }

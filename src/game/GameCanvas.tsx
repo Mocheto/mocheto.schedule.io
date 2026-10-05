@@ -1554,7 +1554,13 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           callbacksRef.current.playSound(enemy.kind === "boar" ? "snort" : "howl");
         }
         if (enemy.kind === "boar" && enemyDistance < 310) {
-          enemy.vx = (player.x < enemy.x ? -1 : 1) * Math.max(82, Math.abs(enemy.vx));
+          const chargeSpeed = Math.max(82, Math.abs(enemy.vx));
+          const wantsLeft = player.x < enemy.x;
+          // Al llegar al borde de su ruta no intenta cargar fuera de ella: gira
+          // y continúa caminando, en lugar de alternar de dirección cada frame.
+          if (wantsLeft && enemy.x <= enemy.minX + 2) enemy.vx = chargeSpeed;
+          else if (!wantsLeft && enemy.x >= enemy.maxX - 2) enemy.vx = -chargeSpeed;
+          else enemy.vx = wantsLeft ? -chargeSpeed : chargeSpeed;
         }
         if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
           enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
