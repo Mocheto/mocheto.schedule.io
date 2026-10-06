@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { PixelIcon } from "./PixelIcon";
 import type { Level, GameSnapshot, LevelItem, Power, Rect } from "./types";
+import { boarChargeVelocity, hasReachedGoalFlag, keepInsidePatrol, rectanglesOverlap } from "./gameplay";
 
 const VIEW_WIDTH = 960;
 const VIEW_HEIGHT = 540;
@@ -52,10 +53,9 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
-const intersects = (a: Rect, b: Rect) =>
-  a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+const intersects = rectanglesOverlap;
 
 const positiveModulo = (value: number, divisor: number) => ((value % divisor) + divisor) % divisor;
 
@@ -1034,8 +1034,25 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
   }
 }
 
-function drawCannon(context: CanvasRenderingContext2D, cannon: LiveCannon, cameraX: number) {
+function drawCannon(context: CanvasRenderingContext2D, cannon: LiveCannon, cameraX: number, sprite?: HTMLImageElement) {
   const x = Math.round(cannon.x - cameraX);
+  if (sprite?.complete && sprite.naturalWidth) {
+    context.save();
+    if (cannon.direction === -1) {
+      context.translate(x + 19, 0);
+      context.scale(-1, 1);
+      context.translate(-(x + 19), 0);
+    }
+    context.drawImage(sprite, x - 22, cannon.y - 20, 88, 61);
+    context.restore();
+    if (cannon.cooldown > cannon.interval - 0.18) {
+      const smokeX = cannon.direction === -1 ? x - 31 : x + 52;
+      context.fillStyle = "rgba(245,240,255,.8)";
+      context.fillRect(smokeX, cannon.y - 2, 10, 10);
+      context.fillRect(smokeX + cannon.direction * 8, cannon.y - 12, 8, 8);
+    }
+    return;
+  }
   const barrelX = cannon.direction === -1 ? x - 13 : x + 22;
   context.fillStyle = "#171421";
   context.fillRect(barrelX - 3, cannon.y, 34, 19);
@@ -1062,10 +1079,14 @@ function drawCannon(context: CanvasRenderingContext2D, cannon: LiveCannon, camer
   }
 }
 
-function drawCannonball(context: CanvasRenderingContext2D, ball: Cannonball, cameraX: number) {
+function drawCannonball(context: CanvasRenderingContext2D, ball: Cannonball, cameraX: number, sprite?: HTMLImageElement) {
   if (!ball.active) return;
   const x = Math.round(ball.x - cameraX);
   const y = Math.round(ball.y);
+  if (sprite?.complete && sprite.naturalWidth) {
+    context.drawImage(sprite, x - 8, y - 8, 40, 40);
+    return;
+  }
   context.fillStyle = "#171421";
   context.fillRect(x, y, 24, 24);
   context.fillRect(x - 4, y + 6, 32, 12);
@@ -1075,8 +1096,16 @@ function drawCannonball(context: CanvasRenderingContext2D, ball: Cannonball, cam
   context.fillRect(ball.vx < 0 ? x + 25 : x - 8, y + 8, 8, 8);
 }
 
-function drawCheckpoint(context: CanvasRenderingContext2D, worldX: number, cameraX: number, active: boolean) {
+function drawCheckpoint(context: CanvasRenderingContext2D, worldX: number, cameraX: number, active: boolean, sprite?: HTMLImageElement) {
   const x = Math.round(worldX - cameraX);
+  if (sprite?.complete && sprite.naturalWidth) {
+    context.save();
+    context.globalAlpha = active ? 1 : 0.58;
+    context.drawImage(sprite, x - 28, 340, 86, 116);
+    context.restore();
+    if (active) drawTinySparkle(context, x + 43, 349, "#fff2a0");
+    return;
+  }
   context.fillStyle = "#f2e4cf";
   context.fillRect(x, 365, 7, 91);
   context.fillStyle = active ? "#bd83e5" : "#b7afaa";
@@ -1101,10 +1130,13 @@ function drawCaveEntrance(context: CanvasRenderingContext2D, worldX: number, cam
   }
 }
 
-function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement, rescueProgress = 0, surfaceY = 456) {
+function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement, rescueProgress = 0, surfaceY = 456, flagSprite?: HTMLImageElement) {
   const x = Math.round(worldX - cameraX);
   const rescued = rescueProgress > 0;
   const catBob = rescued ? Math.round(Math.sin(rescueProgress * 18) * 5) : 0;
+  if (flagSprite?.complete && flagSprite.naturalWidth) {
+    context.drawImage(flagSprite, x + 35, surfaceY - 232, 174, 205);
+  } else {
   context.fillStyle = "#4a2d46";
   context.fillRect(x + 69, surfaceY - 220, 10, 220);
   context.fillStyle = "#f4db93";
@@ -1119,6 +1151,7 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.fillStyle = "#6ab86a";
   context.fillRect(x + 59, surfaceY - 6, 31, 6);
   context.fillRect(x + 65, surfaceY - 12, 18, 6);
+  }
   const catX = x + 18;
   const catY = surfaceY - 58 + catBob;
   if (collectibles) drawCollectibleSprite(context, collectibles, 3, 0, catX - 8, catY - 15, 64, 64);
@@ -1233,6 +1266,7 @@ function drawDoubleJumpTip(context: CanvasRenderingContext2D) {
 
 export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncounter, onSecretExit, onSnapshot, playSound }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
   const inputRef = useRef<InputState>({ left: false, right: false, jump: false, shoot: false, jumpQueued: false, shootQueued: false });
   const heldKeysRef = useRef(new Set<string>());
   const touchPointersRef = useRef<Partial<Record<TouchKey, number>>>({});
@@ -1320,6 +1354,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
       cave: createRasterImage("./assets/atlases/cave-v1.png"),
       secret: createRasterImage("./assets/atlases/secret-sky-v1.png"),
+      cannon: createRasterImage("./assets/sprites/cannon-v1.png"),
+      cannonball: createRasterImage("./assets/sprites/cannonball-v1.png"),
+      checkpoint: createRasterImage("./assets/sprites/checkpoint-v1.png"),
+      goalFlag: createRasterImage("./assets/sprites/goal-flag-v1.png"),
       tiles: {
         1: createRasterImage("./assets/atlases/world-1-tiles-v1.png"),
         2: createRasterImage("./assets/atlases/world-2-tiles-v1.png"),
@@ -1523,7 +1561,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         const growth = Math.min(1, (frame - vineStartedFrame) / 70);
         const vineHeight = Math.max(1, Math.round((secretVine.y + 80) * growth));
         const vineHitbox = { x: secretVine.x - 28, y: secretVine.y - vineHeight, width: 104, height: vineHeight + 48 };
-        if (growth >= 0.65 && intersects(player, vineHitbox)) enterSecretVine();
+        if (growth >= 0.65 && intersects(player, vineHitbox)) {
+          if (statusRef.current) statusRef.current.textContent = "Noa trepa por la enredadera al Reino Secreto de las Nubes.";
+          enterSecretVine();
+        }
       }
 
       if (player.y > VIEW_HEIGHT + 120) {
@@ -1548,12 +1589,15 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           apples += 1;
           if (player.power === "normal") player.power = "apple";
           callbacksRef.current.playSound("apple");
+          if (statusRef.current) statusRef.current.textContent = "Manzana conseguida.";
         } else if (item.kind === "cat") {
           player.power = "cat";
           callbacksRef.current.playSound("cat");
+          if (statusRef.current) statusRef.current.textContent = "¡Noa se ha convertido en gata! Ya puede lanzar lana.";
         } else {
           collectedStickers.add(item.id);
           callbacksRef.current.playSound("sticker");
+          if (statusRef.current) statusRef.current.textContent = "Insignia encontrada.";
         }
       }
 
@@ -1568,17 +1612,11 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         }
         // Primero resolvemos el borde de la ruta. Hacerlo después de decidir
         // la carga hacía que el jabalí se invirtiera dos veces por frame.
-        if (enemy.x <= enemy.minX) {
-          enemy.x = enemy.minX;
-          enemy.vx = Math.abs(enemy.vx);
-        } else if (enemy.x >= enemy.maxX) {
-          enemy.x = enemy.maxX;
-          enemy.vx = -Math.abs(enemy.vx);
-        }
+        const patrol = keepInsidePatrol(enemy.x, enemy.vx, enemy.minX, enemy.maxX);
+        enemy.x = patrol.x;
+        enemy.vx = patrol.velocity;
         if (enemy.kind === "boar" && enemyDistance < 310 && player.x >= enemy.minX && player.x <= enemy.maxX) {
-          const chargeSpeed = Math.max(82, Math.abs(enemy.vx));
-          const wantsLeft = player.x < enemy.x;
-          enemy.vx = wantsLeft ? -chargeSpeed : chargeSpeed;
+          enemy.vx = boarChargeVelocity(enemy.x, player.x, enemy.minX, enemy.maxX, enemy.vx);
         }
         const hitbox = {
           x: enemy.x,
@@ -1672,10 +1710,11 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           checkpointIndex = index;
           respawnX = checkpoint + 22;
           callbacksRef.current.playSound("checkpoint");
+          if (statusRef.current) statusRef.current.textContent = `Bandera ${index + 1} conseguida.`;
         }
       });
 
-      if (!completed && player.x + player.width >= level.goalX) {
+      if (!completed && hasReachedGoalFlag(player, level.goalX, goalSurfaceY)) {
         completed = true;
         goalCelebrationFrame = frame;
         player.x = level.goalX - 48;
@@ -1686,6 +1725,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         player.jumpsUsed = 0;
         player.facing = 1;
         callbacksRef.current.playSound("goal");
+        if (statusRef.current) statusRef.current.textContent = "¡Banderín tocado! Pantalla superada.";
         completeTimer = window.setTimeout(
           () => level.boss ? callbacksRef.current.onBossEncounter() : callbacksRef.current.onComplete(),
           level.boss ? 850 : 1450,
@@ -1799,7 +1839,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame, raster));
       if (level.id === "2-1") drawCaveEntrance(context, level.goalX - 125, cameraX, raster.cave);
       if (level.id === "2-2") drawCaveEntrance(context, -18, cameraX, raster.cave);
-      level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex));
+      level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex, raster.checkpoint));
       level.rewardBlocks.forEach((block) => {
         const x = Math.round(block.x - cameraX);
         if (block.reward === "secret-vine") {
@@ -1826,7 +1866,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           context.textAlign = "start";
         }
       });
-      cannons.forEach((cannon) => drawCannon(context, cannon, cameraX));
+      cannons.forEach((cannon) => drawCannon(context, cannon, cameraX, raster.cannon));
       items.forEach((item) => {
         if (collected.has(item.id)) return;
         const x = Math.round(item.x - cameraX);
@@ -1837,7 +1877,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2, raster.collectibles);
       });
       enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, (enemy.kind === "wolf" || enemy.kind === "boar") && Math.abs(player.x - enemy.x) < 360, raster));
-      cannonballs.forEach((ball) => drawCannonball(context, ball, cameraX));
+      cannonballs.forEach((ball) => drawCannonball(context, ball, cameraX, raster.cannonball));
       projectiles.forEach((ball) => {
         const x = Math.round(ball.x - cameraX);
         const y = Math.round(ball.y);
@@ -1872,7 +1912,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.restore();
       });
       if (level.boss) drawBossGate(context, level.goalX, cameraX);
-      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles, goalCelebrationFrame < 0 ? 0 : Math.min(1, (frame - goalCelebrationFrame) / 22), goalSurfaceY);
+      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles, goalCelebrationFrame < 0 ? 0 : Math.min(1, (frame - goalCelebrationFrame) / 22), goalSurfaceY, raster.goalFlag);
       drawPlayer();
       drawAmbientForeground(context, level, cameraX, frame);
       if (level.id === "1-1" && player.x >= 130 && player.x < 1120) drawDoubleJumpTip(context);
@@ -1941,6 +1981,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     <div className="game-frame">
       <div className="game-stage">
         <canvas ref={canvasRef} width={VIEW_WIDTH} height={VIEW_HEIGHT} aria-label={`Pantalla ${level.id}: ${level.title}`} />
+        <p className="sr-only" ref={statusRef} aria-live="polite" aria-atomic="true" />
       </div>
       <div className="touch-controls" aria-label="Controles táctiles">
         <div className="touch-group touch-move">

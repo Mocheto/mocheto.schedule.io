@@ -2,7 +2,7 @@
 
 Juego infantil de plataformas en 2D creado para navegador. Incluye cinco mundos con tres pantallas cada uno, un reino secreto desbloqueable en las nubes, doble salto, tres vidas, rutas elevadas, quince pegatinas de campaña y tres insignias secretas, puntos de control, cajas de recompensa, precipicios y duelos contra guardianes. El quinto mundo transcurre sobre barcos voladores e incorpora piratas, loros y cañones.
 
-Al terminar una pantalla normal, Noa llega a un farol de rescate, se coloca junto al gatito aunque viniera saltando y aparece una breve celebración antes de continuar.
+Al terminar una pantalla normal, Noa toca un banderín elevado —también puede hacerlo al saltar—, se coloca junto al gatito y aparece una breve celebración antes de continuar.
 
 ## Desarrollo
 
@@ -28,12 +28,14 @@ La compilación estática se genera en `dist-pages/`. El workflow `.github/workf
 - Bola de lana: `X` o `K`, después de recoger el potenciador de gato de una caja.
 - Pausa: `Esc`.
 - Monstruos finales: gana dos rondas de piedra, papel o tijera. Cada derrota puede repetirse gastando una manzana; sin manzanas se reinicia la pantalla, pero no se pierde una vida. También puedes rendirte y volver al mapa.
-- Rutas especiales: ramas elásticas en el mundo 1, plataformas de niebla en el mundo 2, aullidos de aviso en el mundo 3, copas altas en el mundo 4 y barcos voladores con cañones en el mundo 5. En el mundo de los jabalíes hay un bloque secreto elevado que crea una enredadera hacia el Reino Secreto de las Nubes.
+- Rutas especiales: ramas elásticas en el mundo 1, plataformas de niebla en el mundo 2, aullidos de aviso en el mundo 3, copas altas en el mundo 4 y barcos voladores con cañones en el mundo 5. En el mundo de los jabalíes hay un bloque secreto elevado que crea una enredadera hacia el Reino Secreto de las Nubes: golpéalo desde abajo y toca la enredadera para elegir ese camino.
 - Álbum: hay una pegatina opcional en una ruta especial de cada pantalla de campaña y tres insignias en el reino secreto.
 - En móvil o tableta aparecen controles táctiles grandes, etiquetados con `IZQ.`, `DER.`, `LANA` y `SALTAR`. Mantén una dirección con un dedo y toca `SALTAR` con otro para hacer el doble salto.
 - También se admite un mando mediante Gamepad API.
 
 El progreso y las pegatinas se guardan únicamente en el navegador con la clave `super-noa-progress-v1`.
+
+Los cañones, sus bolas, los puntos de control y los banderines usan sprites propios en `public/assets/sprites/`.
 
 ## Licencias
 
