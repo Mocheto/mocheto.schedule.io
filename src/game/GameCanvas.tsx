@@ -53,7 +53,7 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; goalRescue: HTMLImageElement; bossGate: HTMLImageElement; platformTiles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
 const intersects = rectanglesOverlap;
 
@@ -99,6 +99,20 @@ const stampTileTexture = (context: CanvasRenderingContext2D, image: HTMLImageEle
   for (let stampX = x; stampX < x + width; stampX += size) {
     drawAtlasCell(context, image, 2, 2, tile % 2, Math.floor(tile / 2), stampX, y, Math.min(size, x + width - stampX), height, alpha);
   }
+};
+
+const stampPlatformTile = (context: CanvasRenderingContext2D, image: HTMLImageElement | undefined, world: Level["world"], x: number, y: number, width: number, height: number) => {
+  if (!image?.complete || !image.naturalWidth || width < 24 || height < 10) return;
+  const column = (world - 1) % 3;
+  const row = Math.floor((world - 1) / 3);
+  const sourceWidth = image.naturalWidth / 3;
+  const sourceHeight = image.naturalHeight / 2;
+  context.save();
+  context.globalAlpha = 0.42;
+  for (let tileX = x; tileX < x + width; tileX += 96) {
+    context.drawImage(image, column * sourceWidth, row * sourceHeight, sourceWidth, sourceHeight, tileX, y, Math.min(96, x + width - tileX), height);
+  }
+  context.restore();
 };
 
 const drawEnemyAtlasSprite = (context: CanvasRenderingContext2D, image: HTMLImageElement, column: number, row: number, x: number, y: number, width: number, height: number) => {
@@ -643,6 +657,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fillStyle = texture;
   }
   stampTileTexture(context, raster.tiles[world], 0, x + 2, platform.y, platform.width - 4, platform.height, 0.19);
+  stampPlatformTile(context, raster.platformTiles, world, x, platform.y, platform.width, platform.height);
 }
 
 function drawApple(context: CanvasRenderingContext2D, x: number, y: number, collectibles?: HTMLImageElement) {
@@ -1130,11 +1145,13 @@ function drawCaveEntrance(context: CanvasRenderingContext2D, worldX: number, cam
   }
 }
 
-function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement, rescueProgress = 0, surfaceY = 456, flagSprite?: HTMLImageElement) {
+function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX: number, finalLevel: boolean, collectibles?: HTMLImageElement, rescueProgress = 0, surfaceY = 456, flagSprite?: HTMLImageElement, rescueSprite?: HTMLImageElement) {
   const x = Math.round(worldX - cameraX);
   const rescued = rescueProgress > 0;
   const catBob = rescued ? Math.round(Math.sin(rescueProgress * 18) * 5) : 0;
-  if (flagSprite?.complete && flagSprite.naturalWidth) {
+  if (rescueSprite?.complete && rescueSprite.naturalWidth) {
+    context.drawImage(rescueSprite, x - 28, surfaceY - 302 + catBob, 280, 302);
+  } else if (flagSprite?.complete && flagSprite.naturalWidth) {
     context.drawImage(flagSprite, x + 35, surfaceY - 232, 174, 205);
   } else {
   context.fillStyle = "#4a2d46";
@@ -1154,8 +1171,9 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   }
   const catX = x + 18;
   const catY = surfaceY - 58 + catBob;
-  if (collectibles) drawCollectibleSprite(context, collectibles, 3, 0, catX - 8, catY - 15, 64, 64);
-  else {
+  if (!rescueSprite?.complete || !rescueSprite.naturalWidth) {
+    if (collectibles) drawCollectibleSprite(context, collectibles, 3, 0, catX - 8, catY - 15, 64, 64);
+    else {
   context.fillStyle = "#352841";
   context.fillRect(catX + 1, catY + 5, 48, 48);
   context.fillRect(catX + 2, catY - 3, 18, 21);
@@ -1169,6 +1187,7 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.fillRect(catX + 33, catY + 20, 5, 6);
   context.fillStyle = "#df79a9";
   context.fillRect(catX + 23, catY + 29, 6, 5);
+    }
   }
   if (!rescued) return;
   const sparkleSize = 7 + Math.round(Math.min(1, rescueProgress) * 7);
@@ -1195,8 +1214,12 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.restore();
 }
 
-function drawBossGate(context: CanvasRenderingContext2D, worldX: number, cameraX: number) {
+function drawBossGate(context: CanvasRenderingContext2D, worldX: number, cameraX: number, gateSprite?: HTMLImageElement) {
   const x = Math.round(worldX - cameraX);
+  if (gateSprite?.complete && gateSprite.naturalWidth) {
+    context.drawImage(gateSprite, x - 52, 206, 236, 250);
+    return;
+  }
   context.fillStyle = "#24162f";
   context.fillRect(x + 10, 326, 112, 130);
   context.fillStyle = "#6d477e";
@@ -1358,6 +1381,9 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       cannonball: createRasterImage("./assets/sprites/cannonball-v1.png"),
       checkpoint: createRasterImage("./assets/sprites/checkpoint-v1.png"),
       goalFlag: createRasterImage("./assets/sprites/goal-flag-v1.png"),
+      goalRescue: createRasterImage("./assets/sprites/goal-rescue-v1.png"),
+      bossGate: createRasterImage("./assets/sprites/boss-gate-v1.png"),
+      platformTiles: createRasterImage("./assets/atlases/platform-tiles-v1.png"),
       tiles: {
         1: createRasterImage("./assets/atlases/world-1-tiles-v1.png"),
         2: createRasterImage("./assets/atlases/world-2-tiles-v1.png"),
@@ -1911,8 +1937,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         }
         context.restore();
       });
-      if (level.boss) drawBossGate(context, level.goalX, cameraX);
-      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles, goalCelebrationFrame < 0 ? 0 : Math.min(1, (frame - goalCelebrationFrame) / 22), goalSurfaceY, raster.goalFlag);
+      if (level.boss) drawBossGate(context, level.goalX, cameraX, raster.bossGate);
+      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles, goalCelebrationFrame < 0 ? 0 : Math.min(1, (frame - goalCelebrationFrame) / 22), goalSurfaceY, raster.goalFlag, raster.goalRescue);
       drawPlayer();
       drawAmbientForeground(context, level, cameraX, frame);
       if (level.id === "1-1" && player.x >= 130 && player.x < 1120) drawDoubleJumpTip(context);
