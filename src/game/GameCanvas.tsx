@@ -108,11 +108,32 @@ const stampPlatformTile = (context: CanvasRenderingContext2D, image: HTMLImageEl
   const sourceWidth = image.naturalWidth / 3;
   const sourceHeight = image.naturalHeight / 2;
   context.save();
-  context.globalAlpha = 0.42;
+  context.globalAlpha = 0.2;
   for (let tileX = x; tileX < x + width; tileX += 96) {
     context.drawImage(image, column * sourceWidth, row * sourceHeight, sourceWidth, sourceHeight, tileX, y, Math.min(96, x + width - tileX), height);
   }
   context.restore();
+};
+
+const stampWorldTile = (context: CanvasRenderingContext2D, image: HTMLImageElement | undefined, column: number, row: number, x: number, y: number, width: number, height: number, alpha = 1) => {
+  if (!image?.complete || !image.naturalWidth || width < 16 || height < 6) return;
+  const sourceWidth = image.naturalWidth / 2;
+  const sourceHeight = image.naturalHeight / 2;
+  context.save();
+  context.globalAlpha = alpha;
+  for (let tileX = x; tileX < x + width; tileX += 72) {
+    context.drawImage(image, column * sourceWidth, row * sourceHeight, sourceWidth, sourceHeight, tileX, y, Math.min(72, x + width - tileX), height);
+  }
+  context.restore();
+};
+
+const worldPlatformCells = (world: Level["world"]) => {
+  if (world === 1) return { top: [0, 0] as const, body: [1, 0] as const, branch: [1, 1] as const };
+  if (world === 2) return { top: [0, 0] as const, body: [0, 0] as const, branch: [1, 1] as const };
+  if (world === 3) return { top: [1, 0] as const, body: [1, 0] as const, branch: [1, 1] as const };
+  if (world === 4) return { top: [1, 0] as const, body: [0, 0] as const, branch: [1, 1] as const };
+  if (world === 5) return { top: [1, 0] as const, body: [0, 0] as const, branch: [1, 1] as const };
+  return { top: [1, 0] as const, body: [1, 0] as const, branch: [1, 1] as const };
 };
 
 const drawEnemyAtlasSprite = (context: CanvasRenderingContext2D, image: HTMLImageElement, column: number, row: number, x: number, y: number, width: number, height: number) => {
@@ -442,6 +463,7 @@ function drawAmbientForeground(context: CanvasRenderingContext2D, level: Level, 
 function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, world: Level["world"], playerX: number, frame: number, raster: RasterAssets) {
   const x = Math.round(platform.x - cameraX);
   const forest = world >= 2 && world <= 4;
+  const worldTiles = worldPlatformCells(world);
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
   if (platform.kind === "cloud-floor") {
     context.fillStyle = "rgba(178,164,232,.75)";
@@ -606,6 +628,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
       context.fillRect(x + leaf + 4, platform.y - 3, 7, 4);
     }
     stampTileTexture(context, raster.tiles[world], 2, x + 2, platform.y, platform.width - 4, platform.height, 0.22);
+    stampWorldTile(context, raster.tiles[world], worldTiles.branch[0], worldTiles.branch[1], x + 2, platform.y - 4, platform.width - 4, platform.height + 8, 0.48);
     return;
   }
   if (platform.kind === "branch") {
@@ -623,6 +646,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
       context.fillRect(x + leaf + 8, platform.y - 11, 10, 8);
     }
     stampTileTexture(context, raster.tiles[world], 3, x + 2, platform.y, platform.width - 4, platform.height, 0.2);
+    stampWorldTile(context, raster.tiles[world], worldTiles.branch[0], worldTiles.branch[1], x + 2, platform.y - 6, platform.width - 4, platform.height + 10, 0.52);
     return;
   }
   if (platform.kind === "stone") {
@@ -635,6 +659,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
       context.fillRect(x + mark, platform.y + 11, 22, 6);
     }
     stampTileTexture(context, raster.tiles[world], 1, x + 2, platform.y, platform.width - 4, platform.height, 0.2);
+    stampWorldTile(context, raster.tiles[world], worldTiles.top[0], worldTiles.top[1], x + 2, platform.y, platform.width - 4, platform.height, 0.46);
     return;
   }
   const earth = world === 1 ? "#9a5d3b" : world === 2 ? "#3c4c50" : world === 3 ? "#303846" : "#493d32";
@@ -657,6 +682,8 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     context.fillStyle = texture;
   }
   stampTileTexture(context, raster.tiles[world], 0, x + 2, platform.y, platform.width - 4, platform.height, 0.19);
+  stampWorldTile(context, raster.tiles[world], worldTiles.body[0], worldTiles.body[1], x + 2, platform.y + 12, platform.width - 4, Math.max(8, platform.height - 12), 0.7);
+  stampWorldTile(context, raster.tiles[world], worldTiles.top[0], worldTiles.top[1], x + 2, platform.y - 3, platform.width - 4, Math.min(34, platform.height + 3), 0.88);
   stampPlatformTile(context, raster.platformTiles, world, x, platform.y, platform.width, platform.height);
 }
 
