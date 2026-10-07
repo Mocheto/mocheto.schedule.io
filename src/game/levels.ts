@@ -16,6 +16,10 @@ const ledge = (x: number, y: number, width: number, kind: Platform["kind"] = "br
 
 const caveLedge = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 24, kind: "cave-ledge" });
 const caveWall = (x: number, y: number, width: number, height: number): Platform => ({ x, y, width, height, kind: "cave-wall" });
+const castleGround = (segments: Array<[number, number]>): Platform[] => segments.map(([x, width]) => ({ x, y: 456, width, height: 120, kind: "castle-ground" }));
+const castleLedge = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 24, kind: "castle-ledge" });
+const castleWall = (x: number, y: number, width: number, height: number): Platform => ({ x, y, width, height, kind: "castle-wall" });
+const spikePits = (segments: Array<[number, number]>) => segments.slice(0, -1).map(([x, width], index) => ({ x: x + width, y: 454, width: segments[index + 1][0] - x - width, height: 90 }));
 
 const ship = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 26, kind: "ship" });
 const airPlank = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 18, kind: "air-plank" });
@@ -34,8 +38,8 @@ const enemy = (
   kind,
   x,
   y,
-  width: kind === "boar" ? 60 : kind === "wolf" ? 56 : kind === "sky-unicorn" ? 58 : kind === "bird" || kind === "parrot" || kind === "pirate" || kind === "bat" ? 46 : 42,
-  height: kind === "boar" ? 42 : kind === "wolf" ? 40 : kind === "sky-unicorn" ? 42 : kind === "pirate" ? 50 : kind === "bird" || kind === "parrot" || kind === "bat" ? 32 : 36,
+  width: kind === "boar" ? 60 : kind === "wolf" ? 56 : kind === "sky-unicorn" ? 58 : kind === "bird" || kind === "parrot" || kind === "pirate" || kind === "bat" || kind === "ghost" ? 46 : 42,
+  height: kind === "boar" ? 42 : kind === "wolf" ? 40 : kind === "sky-unicorn" ? 42 : kind === "pirate" || kind === "zombie" ? 50 : kind === "bird" || kind === "parrot" || kind === "bat" || kind === "ghost" ? 32 : 36,
   minX,
   maxX,
   speed,
@@ -63,8 +67,13 @@ export const themeNames: Record<Theme, string> = {
   "boar-storm": "Tormenta de bellotas",
   "sky-pirates": "La flota de las nubes",
   "sky-storm": "La tormenta del Capitán Celeste",
+  "haunted-castle": "El castillo de los sustos divertidos",
   "secret-sky": "El reino secreto de las nubes",
 };
+
+const castleFloor1: Array<[number, number]> = [[0, 760], [900, 950], [1990, 900], [3030, 970]];
+const castleFloor2: Array<[number, number]> = [[0, 650], [800, 1000], [1940, 900], [2980, 1000], [4120, 1080]];
+const castleFloor3: Array<[number, number]> = [[0, 760], [900, 920], [1960, 950], [3050, 950], [4130, 1000], [5260, 1240]];
 
 export const levels: Level[] = [
   {
@@ -622,8 +631,62 @@ export const levels: Level[] = [
     boss: "sky-captain",
   },
   {
+    id: "6-1", world: 6, screen: 1,
+    title: "Las puertas del castillo", subtitle: "Esqueletos bromistas y primeros agujeros de pinchos.",
+    theme: "haunted-castle", width: 4000, start: { x: 80, y: 380 }, goalX: 3840,
+    platforms: [
+      ...castleGround(castleFloor1),
+      castleLedge(310, 350, 190), castleLedge(610, 280, 170), castleLedge(920, 350, 180),
+      castleLedge(1370, 300, 180), castleLedge(1730, 345, 180), castleLedge(2050, 330, 180),
+      castleLedge(2520, 290, 170), castleLedge(2850, 350, 180), castleLedge(3320, 300, 190),
+      castleWall(1150, 0, 180, 170), castleWall(2350, 0, 210, 180), castleWall(3230, 0, 150, 150),
+      castleWall(1520, 400, 34, 56),
+    ],
+    spikePits: spikePits(castleFloor1),
+    enemies: [enemy("sk1", "skeleton", 420, 420, 300, 610, 34), enemy("gh1", "ghost", 1140, 245, 1000, 1430, 52), enemy("zo1", "zombie", 2240, 406, 2070, 2670, 30), enemy("gh2", "ghost", 2800, 220, 2600, 3020, 55), enemy("sk2", "skeleton", 3460, 420, 3300, 3690, 37)],
+    items: [apple("c1a1", 350, 290), apple("c1a2", 990, 295), apple("c1a3", 1780, 285), apple("c1a4", 2600, 235), apple("c1a5", 3480, 245), sticker("sticker-6-1", 1460, 245)],
+    rewardBlocks: [reward("c1r1", 1100, 295), reward("c1r2", 2740, 310, "apple")], checkpoints: [950, 2100, 3110],
+  },
+  {
+    id: "6-2", world: 6, screen: 2,
+    title: "El laberinto de las torres", subtitle: "Busca pasillos altos y esquiva los pinchos brillantes.",
+    theme: "haunted-castle", width: 5200, start: { x: 80, y: 380 }, goalX: 5020,
+    platforms: [
+      ...castleGround(castleFloor2),
+      castleLedge(300, 345, 180), castleLedge(560, 275, 170), castleLedge(840, 335, 190),
+      castleLedge(1250, 275, 180), castleLedge(1570, 345, 180), castleLedge(1980, 325, 185),
+      castleLedge(2330, 255, 170), castleLedge(2670, 335, 175), castleLedge(3080, 320, 190),
+      castleLedge(3520, 250, 190), castleLedge(3930, 325, 180), castleLedge(4390, 275, 190),
+      castleWall(1080, 0, 220, 195), castleWall(2150, 0, 185, 175), castleWall(3350, 0, 190, 185), castleWall(4610, 0, 160, 160),
+      castleWall(1420, 398, 36, 58), castleWall(3700, 398, 36, 58),
+    ],
+    spikePits: spikePits(castleFloor2),
+    enemies: [enemy("zo2", "zombie", 350, 406, 230, 580, 32), enemy("gh3", "ghost", 980, 205, 830, 1220, 57), enemy("sk3", "skeleton", 1660, 420, 1500, 1770, 38), enemy("gh4", "ghost", 2480, 190, 2220, 2780, 60), enemy("zo3", "zombie", 3190, 406, 3080, 3500, 35), enemy("gh5", "ghost", 4010, 205, 3780, 4270, 62), enemy("sk4", "skeleton", 4640, 420, 4450, 4890, 40)],
+    items: [apple("c2a1", 350, 285), apple("c2a2", 1320, 220), apple("c2a3", 2360, 200), apple("c2a4", 3570, 195), apple("c2a5", 4490, 215), sticker("sticker-6-2", 3560, 205)],
+    rewardBlocks: [reward("c2r1", 900, 285), reward("c2r2", 2860, 290, "apple"), reward("c2r3", 4210, 295)], checkpoints: [840, 2030, 3120, 4190],
+  },
+  {
+    id: "6-3", world: 6, screen: 3,
+    title: "El salón del Conde Vampiro", subtitle: "Una última ruta entre fantasmas, pinchos y pasadizos.",
+    theme: "haunted-castle", width: 6500, start: { x: 80, y: 380 }, goalX: 6320,
+    platforms: [
+      ...castleGround(castleFloor3),
+      castleLedge(350, 340, 190), castleLedge(640, 275, 170), castleLedge(970, 335, 180),
+      castleLedge(1350, 275, 180), castleLedge(1710, 340, 180), castleLedge(2070, 325, 190),
+      castleLedge(2520, 260, 180), castleLedge(2870, 335, 180), castleLedge(3160, 315, 190),
+      castleLedge(3610, 245, 185), castleLedge(3980, 330, 180), castleLedge(4300, 315, 190),
+      castleLedge(4720, 245, 190), castleLedge(5150, 325, 180), castleLedge(5440, 305, 190), castleLedge(5900, 250, 180),
+      castleWall(1120, 0, 190, 180), castleWall(2250, 0, 195, 175), castleWall(3410, 0, 180, 185), castleWall(4550, 0, 200, 170), castleWall(5710, 0, 170, 165),
+      castleWall(1570, 396, 34, 60), castleWall(3780, 396, 34, 60), castleWall(5560, 396, 34, 60),
+    ],
+    spikePits: spikePits(castleFloor3),
+    enemies: [enemy("sk5", "skeleton", 390, 420, 230, 680, 40), enemy("gh6", "ghost", 1100, 215, 930, 1340, 62), enemy("zo4", "zombie", 2240, 406, 2060, 2670, 36), enemy("gh7", "ghost", 2860, 195, 2590, 3050, 65), enemy("sk6", "skeleton", 3330, 420, 3170, 3660, 43), enemy("gh8", "ghost", 4260, 205, 4030, 4500, 68), enemy("zo5", "zombie", 4770, 406, 4580, 5030, 39), enemy("gh9", "ghost", 5450, 185, 5250, 5700, 70), enemy("sk7", "skeleton", 5940, 420, 5770, 6200, 46)],
+    items: [apple("c3a1", 420, 285), apple("c3a2", 1450, 220), apple("c3a3", 2580, 205), apple("c3a4", 3650, 190), apple("c3a5", 4800, 195), apple("c3a6", 5960, 195), sticker("sticker-6-3", 4780, 185)],
+    rewardBlocks: [reward("c3r1", 1050, 280), reward("c3r2", 2980, 280, "apple"), reward("c3r3", 5290, 280)], checkpoints: [940, 2010, 3120, 4210, 5350, 5890], boss: "vampire-count",
+  },
+  {
     id: "S-1",
-    world: 6,
+    world: 7,
     screen: 1,
     title: "El reino secreto de las nubes",
     subtitle: "Corre por las nubes, reúne tres insignias y conoce a la Reina Arcoíris.",

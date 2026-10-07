@@ -16,7 +16,7 @@ type Screen = "home" | "map" | "game" | "boss" | "complete" | "gameover" | "fini
 const emptyProgress: Progress = { unlocked: 0, levelStats: {}, stickers: [], secretUnlocked: false };
 const emptySnapshot: GameSnapshot = { apples: 0, stickers: [], power: "normal", checkpoint: 0, paused: false };
 const MAX_LIVES = 3;
-const secretLevelIndex = levels.findIndex((level) => level.world === 6);
+const secretLevelIndex = levels.findIndex((level) => level.world === 7);
 const campaignLevelCount = secretLevelIndex === -1 ? levels.length : secretLevelIndex;
 const worldCatalog = [
   { id: 1, name: "El Prado de las Manzanas", description: "Sol, ramas anchas y manzanas crujientes." },
@@ -24,7 +24,8 @@ const worldCatalog = [
   { id: 3, name: "El Bosque de los Lobos", description: "Pinos, luna llena y lobos enfadados." },
   { id: 4, name: "El Bosque de los Jabalíes", description: "Bellotas, copas altas y jabalíes salvajes." },
   { id: 5, name: "La Flota de las Nubes", description: "Barcos voladores, piratas, loros y cañones." },
-  { id: 6, name: "El Reino Secreto", description: "Nubes mágicas, pájaros y unicornios en lo más alto del cielo." },
+  { id: 6, name: "El Castillo Encantado", description: "Un laberinto de piedra, trampas con pinchos y fantasmas traviesos." },
+  { id: 7, name: "El Reino Secreto", description: "Nubes mágicas, pájaros y unicornios en lo más alto del cielo." },
 ] as const;
 
 function readProgress(): Progress {
@@ -40,7 +41,7 @@ function readProgress(): Progress {
       ? Math.min(campaignLevelCount - 1, savedUnlocked)
       : legacyIndexMap[Math.min(legacyIndexMap.length - 1, savedUnlocked)];
     levels.forEach((level, index) => {
-      if (level.world !== 6 && levelStats[level.id]?.completed) unlocked = Math.max(unlocked, Math.min(campaignLevelCount - 1, index + 1));
+      if (level.world !== 7 && levelStats[level.id]?.completed) unlocked = Math.max(unlocked, Math.min(campaignLevelCount - 1, index + 1));
     });
     return {
       unlocked,
@@ -96,7 +97,8 @@ export default function App() {
       3: "./assets/music/lobos.mp3",
       4: "./assets/music/lobos.mp3",
       5: "./assets/music/manzanos.mp3",
-      6: "./assets/music/gatitos.mp3",
+      6: "./assets/music/castillo.wav",
+      7: "./assets/music/gatitos.mp3",
     } as const;
     const audio = new Audio(tracks[activeLevel.world]);
     audio.loop = true;
@@ -146,7 +148,7 @@ export default function App() {
     () => Object.values(progress.levelStats).reduce((total, stat) => total + (Number(stat.bestApples) || 0), 0),
     [progress.levelStats],
   );
-  const albumStickers = progress.secretUnlocked ? stickerCatalog : stickerCatalog.filter((sticker) => sticker.world !== 6);
+  const albumStickers = progress.secretUnlocked ? stickerCatalog : stickerCatalog.filter((sticker) => sticker.world !== 7);
 
   const beginLevel = (index: number) => {
     if (index === secretLevelIndex ? !progress.secretUnlocked : index > progress.unlocked) return;
@@ -182,14 +184,14 @@ export default function App() {
       const previous = current.levelStats[activeLevel.id];
       return {
         ...current,
-        unlocked: activeLevel.world === 6 ? current.unlocked : Math.max(current.unlocked, Math.min(campaignLevelCount - 1, activeIndex + 1)),
+        unlocked: activeLevel.world === 7 ? current.unlocked : Math.max(current.unlocked, Math.min(campaignLevelCount - 1, activeIndex + 1)),
         levelStats: {
           ...current.levelStats,
           [activeLevel.id]: { completed: true, bestApples: Math.max(previous?.bestApples ?? 0, snapshot.apples) },
         },
       };
     });
-    setScreen(activeLevel.id === "5-3" ? "finished" : "complete");
+    setScreen(activeLevel.id === "6-3" ? "finished" : "complete");
   }, [activeIndex, activeLevel.id, activeLevel.world, snapshot.apples]);
 
   const handleBossEncounter = useCallback(() => {
@@ -258,7 +260,7 @@ export default function App() {
           <div className="home-copy">
             <p className="eyebrow">Una aventura pixel art</p>
             <h1 id="game-title"><span>SUPER</span> NOA</h1>
-            <p className="home-lead">Ponte las orejas de gatita, salta entre manzanos y barcos voladores, rescata a los gatitos y hazte amiga de cinco grandes guardianes.</p>
+            <p className="home-lead">Ponte las orejas de gatita, salta entre manzanos, barcos voladores y castillos encantados, rescata a los gatitos y hazte amiga de seis grandes guardianes.</p>
             <p className="home-invite"><PixelIcon kind="sparkle" /> ¡La aventura te está esperando!</p>
             <div className="home-actions">
               <button className="pixel-button primary home-play" type="button" onClick={() => setScreen("map")}>▶ ¡Jugar ahora!</button>
@@ -290,18 +292,18 @@ export default function App() {
             </div>
           </header>
           <div className="world-list">
-            {worldCatalog.filter((world) => world.id !== 6 || progress.secretUnlocked).map((world) => (
+            {worldCatalog.filter((world) => world.id !== 7 || progress.secretUnlocked).map((world) => (
               <article className={`world-card world-${world.id}`} key={world.id}>
                 <img className="world-art" src={`./assets/worlds/world-${world.id}.png`} alt="" aria-hidden="true" />
                 <div className="world-heading">
-                  <span className="world-number">{world.id === 6 ? "Mundo secreto" : `Mundo ${world.id}`}</span>
+                  <span className="world-number">{world.id === 7 ? "Mundo secreto" : `Mundo ${world.id}`}</span>
                   <h3>{world.name}</h3>
                   <p>{world.description}</p>
                 </div>
                 <div className="level-row">
                   {levels.map((level, index) => {
                     if (level.world !== world.id) return null;
-                    const unlocked = level.world === 6 ? progress.secretUnlocked : index <= progress.unlocked;
+                    const unlocked = level.world === 7 ? progress.secretUnlocked : index <= progress.unlocked;
                     const stats = progress.levelStats[level.id];
                     return (
                       <button className={`level-card ${stats?.completed ? "is-complete" : ""}`} type="button" disabled={!unlocked} onClick={() => beginLevel(index)} key={level.id}>
@@ -373,11 +375,11 @@ export default function App() {
             <div className="modal-backdrop celebration"><div className="game-modal">
               <div className="big-icon">{activeLevel.boss ? <img className="completion-trophy" src="./assets/sprites/completion-trophy-v1.png" alt="Trofeo dorado con una huella de gato" /> : <img className="completion-cat" src="./assets/sprites/completion-cat-v1.png" alt="Gatito feliz rescatado" />}</div><p className="eyebrow">{activeLevel.boss ? "¡Duelo ganado!" : "¡Gatito encontrado!"}</p>
               <h2>Pantalla {activeLevel.id} completada</h2>
-              <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. {activeLevel.world === 6 ? "La Reina Arcoíris guarda para siempre las insignias encontradas." : activeLevel.boss ? "El monstruo guardián ha dejado libre el camino." : "La siguiente aventura ya está abierta."}</p>
+              <p>Noa ha recogido {snapshot.apples} {snapshot.apples === 1 ? "manzana" : "manzanas"}. {activeLevel.world === 7 ? "La Reina Arcoíris guarda para siempre las insignias encontradas." : activeLevel.boss ? "El monstruo guardián ha dejado libre el camino." : "La siguiente aventura ya está abierta."}</p>
               {snapshot.stickers.length > 0 && <p className="sticker-found"><PixelIcon kind="sparkle" /> {snapshot.stickers.length === 1 ? "Insignia guardada" : `${snapshot.stickers.length} insignias guardadas`} en el álbum.</p>}
-              {activeLevel.world !== 6 && <button className="pixel-button primary" type="button" onClick={nextLevel}>Siguiente pantalla ▶</button>}
-              {activeLevel.world === 6 && <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>Volver al mapa secreto</button>}
-              {activeLevel.world !== 6 && <button className="pixel-button" type="button" onClick={() => setScreen("map")}>Volver al mapa</button>}
+              {activeLevel.world !== 7 && <button className="pixel-button primary" type="button" onClick={nextLevel}>Siguiente pantalla ▶</button>}
+              {activeLevel.world === 7 && <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>Volver al mapa secreto</button>}
+              {activeLevel.world !== 7 && <button className="pixel-button" type="button" onClick={() => setScreen("map")}>Volver al mapa</button>}
             </div></div>
           )}
 
@@ -393,7 +395,7 @@ export default function App() {
           {screen === "finished" && (
             <div className="modal-backdrop celebration"><div className="game-modal finale">
               <div className="cat-party" aria-hidden="true"><PixelIcon kind="cat" /><GameAssetIcon kind="apple" /><PixelIcon kind="cat" /><PixelIcon kind="yarn" /><PixelIcon kind="cat" /></div><p className="eyebrow">Aventura completada</p>
-              <h2>¡Bravo, Super Noa!</h2><p>Los cinco guardianes son ahora amigos de Noa. Los gatitos y la tripulación celebran una fiesta entre las nubes. Fin… por ahora.</p>
+              <h2>¡Bravo, Super Noa!</h2><p>Los seis guardianes son ahora amigos de Noa. Los gatitos y la tripulación celebran una fiesta en el castillo. Fin… por ahora.</p>
               <button className="pixel-button primary" type="button" onClick={() => setScreen("map")}>Ver el mapa</button>
               <button className="pixel-button" type="button" onClick={() => setScreen("home")}>Ir al inicio</button>
             </div></div>
@@ -429,8 +431,8 @@ export default function App() {
           <p className="eyebrow">Hecho con cariño</p><h2>Créditos</h2>
           <p><strong>Super Noa</strong> es un juego original inspirado en los plataformas familiares de 8 bits.</p>
           <p>Personaje creado para este proyecto a partir de referencias privadas. Las fotografías originales no forman parte de la web.</p>
-          <p>Música de los cinco mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0.</p>
-          <p>Los cinco monstruos finales y las miniaturas pixel art de los mundos son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios jugables, interfaz y código creados para Super Noa.</p>
+          <p>Música de los primeros cinco mundos: <a href="https://opengameart.org/content/platformer-chiptunes" target="_blank" rel="noreferrer">Platformer Chiptunes</a>, de Guy G. Gamerson, publicada bajo licencia CC0. La música del castillo es una composición original sintetizada para Super Noa.</p>
+          <p>Los seis monstruos finales y las miniaturas pixel art de los mundos son diseños originales generados para este proyecto. Efectos de sonido generados en el navegador; escenarios jugables, interfaz y código creados para Super Noa.</p>
           <button className="pixel-button primary" type="button" onClick={() => setShowCredits(false)}>Cerrar</button>
         </div></div>
       )}

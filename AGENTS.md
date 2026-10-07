@@ -6,9 +6,9 @@ Super Noa es un juego React/Vite de plataformas dibujado sobre Canvas 2D.
 
 - `src/App.tsx`: navegación, HUD, progreso local, música y modales.
 - `src/game/GameCanvas.tsx`: bucle, física, controles y renderizado.
-- `src/game/levels.ts`: definición declarativa de las quince pantallas de campaña y la pantalla secreta de las nubes, sus cajas de recompensa, cañones y los seis encuentros finales.
+- `src/game/levels.ts`: definición declarativa de las dieciocho pantallas de campaña y la pantalla secreta de las nubes, sus cajas de recompensa, cañones, trampas y encuentros finales.
 - `src/game/BossBattle.tsx`: duelos de piedra, papel o tijera contra los monstruos finales.
-- `src/game/stickers.ts`: catálogo estable de las quince pegatinas coleccionables.
+- `src/game/stickers.ts`: catálogo estable de las dieciocho pegatinas coleccionables de campaña.
 - `src/game/types.ts`: tipos del motor y extensión futura.
 - `src/styles.css`: interfaz adaptable y controles táctiles.
 - `public/assets/`: hojas de animaciones, sprites raster, atlas y música.
@@ -34,4 +34,4 @@ npm run lint
 npm run build:pages
 ```
 
-Antes de publicar comprueba las quince pantallas y el reino secreto de las nubes, doble salto, muelles, niebla, avisos de lobos y jabalíes, ruta secreta por las copas, barcos voladores, piratas, loros, cañones, pájaros, unicornios, pegatinas y álbum, los seis duelos, rendirse y volver al mapa, el reintento gastando una manzana y el reinicio sin manzanas, cajas golpeadas desde abajo, pérdida de vidas y reaparición con tres vidas, checkpoints, manzana, gato, lana, rescate final del gatito, progreso, sonido, teclado y controles táctiles.
+Antes de publicar comprueba las dieciocho pantallas y el reino secreto de las nubes, doble salto, muelles, niebla, avisos de lobos y jabalíes, ruta secreta por las copas, barcos voladores, piratas, loros, cañones, pasillos y pinchos del castillo, pájaros, unicornios, pegatinas y álbum, los siete duelos, rendirse y volver al mapa, el reintento gastando una manzana y el reinicio sin manzanas, cajas golpeadas desde abajo, pérdida de vidas y reaparición con tres vidas, checkpoints, manzana, gato, lana, rescate final del gatito, progreso, sonido, teclado y controles táctiles.

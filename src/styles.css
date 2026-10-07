@@ -255,8 +255,10 @@ h1 span {
 .world-3 { background-color: #293e4b; }
 .world-4 { background-color: #5c4d31; }
 .world-5 { background-color: #356b82; }
-.world-6 { background: linear-gradient(145deg, #4e70b8, #8f62b7); }
-.world-6 .world-number { background: #f7b8ef; }
+.world-6 { background: linear-gradient(145deg, #302444, #6a4b83); }
+.world-6 .world-number { background: #d4abea; }
+.world-7 { background: linear-gradient(145deg, #4e70b8, #8f62b7); }
+.world-7 .world-number { background: #f7b8ef; }
 .world-number { display: inline-block; color: var(--ink); background: var(--gold); padding: 7px 11px; border: 3px solid var(--ink); font-weight: 900; }
 .world-heading h3 { margin: 17px 0 7px; font-size: clamp(1.5rem, 3vw, 2.35rem); line-height: 1; color: #fff; text-shadow: 3px 3px 0 rgba(30,16,39,.45); }
 .world-heading p { margin: 0; font-family: system-ui, sans-serif; color: rgba(255,255,255,.9); }

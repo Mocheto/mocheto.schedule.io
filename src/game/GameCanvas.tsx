@@ -53,14 +53,14 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; goalRescue: HTMLImageElement; bossGate: HTMLImageElement; platformTiles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; castleEnemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; castle: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; goalRescue: HTMLImageElement; bossGate: HTMLImageElement; platformTiles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
 
 const intersects = rectanglesOverlap;
 
 const positiveModulo = (value: number, divisor: number) => ((value % divisor) + divisor) % divisor;
 
 const enemyY = (enemy: LiveEnemy) =>
-  enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" || enemy.kind === "bat" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
+  enemy.y + (enemy.kind === "bird" || enemy.kind === "parrot" || enemy.kind === "bat" || enemy.kind === "ghost" ? Math.sin(enemy.phase) * 20 : enemy.kind === "cloud" ? Math.sin(enemy.phase) * 7 : 0);
 
 const enemyAtlasCell = {
   slime: [0, 0], beetle: [1, 0], cloud: [2, 0], wolf: [3, 0],
@@ -88,6 +88,18 @@ const drawAtlasCell = (context: CanvasRenderingContext2D, image: HTMLImageElemen
   context.drawImage(image, column * cellWidth + inset, row * cellHeight + inset, cellWidth - inset * 2, cellHeight - inset * 2, x, y, width, height);
   context.restore();
   return true;
+};
+
+const drawCastleSprite = (context: CanvasRenderingContext2D, image: HTMLImageElement, part: "floor" | "wall" | "ledge" | "spikes", x: number, y: number, width: number, height: number, alpha = 1) => {
+  if (!image.complete || !image.naturalWidth) return;
+  const source = {
+    floor: [28, 300, 664, 312], wall: [696, 88, 530, 532],
+    ledge: [20, 704, 652, 486], spikes: [686, 704, 550, 486],
+  }[part];
+  context.save();
+  context.globalAlpha = alpha;
+  context.drawImage(image, source[0], source[1], source[2], source[3], x, y, width, height);
+  context.restore();
 };
 
 const drawCollectibleSprite = (context: CanvasRenderingContext2D, image: HTMLImageElement, column: number, row: number, x: number, y: number, width: number, height: number) =>
@@ -269,6 +281,36 @@ function drawCaveBackground(context: CanvasRenderingContext2D, cameraX: number, 
 }
 
 function drawBackground(context: CanvasRenderingContext2D, level: Level, cameraX: number, frame: number, raster: RasterAssets) {
+  if (level.theme === "haunted-castle") {
+    context.fillStyle = "#160f2e";
+    context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+    context.fillStyle = "#22183c";
+    for (let x = -positiveModulo(cameraX * 0.12, 110); x < VIEW_WIDTH + 110; x += 110) {
+      for (let y = 0; y < VIEW_HEIGHT; y += 105) {
+        drawCastleSprite(context, raster.castle, "wall", x, y, 112, 106, 0.3);
+      }
+    }
+    for (let index = -1; index < 7; index += 1) {
+      const x = index * 185 - positiveModulo(cameraX * 0.2, 185);
+      context.fillStyle = "#0d0e26";
+      context.fillRect(x + 52, 107, 60, 184);
+      context.fillRect(x + 64, 93, 36, 14);
+      context.fillStyle = "#79559c";
+      context.fillRect(x + 61, 121, 42, 134);
+      context.fillStyle = "#bc8ac8";
+      context.fillRect(x + 77, 120, 9, 134);
+      context.fillStyle = "#382953";
+      context.fillRect(x + 61, 198, 42, 8);
+    }
+    for (let index = 0; index < 12; index += 1) {
+      const x = positiveModulo(index * 147 - cameraX * 0.17, VIEW_WIDTH);
+      const y = 62 + positiveModulo(index * 83, 300);
+      drawTinySparkle(context, x, y, index % 2 ? "#d7b5f8" : "#8fe2dc", index % 3 === 0 ? 2 : 1);
+    }
+    context.fillStyle = "#080b20";
+    context.fillRect(0, 455, VIEW_WIDTH, 85);
+    return;
+  }
   if (level.theme === "crystal-cave") {
     drawCaveBackground(context, cameraX, frame, raster.cave);
     return;
@@ -465,6 +507,18 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
   const forest = world >= 2 && world <= 4;
   const worldTiles = worldPlatformCells(world);
   if (x + platform.width < 0 || x > VIEW_WIDTH) return;
+  if (platform.kind === "castle-ground" || platform.kind === "castle-ledge" || platform.kind === "castle-wall") {
+    const ground = platform.kind === "castle-ground";
+    const wall = platform.kind === "castle-wall";
+    context.fillStyle = wall ? "#332546" : ground ? "#463552" : "#41304e";
+    context.fillRect(x, platform.y, platform.width, platform.height);
+    for (let tileY = platform.y; tileY < platform.y + (wall ? platform.height : 1); tileY += 100) {
+      for (let tileX = x; tileX < x + platform.width; tileX += 100) {
+        drawCastleSprite(context, raster.castle, wall ? "wall" : ground ? "floor" : "ledge", tileX, tileY - (wall ? 0 : 8), Math.min(102, x + platform.width - tileX), wall ? Math.min(102, platform.y + platform.height - tileY) : ground ? 112 : 48);
+      }
+    }
+    return;
+  }
   if (platform.kind === "cloud-floor") {
     context.fillStyle = "rgba(178,164,232,.75)";
     context.fillRect(x + 14, platform.y + 19, Math.max(0, platform.width - 28), platform.height + 12);
@@ -792,6 +846,28 @@ function drawEnemy(context: CanvasRenderingContext2D, enemy: LiveEnemy, cameraX:
   if (!enemy.active) return;
   const x = Math.round(enemy.x - cameraX);
   const y = Math.round(enemyY(enemy));
+  if (enemy.kind === "skeleton" || enemy.kind === "zombie" || enemy.kind === "ghost") {
+    const column = enemy.kind === "skeleton" ? 0 : enemy.kind === "zombie" ? 1 : 2;
+    const width = enemy.kind === "ghost" ? 60 : 54;
+    const height = enemy.kind === "ghost" ? 56 : 62;
+    const drawX = x + (enemy.width - width) / 2;
+    const drawY = y + enemy.height - height;
+    if (raster.castleEnemies.complete && raster.castleEnemies.naturalWidth) {
+      context.save();
+      if (enemy.vx < 0) {
+        context.translate(drawX + width, 0);
+        context.scale(-1, 1);
+        drawAtlasCell(context, raster.castleEnemies, 3, 1, column, 0, 0, drawY, width, height);
+      } else {
+        drawAtlasCell(context, raster.castleEnemies, 3, 1, column, 0, drawX, drawY, width, height);
+      }
+      context.restore();
+    } else {
+      context.fillStyle = enemy.kind === "skeleton" ? "#f1e8d7" : enemy.kind === "zombie" ? "#9acb90" : "#c8b0e9";
+      context.fillRect(drawX + 4, drawY + 4, width - 8, height - 8);
+    }
+    return;
+  }
   if (enemy.kind === "sky-unicorn") {
     const width = 76;
     const height = 64;
@@ -1399,10 +1475,12 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     jumpSprite.src = "./assets/sprites/noa-jump-v2.png";
     const raster: RasterAssets = {
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
+      castleEnemies: createRasterImage("./assets/atlases/castle-enemies-v1.png"),
       boar: createRasterImage("./assets/sprites/enemy-boar-v2.png"),
       bird: createRasterImage("./assets/sprites/enemy-bird-v2.png"),
       collectibles: createRasterImage("./assets/atlases/collectibles-v1.png"),
       cave: createRasterImage("./assets/atlases/cave-v1.png"),
+      castle: createRasterImage("./assets/atlases/castle-v1.png"),
       secret: createRasterImage("./assets/atlases/secret-sky-v1.png"),
       cannon: createRasterImage("./assets/sprites/cannon-v1.png"),
       cannonball: createRasterImage("./assets/sprites/cannonball-v1.png"),
@@ -1417,7 +1495,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         3: createRasterImage("./assets/atlases/world-3-tiles-v1.png"),
         4: createRasterImage("./assets/atlases/world-4-tiles-v1.png"),
         5: createRasterImage("./assets/atlases/world-5-tiles-v1.png"),
-        6: createRasterImage("./assets/atlases/secret-sky-v1.png"),
+        6: createRasterImage("./assets/atlases/castle-v1.png"),
+        7: createRasterImage("./assets/atlases/secret-sky-v1.png"),
       },
     };
     const player = createInitialPlayer(level);
@@ -1545,7 +1624,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       player.x += player.vx * delta;
       player.x = Math.max(0, Math.min(level.width - player.width, player.x));
       for (const platform of level.platforms) {
-        if (platform.kind !== "cave-wall") continue;
+        if (platform.kind !== "cave-wall" && platform.kind !== "castle-wall") continue;
         const vertical = player.y + player.height > platform.y && player.y < platform.y + platform.height;
         if (!vertical) continue;
         if (player.vx > 0 && previousX + player.width <= platform.x && player.x + player.width > platform.x) {
@@ -1577,7 +1656,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
             player.grounded = true;
             player.jumpsUsed = 0;
           }
-        } else if (platform.kind === "cave-wall" && horizontal && player.vy < 0) {
+        } else if ((platform.kind === "cave-wall" || platform.kind === "castle-wall") && horizontal && player.vy < 0) {
           const platformBottom = platform.y + platform.height;
           if (previousY >= platformBottom - 10 && player.y <= platformBottom) {
             player.y = platformBottom;
@@ -1620,6 +1699,11 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         }
       }
 
+      if (level.spikePits?.some((pit) => intersects(player, { x: pit.x + 8, y: pit.y + 16, width: pit.width - 16, height: pit.height }))) {
+        callbacksRef.current.playSound("hurt");
+        respawn();
+        return;
+      }
       if (player.y > VIEW_HEIGHT + 120) {
         callbacksRef.current.playSound("hurt");
         respawn();
@@ -1890,6 +1974,14 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const render = () => {
       drawBackground(context, level, cameraX, frame, raster);
       level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame, raster));
+      level.spikePits?.forEach((pit) => {
+        const x = pit.x - cameraX;
+        context.fillStyle = "#09091b";
+        context.fillRect(x, pit.y, pit.width, pit.height);
+        for (let tileX = x; tileX < x + pit.width; tileX += 105) {
+          drawCastleSprite(context, raster.castle, "spikes", tileX, pit.y + 7, Math.min(110, x + pit.width - tileX), 90);
+        }
+      });
       if (level.id === "2-1") drawCaveEntrance(context, level.goalX - 125, cameraX, raster.cave);
       if (level.id === "2-2") drawCaveEntrance(context, -18, cameraX, raster.cave);
       level.checkpoints.forEach((checkpoint, index) => drawCheckpoint(context, checkpoint, cameraX, index <= checkpointIndex, raster.checkpoint));

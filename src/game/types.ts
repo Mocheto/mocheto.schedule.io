@@ -1,4 +1,4 @@
-export type Theme = "orchard-day" | "orchard-sunset" | "forest-dusk" | "forest-night" | "crystal-cave" | "wolf-pines" | "wolf-moon" | "boar-canopy" | "boar-storm" | "sky-pirates" | "sky-storm" | "secret-sky";
+export type Theme = "orchard-day" | "orchard-sunset" | "forest-dusk" | "forest-night" | "crystal-cave" | "wolf-pines" | "wolf-moon" | "boar-canopy" | "boar-storm" | "sky-pirates" | "sky-storm" | "haunted-castle" | "secret-sky";
 
 export type Rect = {
   x: number;
@@ -8,12 +8,12 @@ export type Rect = {
 };
 
 export type Platform = Rect & {
-  kind?: "ground" | "branch" | "stone" | "spring" | "mist" | "canopy" | "ship" | "air-plank" | "cloud-floor" | "cave-ground" | "cave-ledge" | "cave-wall";
+  kind?: "ground" | "branch" | "stone" | "spring" | "mist" | "canopy" | "ship" | "air-plank" | "cloud-floor" | "cave-ground" | "cave-ledge" | "cave-wall" | "castle-ground" | "castle-ledge" | "castle-wall";
 };
 
 export type Enemy = Rect & {
   id: string;
-  kind: "slime" | "beetle" | "cloud" | "wolf" | "boar" | "bird" | "pirate" | "parrot" | "bat" | "sky-unicorn";
+  kind: "slime" | "beetle" | "cloud" | "wolf" | "boar" | "bird" | "pirate" | "parrot" | "bat" | "sky-unicorn" | "skeleton" | "zombie" | "ghost";
   minX: number;
   maxX: number;
   speed: number;
@@ -41,11 +41,11 @@ export type Cannon = {
   interval: number;
 };
 
-export type BossId = "bramble-king" | "mist-countess" | "great-wolf" | "great-boar" | "sky-captain" | "rainbow-queen";
+export type BossId = "bramble-king" | "mist-countess" | "great-wolf" | "great-boar" | "sky-captain" | "vampire-count" | "rainbow-queen";
 
 export type Level = {
   id: string;
-  world: 1 | 2 | 3 | 4 | 5 | 6;
+  world: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   screen: 1 | 2 | 3;
   title: string;
   subtitle: string;
@@ -54,6 +54,7 @@ export type Level = {
   start: { x: number; y: number };
   goalX: number;
   platforms: Platform[];
+  spikePits?: Rect[];
   enemies: Enemy[];
   items: LevelItem[];
   rewardBlocks: RewardBlock[];

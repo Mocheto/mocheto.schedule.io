@@ -9,6 +9,8 @@ Las pistas `manzanos.mp3`, `gatitos.mp3` y `lobos.mp3` proceden del paquete [Pla
 - El cuarto mundo reutiliza `lobos.mp3` y el quinto reutiliza `manzanos.mp3`; no incorporan pistas con otra licencia.
 - Descargados el 3 de octubre de 2026.
 
+La pista `castillo.wav` del sexto mundo es una composición original sintetizada para Super Noa mediante `scripts/build-castle-music.mjs`; no emplea muestras ni melodías de terceros.
+
 La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y trazabilidad.
 
 ## Recursos originales del proyecto
@@ -16,5 +18,5 @@ La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y traz
 - Diseño de Noa: interpretación pixelada original creada para Super Noa a partir de referencias privadas. Las fotografías no se distribuyen ni forman parte del repositorio.
 - Gestos de Noa para los duelos: cuatro sprites originales derivados únicamente de la hoja pixelada del personaje, sin reutilizar las fotografías privadas.
 - Escenarios, objetos, enemigos e interfaz: creados específicamente para Super Noa.
-- Monstruos finales: Rey Zarzal, Condesa Niebla, Gran Lobo, Gran Jabalí y Capitán Celeste son diseños pixelados originales generados para Super Noa. No copian personajes de Nintendo, Sega ni de otros juegos.
+- Monstruos finales: Rey Zarzal, Condesa Niebla, Gran Lobo, Gran Jabalí, Capitán Celeste y Conde Vampiro son diseños pixelados originales generados para Super Noa. No copian personajes de Nintendo, Sega ni de otros juegos.
 - Efectos de sonido: sintetizados en tiempo real mediante Web Audio API.
