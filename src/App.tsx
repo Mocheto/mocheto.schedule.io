@@ -4,7 +4,7 @@ import { GameAssetIcon } from "./game/GameAssetIcon";
 import { PixelIcon } from "./game/PixelIcon";
 import { GameCanvas, type SoundKind } from "./game/GameCanvas";
 import { levels, themeNames } from "./game/levels";
-import { stickerCatalog } from "./game/stickers";
+import { getStickerSprite, stickerCatalog } from "./game/stickers";
 import type { GameSnapshot } from "./game/types";
 
 const STORAGE_KEY = "super-noa-progress-v1";
@@ -445,9 +445,10 @@ export default function App() {
           <div className="sticker-grid">
             {albumStickers.map((sticker) => {
               const found = progress.stickers.includes(sticker.id);
+              const sprite = getStickerSprite(sticker.id);
               return (
                 <article className={`sticker-card ${found ? "is-found" : "is-locked"}`} key={sticker.id}>
-                  <span aria-hidden="true">{found ? <PixelIcon kind={sticker.icon} /> : "?"}</span>
+                  <span className="sticker-frame" aria-hidden="true">{found && sprite ? <span className="sticker-sprite" style={{ backgroundImage: `url(${sprite.src})`, backgroundPosition: `${sprite.column * 50}% center` }} /> : "?"}</span>
                   <strong>{found ? sticker.name : `Mundo ${sticker.world}`}</strong>
                   <small>{found ? "¡Encontrada!" : sticker.hint}</small>
                 </article>

@@ -18,5 +18,6 @@ La atribución no es obligatoria bajo CC0, pero se conserva por cortesía y traz
 - Diseño de Noa: interpretación pixelada original creada para Super Noa a partir de referencias privadas. Las fotografías no se distribuyen ni forman parte del repositorio.
 - Gestos de Noa para los duelos: cuatro sprites originales derivados únicamente de la hoja pixelada del personaje, sin reutilizar las fotografías privadas.
 - Escenarios, objetos, enemigos e interfaz: creados específicamente para Super Noa.
+- Insignias troqueladas de los siete mundos y coraza alternativa de Noa: recursos pixel art originales generados para este proyecto. La coraza se conserva como opción futura y no se utiliza en el juego actual.
 - Monstruos finales: Rey Zarzal, Condesa Niebla, Gran Lobo, Gran Jabalí, Capitán Celeste y Conde Vampiro son diseños pixelados originales generados para Super Noa. No copian personajes de Nintendo, Sega ni de otros juegos.
 - Efectos de sonido: sintetizados en tiempo real mediante Web Audio API.

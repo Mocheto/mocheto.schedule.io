@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { levels } from "./levels.ts";
-import { stickerCatalog } from "./stickers.ts";
+import { getStickerSprite, stickerCatalog } from "./stickers.ts";
 
 const castle = levels.filter((level) => level.world === 6);
 
@@ -37,4 +38,21 @@ test("el reino secreto conserva sus identificadores y está después de la campa
   assert.equal(secret?.id, "S-1");
   assert.equal(secret.world, 7);
   assert.deepEqual(stickerCatalog.filter((entry) => entry.world === 7).map((entry) => entry.id), ["sticker-s-1", "sticker-s-2", "sticker-s-3"]);
+});
+
+test("todas las insignias del juego tienen un sprite transparente y su celda correcta", () => {
+  const ids = levels.flatMap((level) => level.items.filter((item) => item.kind === "sticker").map((item) => item.id));
+  assert.equal(ids.length, 21);
+  assert.deepEqual(new Set(ids), new Set(stickerCatalog.map((entry) => entry.id)));
+  for (const sticker of stickerCatalog) {
+    const sprite = getStickerSprite(sticker.id);
+    assert.ok(sprite);
+    assert.equal(sprite.column, Number(sticker.id.at(-1)) - 1);
+    assert.equal(sprite.src, `./assets/stickers/world-${sticker.world}-v1.png`);
+    const png = readFileSync(new URL(`../../public/${sprite.src.slice(2)}`, import.meta.url));
+    assert.equal(png.toString("ascii", 1, 4), "PNG");
+    assert.equal(png.readUInt32BE(16), 2172);
+    assert.equal(png.readUInt32BE(20), 724);
+    assert.equal(png[25], 6, "El atlas debe conservar la transparencia RGBA");
+  }
 });

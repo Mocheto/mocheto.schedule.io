@@ -31,3 +31,17 @@ export const stickerCatalog: StickerDefinition[] = [
   { id: "sticker-s-2", name: "Herradura arcoíris", icon: "crown", world: 7, hint: "Busca entre los unicornios de las nubes." },
   { id: "sticker-s-3", name: "Estrella secreta", icon: "gem", world: 7, hint: "Está muy cerca del palacio del cielo." },
 ];
+
+export type StickerSprite = { src: string; column: 0 | 1 | 2 };
+
+const stickerSprites = new Map<string, StickerSprite>(
+  stickerCatalog.map((sticker) => [
+    sticker.id,
+    {
+      src: `./assets/stickers/world-${sticker.world}-v1.png`,
+      column: (Number(sticker.id.at(-1)) - 1) as StickerSprite["column"],
+    },
+  ]),
+);
+
+export const getStickerSprite = (id: string) => stickerSprites.get(id);

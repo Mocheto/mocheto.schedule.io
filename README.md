@@ -33,7 +33,7 @@ La compilación estática se genera en `dist-pages/`. El workflow `.github/workf
 - En móvil o tableta aparecen controles táctiles grandes, etiquetados con `IZQ.`, `DER.`, `LANA` y `SALTAR`. Mantén una dirección con un dedo y toca `SALTAR` con otro para hacer el doble salto.
 - También se admite un mando mediante Gamepad API.
 
-El progreso y las pegatinas se guardan únicamente en el navegador con la clave `super-noa-progress-v1`.
+El progreso y las pegatinas se guardan únicamente en el navegador con la clave `super-noa-progress-v1`. Las 21 insignias tienen sprites troquelados propios agrupados por mundo en `public/assets/stickers/`; el mismo dibujo aparece en la pantalla y en el álbum. El estado «Protegida» se reconoce por una burbuja psíquica dibujada alrededor de Noa en todas sus poses. La coraza alternativa queda guardada en `public/assets/alternatives/noa-armor-v1.png`, pero no está activa.
 
 Los cañones, sus bolas, los puntos de control y los banderines usan sprites propios en `public/assets/sprites/`.
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { PixelIcon } from "./PixelIcon";
+import { getStickerSprite } from "./stickers";
 import type { Level, GameSnapshot, LevelItem, Power, Rect } from "./types";
 import { boarChargeVelocity, hasReachedGoalFlag, keepInsidePatrol, rectanglesOverlap } from "./gameplay";
 
@@ -53,7 +54,7 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; castleEnemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; castle: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; goalRescue: HTMLImageElement; bossGate: HTMLImageElement; platformTiles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; castleEnemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; castle: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; goalRescue: HTMLImageElement; bossGate: HTMLImageElement; platformTiles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement>; stickerSheets: Record<Level["world"], HTMLImageElement> };
 
 const intersects = rectanglesOverlap;
 
@@ -781,7 +782,12 @@ function drawCatPower(context: CanvasRenderingContext2D, x: number, y: number, c
   context.fillRect(x + 16, y + 31, 9, 4);
 }
 
-function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pulse: number, collectibles?: HTMLImageElement) {
+function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pulse: number, collectibles?: HTMLImageElement, stickerSheet?: HTMLImageElement, column = 0) {
+  if (stickerSheet?.complete && stickerSheet.naturalWidth) {
+    const cell = stickerSheet.naturalWidth / 3;
+    context.drawImage(stickerSheet, column * cell, 0, cell, stickerSheet.naturalHeight, x - 6 - pulse, y - 6 - pulse, 50 + pulse * 2, 50 + pulse * 2);
+    return;
+  }
   if (collectibles && drawCollectibleSprite(context, collectibles, 2, 0, x - 5 - pulse, y - 5 - pulse, 48 + pulse * 2, 48 + pulse * 2)) return;
   context.fillStyle = "#4b295f";
   context.fillRect(x + 5, y, 28, 38);
@@ -795,6 +801,38 @@ function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pu
   context.fillStyle = "#fff8d6";
   context.fillRect(x + 17, y + 11, 4, 16);
   context.fillRect(x + 12, y + 16, 14, 4);
+}
+
+function drawPsychicShield(context: CanvasRenderingContext2D, x: number, y: number, radiusX: number, radiusY: number, frame: number, front: boolean) {
+  const pulse = Math.sin(frame * 0.07) * 1.5;
+  context.save();
+  if (!front) {
+    const glow = context.createRadialGradient(x - 18, y - 27, 4, x, y, radiusX + 5);
+    glow.addColorStop(0, "rgba(240,233,255,.17)");
+    glow.addColorStop(0.65, "rgba(172,140,248,.18)");
+    glow.addColorStop(1, "rgba(66,212,241,.23)");
+    context.fillStyle = glow;
+    context.beginPath();
+    context.ellipse(x, y, radiusX + pulse, radiusY + pulse, 0, 0, Math.PI * 2);
+    context.fill();
+  } else {
+    context.strokeStyle = "rgba(67,48,124,.92)";
+    context.lineWidth = 9;
+    context.beginPath();
+    context.ellipse(x, y, radiusX + pulse, radiusY + pulse, 0, 0, Math.PI * 2);
+    context.stroke();
+    context.strokeStyle = "#80e9ff";
+    context.lineWidth = 5;
+    context.stroke();
+    context.strokeStyle = "rgba(255,239,255,.92)";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.ellipse(x, y, radiusX + pulse - 2, radiusY + pulse - 2, 0, Math.PI * 1.15, Math.PI * 1.66);
+    context.stroke();
+    drawTinySparkle(context, x - radiusX * 0.76, y - radiusY * 0.66, "#fff3ac", 2);
+    drawTinySparkle(context, x + radiusX * 0.9, y + radiusY * 0.26, "#fce4ff", 2);
+  }
+  context.restore();
 }
 
 function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean, collectibles?: HTMLImageElement) {
@@ -1498,6 +1536,15 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         6: createRasterImage("./assets/atlases/castle-v1.png"),
         7: createRasterImage("./assets/atlases/secret-sky-v1.png"),
       },
+      stickerSheets: {
+        1: createRasterImage("./assets/stickers/world-1-v1.png"),
+        2: createRasterImage("./assets/stickers/world-2-v1.png"),
+        3: createRasterImage("./assets/stickers/world-3-v1.png"),
+        4: createRasterImage("./assets/stickers/world-4-v1.png"),
+        5: createRasterImage("./assets/stickers/world-5-v1.png"),
+        6: createRasterImage("./assets/stickers/world-6-v1.png"),
+        7: createRasterImage("./assets/stickers/world-7-v1.png"),
+      },
     };
     const player = createInitialPlayer(level);
     let enemies: LiveEnemy[] = level.enemies.map((item, index) => ({ ...item, vx: item.speed, active: true, phase: index }));
@@ -1882,6 +1929,12 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
     const drawPlayer = () => {
       const x = Math.round(player.x - cameraX);
+      const protectedByApple = player.power === "apple";
+      const shieldX = x + player.width / 2;
+      const shieldY = player.y + (player.grounded ? 0 : 12);
+      const shieldRadiusX = player.grounded ? 70 : 82;
+      const shieldRadiusY = player.grounded ? 68 : 79;
+      if (protectedByApple) drawPsychicShield(context, shieldX, shieldY, shieldRadiusX, shieldRadiusY, frame, false);
       const runningFrame = Math.floor(frame / 12) % 4;
       let row = 0;
       let column = 0;
@@ -1969,6 +2022,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.fillRect(dustX + (player.facing === 1 ? -5 : 5), Math.round(player.y + player.height - 13), 5, 5);
       }
       context.globalAlpha = 1;
+      if (protectedByApple) drawPsychicShield(context, shieldX, shieldY, shieldRadiusX, shieldRadiusY, frame, true);
     };
 
     const render = () => {
@@ -2019,7 +2073,10 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         const bob = Math.round(Math.sin(frame * 0.08 + item.x) * 4);
         if (item.kind === "apple") drawApple(context, x + 4, y + bob, raster.collectibles);
         else if (item.kind === "cat") drawCatPower(context, x, y + bob, raster.collectibles);
-        else drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2, raster.collectibles);
+        else {
+          const sticker = getStickerSprite(item.id);
+          drawSticker(context, x, y + bob, Math.floor(frame / 12) % 2, raster.collectibles, sticker ? raster.stickerSheets[level.world] : undefined, sticker?.column);
+        }
       });
       enemies.forEach((enemy) => drawEnemy(context, enemy, cameraX, (enemy.kind === "wolf" || enemy.kind === "boar") && Math.abs(player.x - enemy.x) < 360, raster));
       cannonballs.forEach((ball) => drawCannonball(context, ball, cameraX, raster.cannonball));
