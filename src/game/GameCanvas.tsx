@@ -1177,7 +1177,7 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   const rescued = rescueProgress > 0;
   const catBob = rescued ? Math.round(Math.sin(rescueProgress * 18) * 5) : 0;
   if (rescueSprite?.complete && rescueSprite.naturalWidth) {
-    context.drawImage(rescueSprite, x - 28, surfaceY - 302 + catBob, 280, 302);
+    context.drawImage(rescueSprite, x - 28, surfaceY - 294 + catBob, 280, 302);
   } else if (flagSprite?.complete && flagSprite.naturalWidth) {
     context.drawImage(flagSprite, x + 35, surfaceY - 232, 174, 205);
   } else {
@@ -1241,10 +1241,10 @@ function drawGoalCat(context: CanvasRenderingContext2D, worldX: number, cameraX:
   context.restore();
 }
 
-function drawBossGate(context: CanvasRenderingContext2D, worldX: number, cameraX: number, gateSprite?: HTMLImageElement) {
+function drawBossGate(context: CanvasRenderingContext2D, worldX: number, cameraX: number, surfaceY = 456, gateSprite?: HTMLImageElement) {
   const x = Math.round(worldX - cameraX);
   if (gateSprite?.complete && gateSprite.naturalWidth) {
-    context.drawImage(gateSprite, x - 52, 206, 236, 250);
+    context.drawImage(gateSprite, x - 52, surfaceY - 244, 236, 250);
     return;
   }
   context.fillStyle = "#24162f";
@@ -1964,8 +1964,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         }
         context.restore();
       });
-      if (level.boss) drawBossGate(context, level.goalX, cameraX, raster.bossGate);
-      else drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles, goalCelebrationFrame < 0 ? 0 : Math.min(1, (frame - goalCelebrationFrame) / 22), goalSurfaceY, raster.goalFlag, raster.goalRescue);
+      if (level.boss) drawBossGate(context, level.goalX, cameraX, goalSurfaceY, raster.bossGate);
+      else if (level.id !== "2-1") drawGoalCat(context, level.goalX, cameraX, false, raster.collectibles, goalCelebrationFrame < 0 ? 0 : Math.min(1, (frame - goalCelebrationFrame) / 22), goalSurfaceY, raster.goalFlag, raster.goalRescue);
       drawPlayer();
       drawAmbientForeground(context, level, cameraX, frame);
       if (level.id === "1-1" && player.x >= 130 && player.x < 1120) drawDoubleJumpTip(context);
