@@ -4,8 +4,22 @@ import test from "node:test";
 import { levels } from "./levels.ts";
 import { GRAVITY, JUMP_SPEED, SPRING_SPEED } from "./gameplay.ts";
 import { getStickerSprite, stickerCatalog } from "./stickers.ts";
+import { bossCatalog } from "./bosses.ts";
 
 const castle = levels.filter((level) => level.world === 6);
+
+test("los siete jefes del álbum tienen retrato y duelo", () => {
+  const bosses = levels.filter((level) => level.boss);
+  assert.equal(bosses.length, 7);
+  assert.equal(new Set(bosses.map((level) => level.boss)).size, 7);
+  for (const level of bosses) {
+    assert.ok(level.boss);
+    const boss = bossCatalog[level.boss];
+    assert.ok(boss?.name);
+    const portrait = readFileSync(new URL(`../../public/${boss.assetPrefix.slice(2)}-0.png`, import.meta.url));
+    assert.equal(portrait.toString("ascii", 1, 4), "PNG", `Falta el retrato de ${boss.name}`);
+  }
+});
 
 test("los muelles grandes llegan más alto que el doble salto y tienen destinos", () => {
   const doubleJumpRise = (JUMP_SPEED ** 2 + (JUMP_SPEED * 0.94) ** 2) / (2 * GRAVITY);

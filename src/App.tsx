@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BossBattle } from "./game/BossBattle";
+import { bossCatalog } from "./game/bosses";
 import { GameAssetIcon } from "./game/GameAssetIcon";
 import { PixelIcon } from "./game/PixelIcon";
 import { GameCanvas, type SoundKind } from "./game/GameCanvas";
@@ -12,12 +13,14 @@ const STORAGE_KEY = "super-noa-progress-v1";
 type LevelStats = Record<string, { completed: boolean; bestApples: number }>;
 type Progress = { unlocked: number; levelStats: LevelStats; stickers: string[]; secretUnlocked: boolean };
 type Screen = "home" | "map" | "game" | "boss" | "complete" | "gameover" | "finished" | "secret-transition";
+type CollectionTab = "stickers" | "bosses";
 
 const emptyProgress: Progress = { unlocked: 0, levelStats: {}, stickers: [], secretUnlocked: false };
 const emptySnapshot: GameSnapshot = { apples: 0, stickers: [], power: "normal", checkpoint: 0, paused: false };
 const MAX_LIVES = 3;
 const secretLevelIndex = levels.findIndex((level) => level.world === 7);
 const campaignLevelCount = secretLevelIndex === -1 ? levels.length : secretLevelIndex;
+const bossLevels = levels.flatMap((level, index) => level.boss ? [{ level, index, boss: bossCatalog[level.boss] }] : []);
 const worldCatalog = [
   { id: 1, name: "El Prado de las Manzanas", description: "Sol, ramas anchas y manzanas crujientes." },
   { id: 2, name: "El Bosque de los Gatitos", description: "Luciérnagas, cristales, murciélagos y una cueva de lava." },
@@ -76,6 +79,9 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [showAlbum, setShowAlbum] = useState(false);
+  const [collectionTab, setCollectionTab] = useState<CollectionTab>("stickers");
+  const [bossReplay, setBossReplay] = useState(false);
+  const [bossReplayReturn, setBossReplayReturn] = useState<"home" | "map">("map");
   const [snapshot, setSnapshot] = useState<GameSnapshot>(emptySnapshot);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -149,6 +155,32 @@ export default function App() {
     [progress.levelStats],
   );
   const albumStickers = progress.secretUnlocked ? stickerCatalog : stickerCatalog.filter((sticker) => sticker.world !== 7);
+  const knownBosses = bossLevels.filter(({ level }) => progress.levelStats[level.id]?.completed).length;
+
+  const openCollection = (tab: CollectionTab) => {
+    setCollectionTab(tab);
+    setShowAlbum(true);
+  };
+
+  const replayBoss = (index: number) => {
+    const level = levels[index];
+    if (!level.boss || !progress.levelStats[level.id]?.completed) return;
+    setBossReplayReturn(screen === "home" ? "home" : "map");
+    setActiveIndex(index);
+    setLevelRun((current) => current + 1);
+    setLives(MAX_LIVES);
+    setSnapshot(emptySnapshot);
+    setPaused(false);
+    setShowAlbum(false);
+    setBossReplay(true);
+    setScreen("boss");
+  };
+
+  const finishBossReplay = () => {
+    setBossReplay(false);
+    openCollection("bosses");
+    setScreen(bossReplayReturn);
+  };
 
   const beginLevel = (index: number) => {
     if (index === secretLevelIndex ? !progress.secretUnlocked : index > progress.unlocked) return;
@@ -157,6 +189,7 @@ export default function App() {
     setLives(MAX_LIVES);
     setSnapshot(emptySnapshot);
     setPaused(false);
+    setBossReplay(false);
     setScreen("game");
   };
 
@@ -196,6 +229,7 @@ export default function App() {
 
   const handleBossEncounter = useCallback(() => {
     setPaused(false);
+    setBossReplay(false);
     setScreen("boss");
   }, []);
 
@@ -241,7 +275,7 @@ export default function App() {
   };
 
   const resetProgress = () => {
-    if (!window.confirm("¿Empezar de nuevo? Se borrarán las pantallas, las manzanas y las pegatinas guardadas.")) return;
+    if (!window.confirm("¿Empezar de nuevo? Se borrarán las pantallas, las manzanas, las pegatinas y los jefes amigos guardados.")) return;
     setProgress(emptyProgress);
     setActiveIndex(0);
     setLives(MAX_LIVES);
@@ -272,7 +306,8 @@ export default function App() {
           </div>
           <nav className="home-footer" aria-label="Opciones">
             <button type="button" onClick={() => setMuted((value) => !value)}><PixelIcon kind={muted ? "mute" : "sound"} /> {muted ? "Activar sonido" : "Sonido"}</button>
-            <button type="button" onClick={() => setShowAlbum(true)}>Álbum {progress.stickers.filter((id) => albumStickers.some((sticker) => sticker.id === id)).length}/{albumStickers.length}</button>
+            <button type="button" onClick={() => openCollection("stickers")}>Álbum {progress.stickers.filter((id) => albumStickers.some((sticker) => sticker.id === id)).length}/{albumStickers.length}</button>
+            <button type="button" onClick={() => openCollection("bosses")}>Jefes amigos {knownBosses}/{bossLevels.length}</button>
             <button type="button" onClick={() => setShowCredits(true)}>Créditos</button>
           </nav>
         </section>
@@ -284,7 +319,8 @@ export default function App() {
             <div><p className="eyebrow">Elige una pantalla</p><h2>El mapa de Noa</h2></div>
             <div className="map-actions">
               <span className="apple-total"><GameAssetIcon kind="apple" /> {totalApples}</span>
-              <button className="album-button" type="button" onClick={() => setShowAlbum(true)}><PixelIcon kind="sparkle" /> {progress.stickers.filter((id) => albumStickers.some((sticker) => sticker.id === id)).length}/{albumStickers.length}</button>
+              <button className="album-button" type="button" onClick={() => openCollection("stickers")} aria-label="Abrir álbum de pegatinas"><PixelIcon kind="sparkle" /> {progress.stickers.filter((id) => albumStickers.some((sticker) => sticker.id === id)).length}/{albumStickers.length}</button>
+              <button className="album-button" type="button" onClick={() => openCollection("bosses")} aria-label="Abrir jefes amigos">★ {knownBosses}/{bossLevels.length}</button>
               <button className="icon-button" type="button" onClick={() => setScreen("home")} aria-label="Volver al inicio">⌂</button>
             </div>
           </header>
@@ -330,7 +366,7 @@ export default function App() {
 
       {(screen === "game" || screen === "boss" || screen === "complete" || screen === "gameover" || screen === "finished") && (
         <section className="play-screen" ref={playScreenRef}>
-          <header className="game-hud">
+          {!bossReplay && <header className="game-hud">
             <div className="hud-level"><span>{activeLevel.id}</span><strong>{activeLevel.title}</strong></div>
             <div className="hud-stats">
               <span aria-label={`${lives} vidas`}><GameAssetIcon kind="heart" /> × {lives}</span>
@@ -343,21 +379,22 @@ export default function App() {
               <button type="button" onClick={toggleFullscreen} aria-label="Pantalla completa">⛶</button>
               {screen === "game" && <button type="button" onClick={() => setPaused((value) => !value)} aria-label="Pausa">Ⅱ</button>}
             </div>
-          </header>
-          <GameCanvas key={`game-${activeLevel.id}-${levelRun}`} level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSecretExit={handleSecretExit} onSnapshot={handleSnapshot} playSound={playSound} />
-          <div className="level-caption"><span>{themeNames[activeLevel.theme]}</span><span>Bandera {snapshot.checkpoint}/{activeLevel.checkpoints.length}</span></div>
+          </header>}
+          {!bossReplay && <GameCanvas key={`game-${activeLevel.id}-${levelRun}`} level={activeLevel} running={screen === "game" && !paused} onLoseLife={handleLoseLife} onComplete={handleComplete} onBossEncounter={handleBossEncounter} onSecretExit={handleSecretExit} onSnapshot={handleSnapshot} playSound={playSound} />}
+          {!bossReplay && <div className="level-caption"><span>{themeNames[activeLevel.theme]}</span><span>Bandera {snapshot.checkpoint}/{activeLevel.checkpoints.length}</span></div>}
 
           {screen === "boss" && activeLevel.boss && (
             <BossBattle
               key={`boss-${activeLevel.id}-${levelRun}`}
               bossId={activeLevel.boss}
-              apples={snapshot.apples}
-              protectedByApple={snapshot.power === "apple"}
+              apples={bossReplay ? 0 : snapshot.apples}
+              protectedByApple={!bossReplay && snapshot.power === "apple"}
               onSpendApple={spendBossApple}
               onRestartLevel={restartBossLevel}
-              onAbandon={abandonBossBattle}
-              onWin={handleComplete}
+              onAbandon={bossReplay ? finishBossReplay : abandonBossBattle}
+              onWin={bossReplay ? finishBossReplay : handleComplete}
               playSound={playSound}
+              friendlyReplay={bossReplay}
             />
           )}
 
@@ -438,22 +475,46 @@ export default function App() {
       {showAlbum && (
         <div className="modal-backdrop"><div className="game-modal album-modal">
           <button className="modal-close" type="button" onClick={() => setShowAlbum(false)} aria-label="Cerrar">×</button>
-          <p className="eyebrow">Colección de Noa</p><h2>Álbum de pegatinas</h2>
-          <p>{progress.secretUnlocked ? "Hay una pegatina por pantalla y tres insignias en el reino secreto." : "Hay una pegatina escondida en la ruta elevada de cada pantalla."}</p>
-          <div className="sticker-grid">
-            {albumStickers.map((sticker) => {
-              const found = progress.stickers.includes(sticker.id);
-              const sprite = getStickerSprite(sticker.id);
-              return (
-                <article className={`sticker-card ${found ? "is-found" : "is-locked"}`} key={sticker.id}>
-                  <span className="sticker-frame" aria-hidden="true">{found && sprite ? <span className="sticker-sprite" style={{ backgroundImage: `url(${sprite.src})`, backgroundPosition: `${sprite.column * 50}% center` }} /> : "?"}</span>
-                  <strong>{found ? sticker.name : `Mundo ${sticker.world}`}</strong>
-                  <small>{found ? "¡Encontrada!" : sticker.hint}</small>
-                </article>
-              );
-            })}
+          <p className="eyebrow">Colección de Noa</p><h2>{collectionTab === "stickers" ? "Álbum de pegatinas" : "Jefes amigos"}</h2>
+          <div className="collection-tabs" aria-label="Ver colección">
+            <button className={collectionTab === "stickers" ? "is-active" : ""} type="button" aria-pressed={collectionTab === "stickers"} onClick={() => setCollectionTab("stickers")}>Pegatinas</button>
+            <button className={collectionTab === "bosses" ? "is-active" : ""} type="button" aria-pressed={collectionTab === "bosses"} onClick={() => setCollectionTab("bosses")}>Jefes amigos</button>
           </div>
-          <p className="album-progress"><PixelIcon kind="sparkle" /> {progress.stickers.filter((id) => albumStickers.some((sticker) => sticker.id === id)).length} de {albumStickers.length}</p>
+          {collectionTab === "stickers" ? <>
+            <p>{progress.secretUnlocked ? "Hay una pegatina por pantalla y tres insignias en el reino secreto." : "Hay una pegatina escondida en la ruta elevada de cada pantalla."}</p>
+            <div className="sticker-grid">
+              {albumStickers.map((sticker) => {
+                const found = progress.stickers.includes(sticker.id);
+                const sprite = getStickerSprite(sticker.id);
+                return (
+                  <article className={`sticker-card ${found ? "is-found" : "is-locked"}`} key={sticker.id}>
+                    <span className="sticker-frame" aria-hidden="true">{found && sprite ? <span className="sticker-sprite" style={{ backgroundImage: `url(${sprite.src})`, backgroundPosition: `${sprite.column * 50}% center` }} /> : "?"}</span>
+                    <strong>{found ? sticker.name : `Mundo ${sticker.world}`}</strong>
+                    <small>{found ? "¡Encontrada!" : sticker.hint}</small>
+                  </article>
+                );
+              })}
+            </div>
+            <p className="album-progress"><PixelIcon kind="sparkle" /> {progress.stickers.filter((id) => albumStickers.some((sticker) => sticker.id === id)).length} de {albumStickers.length}</p>
+          </> : <>
+            <p>Gana un duelo para hacerte amiga de cada guardián. Después podréis jugar otra vez.</p>
+            <div className="boss-friends-grid">
+              {bossLevels.map(({ level, index, boss }) => {
+                const known = Boolean(progress.levelStats[level.id]?.completed);
+                return (
+                  <article className={`boss-friend-card ${known ? "is-friend" : "is-mystery"}`} key={level.id}>
+                    <span className="boss-friend-world">{level.world === 7 ? (progress.secretUnlocked ? "Mundo secreto" : "Mundo misterioso") : `Mundo ${level.world}`}</span>
+                    <div className="boss-friend-portrait" aria-hidden="true">
+                      {known ? <img src={`${boss.assetPrefix}-0.png`} alt="" /> : <span className="boss-mystery-shape">?</span>}
+                    </div>
+                    <strong>{known ? boss.name : "Amigo por descubrir"}</strong>
+                    {known ? <button type="button" onClick={() => replayBoss(index)}>Jugar otra vez</button> : <small>Gana su duelo para conocerlo.</small>}
+                  </article>
+                );
+              })}
+            </div>
+            <p className="album-progress">★ {knownBosses} de {bossLevels.length} amigos</p>
+          </>}
           <button className="pixel-button primary" type="button" onClick={() => setShowAlbum(false)}>Seguir explorando</button>
         </div></div>
       )}

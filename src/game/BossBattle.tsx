@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { SoundKind } from "./GameCanvas";
 import { GameAssetIcon } from "./GameAssetIcon";
+import { bossCatalog } from "./bosses";
 import type { BossId } from "./types";
 
 type Choice = "rock" | "paper" | "scissors";
@@ -27,6 +28,7 @@ type BossBattleProps = {
   onAbandon: () => void;
   onWin: () => void;
   playSound: (kind: SoundKind) => void;
+  friendlyReplay?: boolean;
 };
 
 const choices: Array<{ id: Choice; label: string }> = [
@@ -34,16 +36,6 @@ const choices: Array<{ id: Choice; label: string }> = [
   { id: "paper", label: "Papel" },
   { id: "scissors", label: "Tijera" },
 ];
-
-const bosses: Record<BossId, { name: string; assetPrefix: string; intro: string }> = {
-  "bramble-king": { name: "Rey Zarzal", assetPrefix: "./assets/sprites/boss-rey-zarzal", intro: "El guardián de las raíces te reta a un duelo." },
-  "mist-countess": { name: "Condesa Niebla", assetPrefix: "./assets/sprites/boss-condesa-niebla", intro: "La guardiana de las grutas quiere probar tu ingenio." },
-  "great-wolf": { name: "Gran Lobo", assetPrefix: "./assets/sprites/boss-gran-lobo", intro: "El rey de las huellas te espera para el último duelo." },
-  "great-boar": { name: "Gran Jabalí", assetPrefix: "./assets/sprites/boss-gran-jabali", intro: "El guardián de las bellotas protege las copas del bosque." },
-  "sky-captain": { name: "Capitán Celeste", assetPrefix: "./assets/sprites/boss-capitan-celeste", intro: "El capitán de la flota te reta por el tesoro de las nubes." },
-  "vampire-count": { name: "Conde Vampiro", assetPrefix: "./assets/sprites/boss-conde-vampiro", intro: "El conde del castillo te reta a un duelo de ingenio." },
-  "rainbow-queen": { name: "Reina Arcoíris", assetPrefix: "./assets/sprites/boss-reina-arcoiris-v2", intro: "La guardiana del cielo quiere comprobar tu magia." },
-};
 
 const choiceById = Object.fromEntries(choices.map((choice) => [choice.id, choice])) as Record<Choice, (typeof choices)[number]>;
 
@@ -91,8 +83,8 @@ function NoaDuelSprite({ frame, protectedByApple }: { frame: number | null; prot
   );
 }
 
-export function BossBattle({ bossId, apples, protectedByApple, onSpendApple, onRestartLevel, onAbandon, onWin, playSound }: BossBattleProps) {
-  const boss = bosses[bossId];
+export function BossBattle({ bossId, apples, protectedByApple, onSpendApple, onRestartLevel, onAbandon, onWin, playSound, friendlyReplay = false }: BossBattleProps) {
+  const boss = bossCatalog[bossId];
   const [battle, setBattle] = useState<BattleState>({ noaScore: 0, bossScore: 0, status: "choosing" });
   const [countdown, setCountdown] = useState(3);
   const [history, setHistory] = useState<RoundRecord[]>([]);
@@ -132,8 +124,12 @@ export function BossBattle({ bossId, apples, protectedByApple, onSpendApple, onR
     setHistory([]);
     setBattle({ noaScore: 0, bossScore: 0, status: "choosing" });
   };
+  const retryFriendly = () => {
+    setHistory([]);
+    setBattle({ noaScore: 0, bossScore: 0, status: "choosing" });
+  };
   const abandonBattle = () => {
-    if (window.confirm("¿Quieres rendirte y volver al mapa? Podrás intentar este duelo otra vez cuando quieras.")) onAbandon();
+    if (friendlyReplay || window.confirm("¿Quieres rendirte y volver al mapa? Podrás intentar este duelo otra vez cuando quieras.")) onAbandon();
   };
   const choicesRevealed = battle.status !== "choosing" && battle.status !== "countdown";
   const visibleWinner = choicesRevealed ? battle.roundWinner : undefined;
@@ -154,17 +150,17 @@ export function BossBattle({ bossId, apples, protectedByApple, onSpendApple, onR
         )}
         <header className="boss-header">
           <div>
-            <p className="eyebrow">Monstruo final · Ronda {roundNumber}</p>
-            <h2 id="boss-title">Duelo contra {boss.name}</h2>
+            <p className="eyebrow">{friendlyReplay ? "Duelo amistoso" : "Monstruo final"} · Ronda {roundNumber}</p>
+            <h2 id="boss-title">{friendlyReplay ? `Juega con ${boss.name}` : `Duelo contra ${boss.name}`}</h2>
             <p>{boss.intro}</p>
           </div>
           <div className="duel-status-panel">
             <div className="duel-score" aria-label={`Marcador: Noa ${battle.noaScore}, ${boss.name} ${battle.bossScore}`}>
               <span>NOA <strong>{battle.noaScore}</strong></span><b>—</b><span><strong>{battle.bossScore}</strong> JEFE</span>
             </div>
-            <div className="duel-attempts" aria-label={`${apples} reintentos disponibles`}>
+            {!friendlyReplay && <div className="duel-attempts" aria-label={`${apples} reintentos disponibles`}>
               <span><GameAssetIcon kind="apple" /> × {apples}</span><small>{apples === 1 ? "reintento" : "reintentos"}</small>
-            </div>
+            </div>}
           </div>
         </header>
 
@@ -208,7 +204,7 @@ export function BossBattle({ bossId, apples, protectedByApple, onSpendApple, onR
               <span><small>{boss.name.toUpperCase()}</small><RpsIcon choice={battle.bossChoice} /><b>{choiceById[battle.bossChoice].label}</b></span>
             </div>
           )}
-          <span>{battle.status === "countdown" ? "Los dos gestos aparecerán a la vez." : battle.status === "won" ? `${boss.name} sonríe y deja libre el camino.` : battle.status === "lost" ? apples > 0 ? "Puedes gastar una manzana para repetir el duelo." : "No quedan manzanas: toca recorrer de nuevo la pantalla." : roundText}</span>
+          <span>{battle.status === "countdown" ? "Los dos gestos aparecerán a la vez." : battle.status === "won" ? friendlyReplay ? `La amistad con ${boss.name} sigue creciendo.` : `${boss.name} sonríe y deja libre el camino.` : battle.status === "lost" ? friendlyReplay ? "¡Puedes intentarlo otra vez cuando quieras!" : apples > 0 ? "Puedes gastar una manzana para repetir el duelo." : "No quedan manzanas: toca recorrer de nuevo la pantalla." : roundText}</span>
         </div>
 
         {battle.status === "choosing" && (
@@ -221,10 +217,11 @@ export function BossBattle({ bossId, apples, protectedByApple, onSpendApple, onR
           </div>
         )}
         {battle.status === "revealed" && <button className="pixel-button primary duel-next" type="button" onClick={nextRound}>Siguiente ronda ▶</button>}
-        {battle.status === "lost" && apples > 0 && <button className="pixel-button primary duel-next apple-retry" type="button" onClick={retryWithApple}><GameAssetIcon kind="apple" /> Usar una manzana y repetir</button>}
-        {battle.status === "lost" && apples === 0 && <button className="pixel-button primary duel-next restart-level" type="button" onClick={onRestartLevel}>↺ Volver a empezar la pantalla</button>}
-        {battle.status === "won" && <button className="pixel-button primary duel-next" type="button" onClick={() => { playSound("goal"); onWin(); }}>Continuar la aventura ▶</button>}
-        {battle.status !== "won" && <button className="text-button duel-abandon" type="button" onClick={abandonBattle}>🏳 Rendirse y volver al mapa</button>}
+        {battle.status === "lost" && friendlyReplay && <button className="pixel-button primary duel-next" type="button" onClick={retryFriendly}>↺ Jugar otra vez</button>}
+        {battle.status === "lost" && !friendlyReplay && apples > 0 && <button className="pixel-button primary duel-next apple-retry" type="button" onClick={retryWithApple}><GameAssetIcon kind="apple" /> Usar una manzana y repetir</button>}
+        {battle.status === "lost" && !friendlyReplay && apples === 0 && <button className="pixel-button primary duel-next restart-level" type="button" onClick={onRestartLevel}>↺ Volver a empezar la pantalla</button>}
+        {battle.status === "won" && <button className="pixel-button primary duel-next" type="button" onClick={() => { playSound("goal"); onWin(); }}>{friendlyReplay ? "Volver a mis amigos" : "Continuar la aventura ▶"}</button>}
+        {battle.status !== "won" && <button className="text-button duel-abandon" type="button" onClick={abandonBattle}>{friendlyReplay ? "Volver a mis amigos" : "🏳 Rendirse y volver al mapa"}</button>}
 
         <p className="duel-rules"><span><RpsIcon choice="rock" small /> gana a <RpsIcon choice="scissors" small /></span><span><RpsIcon choice="scissors" small /> gana a <RpsIcon choice="paper" small /></span><span><RpsIcon choice="paper" small /> gana a <RpsIcon choice="rock" small /></span></p>
       </section>
