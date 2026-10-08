@@ -86,6 +86,16 @@ test("el castillo tiene tres pantallas, un jefe y una pegatina por pantalla", ()
   }
 });
 
+test("el bloque de gato tras el segundo checkpoint del conde exige usar la repisa", () => {
+  const level = levels.find((entry) => entry.id === "6-3");
+  const block = level?.rewardBlocks.find((reward) => reward.id === "c3r2");
+  assert.ok(block);
+  assert.equal(block.y, 210);
+  assert.ok(level?.platforms.some((platform) =>
+    platform.kind === "castle-ledge" && platform.x <= block.x && platform.x + platform.width >= block.x + 48 && platform.y > block.y,
+  ));
+});
+
 test("cada hueco del castillo contiene pinchos y los puntos seguros tienen suelo", () => {
   for (const level of castle) {
     const floors = level.platforms.filter((platform) => platform.kind === "castle-ground").sort((a, b) => a.x - b.x);

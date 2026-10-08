@@ -689,7 +689,7 @@ export const levels: Level[] = [
     spikePits: spikePits(castleFloor3),
     enemies: [enemy("sk5", "skeleton", 390, 420, 230, 680, 40), enemy("gh6", "ghost", 1100, 215, 930, 1340, 62), enemy("zo4", "zombie", 2240, 406, 2060, 2670, 36), enemy("gh7", "ghost", 2860, 195, 2590, 3050, 65), enemy("sk6", "skeleton", 3330, 420, 3170, 3660, 43), enemy("gh8", "ghost", 4260, 205, 4030, 4500, 68), enemy("zo5", "zombie", 4770, 406, 4580, 5030, 39), enemy("gh9", "ghost", 5450, 185, 5250, 5700, 70), enemy("sk7", "skeleton", 5940, 420, 5770, 6200, 46)],
     items: [apple("c3a1", 420, 285), apple("c3a2", 1450, 220), apple("c3a3", 2580, 205), apple("c3a4", 3650, 190), apple("c3a5", 4800, 195), apple("c3a6", 5960, 195), sticker("sticker-6-3", 4780, 185)],
-    rewardBlocks: [reward("c3r1", 1050, 280), reward("c3r2", 2980, 280, "apple"), reward("c3r3", 5290, 280)], checkpoints: [940, 2010, 3120, 4210, 5350, 5890], boss: "vampire-count",
+    rewardBlocks: [reward("c3r1", 1050, 280), reward("c3r2", 2980, 210, "apple"), reward("c3r3", 5290, 280)], checkpoints: [940, 2010, 3120, 4210, 5350, 5890], boss: "vampire-count",
   },
   {
     id: "S-1",
