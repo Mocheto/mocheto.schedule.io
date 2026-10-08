@@ -36,6 +36,8 @@ test("la plataforma secreta de los jabalíes exige el muelle", () => {
   const spring = level.platforms.find((platform) => platform.kind === "spring" && platform.x < block.x && platform.x + platform.width > block.x);
   assert.ok(destination);
   assert.ok(spring);
+  assert.equal(level.platforms.filter((platform) => platform.kind === "canopy" && platform.y >= 430).length, 0,
+    "No deben quedar repisas decorativas pegadas al suelo junto al muelle");
   const doubleJumpRise = (JUMP_SPEED ** 2 + (JUMP_SPEED * 0.94) ** 2) / (2 * GRAVITY);
   const springRise = SPRING_SPEED ** 2 / (2 * GRAVITY);
   assert.ok(spring.y - destination.y < springRise);

@@ -1985,6 +1985,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           // pelo no quede recortado al cruzar el borde de su celda.
           context.drawImage(activeSprite, x - 50, Math.round(player.y - 37), 145, 125);
         } else {
+          // La base visual de los sprites normales debe coincidir con la base
+          // de la caja de colisión; antes sus zapatos entraban 17 px en el suelo.
           context.drawImage(
             activeSprite,
             column * cellWidth + insetX,
@@ -1992,7 +1994,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
             cellWidth - insetX * 2,
             cellHeight - rowInsetTop - rowInsetBottom,
             x - 29,
-            Math.round(player.y - 25),
+            Math.round(player.y + player.height - 100),
             100,
             100,
           );
