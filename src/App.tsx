@@ -256,12 +256,11 @@ export default function App() {
     <main className="app-shell">
       {screen === "home" && (
         <section className="home-screen" aria-labelledby="game-title">
-          <div className="star-field" aria-hidden="true" />
           <div className="home-copy">
-            <p className="eyebrow">Una aventura pixel art</p>
+            <p className="eyebrow home-eyebrow"><PixelIcon kind="sparkle" /> Una aventura pixel art</p>
             <h1 id="game-title"><span>SUPER</span> NOA</h1>
-            <p className="home-lead">Ponte las orejas de gatita, salta entre manzanos, barcos voladores y castillos encantados, rescata a los gatitos y hazte amiga de seis grandes guardianes.</p>
-            <p className="home-invite"><PixelIcon kind="sparkle" /> ¡La aventura te está esperando!</p>
+            <p className="home-lead">Corre, salta y explora mundos de manzanos, barcos voladores y castillos encantados. ¡Los gatitos te esperan!</p>
+            <p className="home-invite"><PixelIcon kind="heart" /> Una gran aventura para pequeñas heroínas</p>
             <div className="home-actions">
               <button className="pixel-button primary home-play" type="button" onClick={() => setScreen("map")}>▶ ¡Jugar ahora!</button>
               <button className="pixel-button" type="button" onClick={() => setShowHelp(true)}>¿Cómo se juega?</button>
@@ -269,9 +268,7 @@ export default function App() {
             {progress.unlocked > 0 && <p className="save-note">Partida guardada · {Object.values(progress.levelStats).filter((stats) => stats.completed).length}/{campaignLevelCount}{progress.secretUnlocked ? " + secreto" : ""}</p>}
           </div>
           <div className="hero-scene" aria-hidden="true">
-            <img className="hero-backdrop" src="./assets/home-adventure-v2.png" alt="" />
-            <div className="hero-rays" />
-            <img className="hero-sprite hero-cat-sprite" src="./assets/sprites/noa-cat-jump-v2.png" alt="" />
+            <img className="hero-backdrop" src="./assets/home-adventure-v3.png" alt="" />
           </div>
           <nav className="home-footer" aria-label="Opciones">
             <button type="button" onClick={() => setMuted((value) => !value)}><PixelIcon kind={muted ? "mute" : "sound"} /> {muted ? "Activar sonido" : "Sonido"}</button>
