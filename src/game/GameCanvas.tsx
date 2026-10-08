@@ -1952,12 +1952,6 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         : protectedByApple ? goldSprite : sprite;
       if (activeSprite.complete && activeSprite.naturalWidth) {
         const cellWidth = activeSprite.naturalWidth / 4;
-        const cellHeight = activeSprite.naturalHeight / 4;
-        const insetX = row === 3 ? 0 : 14;
-        // Las tres primeras filas comparten bordes muy juntos. La fila de gata,
-        // en cambio, empieza con las orejas pegadas arriba: no la recortamos.
-        const rowInsetTop = [10, 14, 18, 0][row];
-        const rowInsetBottom = [14, 16, 20, 0][row];
         context.save();
         if (player.facing === -1) {
           context.translate(x + player.width / 2, 0);
@@ -1985,18 +1979,22 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
           // pelo no quede recortado al cruzar el borde de su celda.
           context.drawImage(activeSprite, x - 50, Math.round(player.y - 37), 145, 125);
         } else {
-          // La base visual de los sprites normales debe coincidir con la base
-          // de la caja de colisión; antes sus zapatos entraban 17 px en el suelo.
+          // Estas filas no encajan exactamente en una cuadrícula: el recorte
+          // anterior terminaba antes de las suelas. Tomamos la pose completa
+          // y apoyamos su base visual en la misma superficie que la colisión.
+          const sourceTop = row === 0 ? 0 : 360;
+          const sourceHeight = row === 0 ? 342 : 300;
+          const drawHeight = 110;
           context.drawImage(
             activeSprite,
-            column * cellWidth + insetX,
-            row * cellHeight + rowInsetTop,
-            cellWidth - insetX * 2,
-            cellHeight - rowInsetTop - rowInsetBottom,
+            column * cellWidth + 14,
+            sourceTop,
+            cellWidth - 28,
+            sourceHeight,
             x - 29,
-            Math.round(player.y + player.height - 100),
+            Math.round(player.y + player.height - drawHeight),
             100,
-            100,
+            drawHeight,
           );
         }
         context.restore();
