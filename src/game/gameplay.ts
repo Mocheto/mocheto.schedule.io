@@ -1,5 +1,12 @@
 import type { Rect } from "./types";
 
+export const GRAVITY = 1650;
+export const JUMP_SPEED = 625;
+export const SPRING_SPEED = 1080;
+
+export const landsOnSpring = (wasGrounded: boolean, previousBottom: number, currentBottom: number, springY: number, verticalSpeed: number) =>
+  !wasGrounded && verticalSpeed >= 0 && previousBottom <= springY + 10 && currentBottom >= springY;
+
 /** Zona alta de la meta: se puede tocar el banderín mientras Noa salta. */
 export const goalFlagHitbox = (goalX: number, surfaceY: number): Rect => ({
   x: goalX,

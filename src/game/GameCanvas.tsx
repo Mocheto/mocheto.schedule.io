@@ -2,13 +2,11 @@ import { useEffect, useRef } from "react";
 import { PixelIcon } from "./PixelIcon";
 import { getStickerSprite } from "./stickers";
 import type { Level, GameSnapshot, LevelItem, Power, Rect } from "./types";
-import { boarChargeVelocity, hasReachedGoalFlag, keepInsidePatrol, rectanglesOverlap } from "./gameplay";
+import { boarChargeVelocity, GRAVITY, hasReachedGoalFlag, JUMP_SPEED, keepInsidePatrol, landsOnSpring, rectanglesOverlap, SPRING_SPEED } from "./gameplay";
 
 const VIEW_WIDTH = 960;
 const VIEW_HEIGHT = 540;
-const GRAVITY = 1650;
 const MOVE_SPEED = 250;
-const JUMP_SPEED = 625;
 
 type SoundKind = "apple" | "block" | "cat" | "jump" | "hurt" | "stomp" | "yarn" | "checkpoint" | "goal" | "sticker" | "howl" | "snort" | "cannon" | "countdown";
 
@@ -44,6 +42,7 @@ type Player = Rect & {
   coyote: number;
   jumpBuffer: number;
   jumpsUsed: number;
+  springLaunch: boolean;
   doubleJumpFx: number;
   shootFx: number;
 };
@@ -54,7 +53,7 @@ type Projectile = { x: number; y: number; vx: number; vy: number; life: number }
 type LiveCannon = NonNullable<Level["cannons"]>[number] & { cooldown: number };
 type Cannonball = { x: number; y: number; vx: number; active: boolean };
 type PixelBurst = { x: number; y: number; life: number; color: string; kind: "stars" | "puff" };
-type RasterAssets = { enemies: HTMLImageElement; castleEnemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; castle: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; goalRescue: HTMLImageElement; bossGate: HTMLImageElement; platformTiles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement>; stickerSheets: Record<Level["world"], HTMLImageElement> };
+type RasterAssets = { enemies: HTMLImageElement; castleEnemies: HTMLImageElement; boar: HTMLImageElement; bird: HTMLImageElement; collectibles: HTMLImageElement; cave: HTMLImageElement; castle: HTMLImageElement; secret: HTMLImageElement; cannon: HTMLImageElement; cannonball: HTMLImageElement; checkpoint: HTMLImageElement; goalFlag: HTMLImageElement; goalRescue: HTMLImageElement; bossGate: HTMLImageElement; spring: HTMLImageElement; platformTiles: HTMLImageElement; tiles: Record<Level["world"], HTMLImageElement>; stickerSheets: Record<Level["world"], HTMLImageElement> };
 
 const intersects = rectanglesOverlap;
 
@@ -503,7 +502,7 @@ function drawAmbientForeground(context: CanvasRenderingContext2D, level: Level, 
   }
 }
 
-function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, world: Level["world"], playerX: number, frame: number, raster: RasterAssets) {
+function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platforms"][number], cameraX: number, world: Level["world"], playerX: number, frame: number, raster: RasterAssets, springCompressed = false) {
   const x = Math.round(platform.x - cameraX);
   const forest = world >= 2 && world <= 4;
   const worldTiles = worldPlatformCells(world);
@@ -643,6 +642,7 @@ function drawPlatform(context: CanvasRenderingContext2D, platform: Level["platfo
     return;
   }
   if (platform.kind === "spring") {
+    if (drawAtlasCell(context, raster.spring, 2, 1, springCompressed ? 1 : 0, 0, x, platform.y, platform.width, platform.height)) return;
     context.fillStyle = "#3a2149";
     context.fillRect(x, platform.y, platform.width, platform.height);
     context.fillStyle = "#f7cc58";
@@ -1370,6 +1370,7 @@ function createInitialPlayer(level: Level): Player {
     coyote: 0,
     jumpBuffer: 0,
     jumpsUsed: 0,
+    springLaunch: false,
     doubleJumpFx: 0,
     shootFx: 0,
   };
@@ -1506,6 +1507,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       goalFlag: createRasterImage("./assets/sprites/goal-flag-v1.png"),
       goalRescue: createRasterImage("./assets/sprites/goal-rescue-v1.png"),
       bossGate: createRasterImage("./assets/sprites/boss-gate-v1.png"),
+      spring: createRasterImage("./assets/sprites/spring-large-v1.png"),
       platformTiles: createRasterImage("./assets/atlases/platform-tiles-v1.png"),
       tiles: {
         1: createRasterImage("./assets/atlases/world-1-tiles-v1.png"),
@@ -1553,6 +1555,8 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     let completeTimer = 0;
     let vineStartedFrame = -1;
     let goalCelebrationFrame = -1;
+    let lastSpringX = -1;
+    let lastSpringFrame = -100;
 
     const enterSecretVine = () => {
       if (completed) return;
@@ -1571,6 +1575,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       player.power = "normal";
       player.invincible = 1.4;
       player.jumpsUsed = 0;
+      player.springLaunch = false;
       player.doubleJumpFx = 0;
       player.shootFx = 0;
       projectiles.length = 0;
@@ -1629,7 +1634,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         player.doubleJumpFx = 0.38;
         callbacksRef.current.playSound("jump");
       }
-      if (!jump && player.vy < -220) player.vy += GRAVITY * 1.4 * delta;
+      if (!jump && player.vy < -220 && !player.springLaunch) player.vy += GRAVITY * 1.4 * delta;
 
       shootCooldown = Math.max(0, shootCooldown - delta);
       if ((input.shootQueued || (shoot && !previousShoot)) && player.power === "cat" && shootCooldown === 0) {
@@ -1664,24 +1669,33 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       }
       const previousY = player.y;
       const previousBottom = previousY + player.height;
+      const wasGrounded = player.grounded;
       player.vy += GRAVITY * delta;
       player.y += player.vy * delta;
       player.grounded = false;
 
       for (const platform of level.platforms) {
         const horizontal = player.x + player.width > platform.x && player.x < platform.x + platform.width;
-        if (horizontal && player.vy >= 0 && previousBottom <= platform.y + 10 && player.y + player.height >= platform.y) {
+        // El muelle solo responde al aterrizaje de un salto: al caminar se puede pasar de largo.
+        const landed = platform.kind === "spring"
+          ? landsOnSpring(wasGrounded, previousBottom, player.y + player.height, platform.y, player.vy)
+          : player.vy >= 0 && previousBottom <= platform.y + 10 && player.y + player.height >= platform.y;
+        if (horizontal && landed) {
           player.y = platform.y - player.height;
           if (platform.kind === "spring") {
-            player.vy = -JUMP_SPEED * 1.12;
+            player.vy = -SPRING_SPEED;
             player.grounded = false;
-            player.jumpsUsed = 1;
+            player.jumpsUsed = 2;
+            player.springLaunch = true;
             player.doubleJumpFx = 0.32;
+            lastSpringX = platform.x;
+            lastSpringFrame = frame;
             callbacksRef.current.playSound("jump");
           } else {
             player.vy = 0;
             player.grounded = true;
             player.jumpsUsed = 0;
+            player.springLaunch = false;
           }
         } else if ((platform.kind === "cave-wall" || platform.kind === "castle-wall") && horizontal && player.vy < 0) {
           const platformBottom = platform.y + platform.height;
@@ -1719,7 +1733,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       if (secretVine && vineStartedFrame >= 0) {
         const growth = Math.min(1, (frame - vineStartedFrame) / 70);
         const vineHeight = Math.max(1, Math.round((secretVine.y + 80) * growth));
-        const vineHitbox = { x: secretVine.x - 28, y: secretVine.y - vineHeight, width: 104, height: vineHeight + 48 };
+        const vineHitbox = { x: secretVine.x - 28, y: secretVine.y - vineHeight, width: 104, height: vineHeight + 120 };
         if (growth >= 0.65 && intersects(player, vineHitbox)) {
           if (statusRef.current) statusRef.current.textContent = "Noa trepa por la enredadera al Reino Secreto de las Nubes.";
           enterSecretVine();
@@ -2006,7 +2020,7 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
     const render = () => {
       drawBackground(context, level, cameraX, frame, raster);
-      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame, raster));
+      level.platforms.forEach((platform) => drawPlatform(context, platform, cameraX, level.world, player.x, frame, raster, platform.x === lastSpringX && frame - lastSpringFrame < 9));
       level.spikePits?.forEach((pit) => {
         const x = pit.x - cameraX;
         context.fillStyle = "#09091b";

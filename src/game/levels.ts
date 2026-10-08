@@ -13,6 +13,7 @@ const ledge = (x: number, y: number, width: number, kind: Platform["kind"] = "br
   height: 22,
   kind,
 });
+const spring = (x: number): Platform => ({ x, y: 398, width: 100, height: 58, kind: "spring" });
 
 const caveLedge = (x: number, y: number, width: number): Platform => ({ x, y, width, height: 24, kind: "cave-ledge" });
 const caveWall = (x: number, y: number, width: number, height: number): Platform => ({ x, y, width, height, kind: "cave-wall" });
@@ -90,8 +91,9 @@ export const levels: Level[] = [
       ...ground([[0, 3600]]),
       ledge(330, 370, 180), ledge(590, 315, 150), ledge(1030, 370, 190),
       ledge(1510, 300, 180), ledge(1980, 365, 170), ledge(2310, 310, 190),
-      ledge(2790, 350, 190), ledge(3150, 295, 180),
-      ledge(850, 448, 82, "spring"), ledge(2960, 448, 82, "spring"),
+      ledge(2790, 350, 190), ledge(3150, 325, 180),
+      ledge(820, 80, 180), ledge(2915, 90, 180),
+      spring(850), spring(2960),
     ],
     enemies: [
       enemy("e1", "slime", 560, 420, 520, 720, 26),
@@ -103,6 +105,7 @@ export const levels: Level[] = [
     items: [
       apple("a1", 250, 410), apple("a2", 635, 265), apple("a3", 1100, 320),
       apple("a4", 1540, 250), apple("a5", 2380, 260), apple("a6", 3210, 245),
+      apple("spring-apple-1", 900, 30), apple("spring-apple-2", 2990, 40),
       sticker("sticker-1-1", 1635, 250),
     ],
     rewardBlocks: [reward("r1", 1370)],
@@ -123,8 +126,9 @@ export const levels: Level[] = [
       ledge(270, 370, 180), ledge(540, 305, 190), ledge(1050, 375, 180),
       ledge(1500, 310, 210), ledge(1980, 360, 200),
       ledge(2520, 320, 180), ledge(3110, 350, 210),
-      ledge(3560, 285, 180), ledge(4480, 350, 190),
-      ledge(4780, 290, 180), ledge(1325, 448, 82, "spring"), ledge(3390, 448, 82, "spring"),
+      ledge(3560, 325, 180), ledge(4480, 350, 190),
+      ledge(4780, 290, 180), ledge(1300, 80, 180), ledge(3360, 90, 180),
+      spring(1325), spring(3390),
     ],
     enemies: [
       enemy("e1", "beetle", 690, 420, 610, 930, 34),
@@ -138,7 +142,7 @@ export const levels: Level[] = [
     items: [
       apple("a1", 230, 410), apple("a2", 585, 255), apple("a3", 1560, 260),
       apple("a4", 2580, 270), apple("a5", 3580, 235), sticker("sticker-1-2", 3680, 235),
-      apple("a6", 4850, 240),
+      apple("a6", 4850, 240), apple("spring-apple-1", 1380, 30), apple("spring-apple-2", 3430, 40),
     ],
     rewardBlocks: [reward("r1", 850), reward("r2", 3850, 325, "apple")],
     checkpoints: [1290, 2780, 4250],
@@ -158,8 +162,9 @@ export const levels: Level[] = [
       ledge(320, 360, 190), ledge(720, 300, 180), ledge(1120, 350, 210),
       ledge(1740, 345, 200), ledge(2180, 280, 190), ledge(2670, 350, 200),
       ledge(3290, 360, 210), ledge(3730, 295, 180), ledge(4230, 345, 210),
-      ledge(4940, 350, 200), ledge(5400, 285, 190), ledge(5860, 350, 210),
-      ledge(1600, 448, 82, "spring"), ledge(5570, 448, 82, "spring"),
+      ledge(4940, 350, 200), ledge(5400, 325, 190), ledge(5860, 350, 210),
+      ledge(1580, 95, 180), ledge(5550, 95, 180),
+      spring(1600), spring(5570),
     ],
     enemies: [
       enemy("e1", "beetle", 590, 420, 450, 850, 34),
@@ -176,6 +181,7 @@ export const levels: Level[] = [
       apple("a4", 2240, 230), sticker("sticker-1-3", 2325, 230),
       apple("a5", 2720, 300), apple("a6", 3780, 245), apple("a7", 4990, 300),
       apple("a8", 5450, 235), apple("a9", 5940, 300),
+      apple("spring-apple-1", 1650, 45), apple("spring-apple-2", 5620, 45),
     ],
     rewardBlocks: [reward("r1", 930), reward("r2", 3910, 325, "apple")],
     checkpoints: [1560, 3100, 4740, 5740],
@@ -483,21 +489,22 @@ export const levels: Level[] = [
     world: 4,
     screen: 3,
     title: "La fortaleza del Gran Jabalí",
-    subtitle: "Pájaros en el cielo y manzanas abajo protegen el camino al Gran Jabalí.",
+    subtitle: "Busca el gran muelle para alcanzar la enredadera secreta.",
     theme: "boar-storm",
     width: 7600,
     start: { x: 80, y: 380 },
     goalX: 7420,
     platforms: [
-      ...ground([[0, 640], [980, 380], [1760, 380], [2570, 400], [3480, 400], [4450, 380], [5430, 400], [6420, 1180]]),
+      ...ground([[0, 640], [980, 380], [1760, 380], [2570, 400], [3070, 280], [3480, 400], [4450, 380], [5430, 400], [6420, 1180]]),
       ledge(220, 360, 190, "canopy"), ledge(490, 295, 180, "canopy"), ledge(750, 225, 190, "canopy"),
       ledge(1040, 350, 190, "canopy"), ledge(1300, 280, 180, "canopy"), ledge(1540, 215, 190, "canopy"),
       ledge(1820, 350, 190, "canopy"), ledge(2080, 280, 180, "canopy"), ledge(2320, 210, 190, "canopy"), ledge(2490, 320, 170, "canopy"),
-      ledge(2640, 350, 190, "canopy"), ledge(2910, 280, 180, "canopy"), ledge(3170, 210, 190, "canopy"), ledge(3380, 310, 170, "canopy"),
-      ledge(3550, 350, 190, "canopy"), ledge(3820, 280, 180, "canopy"), ledge(4080, 205, 190, "canopy"), ledge(4350, 295, 180, "canopy"),
+      ledge(2640, 350, 190, "canopy"), ledge(2910, 430, 180, "canopy"), ledge(3150, 190, 200, "canopy"), ledge(3380, 430, 170, "canopy"),
+      ledge(3550, 430, 190, "canopy"), ledge(3820, 280, 180, "canopy"), ledge(4080, 205, 190, "canopy"), ledge(4350, 295, 180, "canopy"),
       ledge(4510, 350, 190, "canopy"), ledge(4780, 280, 180, "canopy"), ledge(5040, 205, 190, "canopy"), ledge(5310, 295, 180, "canopy"),
       ledge(5500, 350, 190, "canopy"), ledge(5770, 280, 180, "canopy"), ledge(6030, 205, 190, "canopy"), ledge(6300, 295, 180, "canopy"),
       ledge(6500, 350, 190, "canopy"), ledge(6780, 280, 190, "canopy"), ledge(7060, 215, 200, "canopy"),
+      spring(3185),
     ],
     enemies: [
       enemy("b1", "boar", 360, 414, 210, 580, 56), enemy("b2", "boar", 1040, 414, 1010, 1280, 58),

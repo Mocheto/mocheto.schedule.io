@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { boarChargeVelocity, goalFlagHitbox, hasReachedGoalFlag, keepInsidePatrol } from "./gameplay.ts";
+import { boarChargeVelocity, goalFlagHitbox, hasReachedGoalFlag, keepInsidePatrol, landsOnSpring } from "./gameplay.ts";
 
 test("el banderín tiene una zona elevada y alcanzable al saltar", () => {
   const flag = goalFlagHitbox(900, 456);
@@ -17,4 +17,10 @@ test("el jabalí rebota y no carga contra el mismo borde en un bucle", () => {
   assert.deepEqual(atLeftEdge, { x: 90, velocity: 120 });
   assert.equal(boarChargeVelocity(atLeftEdge.x, 90, 90, 310, atLeftEdge.velocity), 120);
   assert.equal(boarChargeVelocity(310, 310, 90, 310, 120), -120);
+});
+
+test("el muelle solo impulsa al aterrizar sobre él, no al caminar de largo", () => {
+  assert.equal(landsOnSpring(true, 456, 457, 398, 20), false);
+  assert.equal(landsOnSpring(false, 394, 401, 398, 250), true);
+  assert.equal(landsOnSpring(false, 394, 401, 398, -250), false);
 });

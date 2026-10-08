@@ -2,9 +2,62 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { levels } from "./levels.ts";
+import { GRAVITY, JUMP_SPEED, SPRING_SPEED } from "./gameplay.ts";
 import { getStickerSprite, stickerCatalog } from "./stickers.ts";
 
 const castle = levels.filter((level) => level.world === 6);
+
+test("los muelles grandes llegan más alto que el doble salto y tienen destinos", () => {
+  const doubleJumpRise = (JUMP_SPEED ** 2 + (JUMP_SPEED * 0.94) ** 2) / (2 * GRAVITY);
+  const springRise = SPRING_SPEED ** 2 / (2 * GRAVITY);
+  assert.ok(springRise > doubleJumpRise + 100);
+  for (const level of levels.filter((entry) => entry.world === 1)) {
+    const springs = level.platforms.filter((platform) => platform.kind === "spring");
+    assert.equal(springs.length, 2, `Faltan muelles en ${level.id}`);
+    for (const spring of springs) {
+      assert.equal(spring.height, 58);
+      assert.ok(level.platforms.some((platform) =>
+        platform.kind === "branch" && platform.y <= 95 &&
+        platform.x < spring.x + spring.width && platform.x + platform.width > spring.x &&
+        spring.y - platform.y < springRise), `Sin destino alto para el muelle de ${level.id}`);
+    }
+  }
+  const png = readFileSync(new URL("../../public/assets/sprites/spring-large-v1.png", import.meta.url));
+  assert.equal(png.toString("ascii", 1, 4), "PNG");
+  assert.equal(png[25], 6, "El muelle debe tener transparencia RGBA");
+});
+
+test("la plataforma secreta de los jabalíes exige el muelle", () => {
+  const level = levels.find((entry) => entry.id === "4-3");
+  assert.ok(level);
+  const block = level.rewardBlocks.find((reward) => reward.reward === "secret-vine");
+  assert.ok(block);
+  const destination = level.platforms.find((platform) => platform.kind === "canopy" && platform.x <= block.x && platform.x + platform.width >= block.x + 48 && platform.y === 190);
+  const spring = level.platforms.find((platform) => platform.kind === "spring" && platform.x < block.x && platform.x + platform.width > block.x);
+  assert.ok(destination);
+  assert.ok(spring);
+  const doubleJumpRise = (JUMP_SPEED ** 2 + (JUMP_SPEED * 0.94) ** 2) / (2 * GRAVITY);
+  const springRise = SPRING_SPEED ** 2 / (2 * GRAVITY);
+  assert.ok(spring.y - destination.y < springRise);
+  assert.ok(456 - destination.y > doubleJumpRise);
+  for (const other of level.platforms.filter((platform) => platform !== destination && platform.kind !== "spring")) {
+    const gap = Math.max(0, destination.x - (other.x + other.width), other.x - (destination.x + destination.width));
+    const rise = other.y - destination.y;
+    if (rise > doubleJumpRise) continue;
+    // Tiempo máximo a esta altura con el segundo salto en cualquier momento del vuelo.
+    let maxFlightTime = 0;
+    for (let tick = 0; tick <= 760; tick += 1) {
+      const doubleJumpAt = tick / 1000;
+      const firstRise = JUMP_SPEED * doubleJumpAt - GRAVITY * doubleJumpAt ** 2 / 2;
+      const remainingRise = rise - firstRise;
+      const discriminant = (JUMP_SPEED * 0.94) ** 2 - 2 * GRAVITY * remainingRise;
+      if (discriminant < 0) continue;
+      const landingAtHeight = doubleJumpAt + (JUMP_SPEED * 0.94 + Math.sqrt(discriminant)) / GRAVITY;
+      maxFlightTime = Math.max(maxFlightTime, landingAtHeight);
+    }
+    assert.ok(gap > 250 * maxFlightTime, `Otra plataforma alcanza la repisa secreta: x=${other.x}`);
+  }
+});
 
 test("el castillo tiene tres pantallas, un jefe y una pegatina por pantalla", () => {
   assert.deepEqual(castle.map((level) => level.id), ["6-1", "6-2", "6-3"]);
