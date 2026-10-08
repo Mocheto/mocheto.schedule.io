@@ -355,6 +355,7 @@ export default function App() {
               key={`boss-${activeLevel.id}-${levelRun}`}
               bossId={activeLevel.boss}
               apples={snapshot.apples}
+              protectedByApple={snapshot.power === "apple"}
               onSpendApple={spendBossApple}
               onRestartLevel={restartBossLevel}
               onAbandon={abandonBossBattle}

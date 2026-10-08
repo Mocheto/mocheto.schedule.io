@@ -803,38 +803,6 @@ function drawSticker(context: CanvasRenderingContext2D, x: number, y: number, pu
   context.fillRect(x + 12, y + 16, 14, 4);
 }
 
-function drawPsychicShield(context: CanvasRenderingContext2D, x: number, y: number, radiusX: number, radiusY: number, frame: number, front: boolean) {
-  const pulse = Math.sin(frame * 0.07) * 1.5;
-  context.save();
-  if (!front) {
-    const glow = context.createRadialGradient(x - 18, y - 27, 4, x, y, radiusX + 5);
-    glow.addColorStop(0, "rgba(240,233,255,.17)");
-    glow.addColorStop(0.65, "rgba(172,140,248,.18)");
-    glow.addColorStop(1, "rgba(66,212,241,.23)");
-    context.fillStyle = glow;
-    context.beginPath();
-    context.ellipse(x, y, radiusX + pulse, radiusY + pulse, 0, 0, Math.PI * 2);
-    context.fill();
-  } else {
-    context.strokeStyle = "rgba(67,48,124,.92)";
-    context.lineWidth = 9;
-    context.beginPath();
-    context.ellipse(x, y, radiusX + pulse, radiusY + pulse, 0, 0, Math.PI * 2);
-    context.stroke();
-    context.strokeStyle = "#80e9ff";
-    context.lineWidth = 5;
-    context.stroke();
-    context.strokeStyle = "rgba(255,239,255,.92)";
-    context.lineWidth = 3;
-    context.beginPath();
-    context.ellipse(x, y, radiusX + pulse - 2, radiusY + pulse - 2, 0, Math.PI * 1.15, Math.PI * 1.66);
-    context.stroke();
-    drawTinySparkle(context, x - radiusX * 0.76, y - radiusY * 0.66, "#fff3ac", 2);
-    drawTinySparkle(context, x + radiusX * 0.9, y + radiusY * 0.26, "#fce4ff", 2);
-  }
-  context.restore();
-}
-
 function drawRewardBlock(context: CanvasRenderingContext2D, x: number, y: number, hit: boolean, collectibles?: HTMLImageElement) {
   if (collectibles && drawCollectibleSprite(context, collectibles, hit ? 3 : 2, 1, x - 4, y - 4, 56, 56)) return;
   context.fillStyle = "#2c1d38";
@@ -1499,18 +1467,30 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
 
     const sprite = new Image();
     sprite.src = "./assets/sprites/noa-sprite-sheet.png";
+    const goldSprite = new Image();
+    goldSprite.src = "./assets/sprites/noa-sprite-sheet-gold-armor-v1.png";
     const catJumpSprite = new Image();
     catJumpSprite.src = "./assets/sprites/noa-cat-jump-v2.png";
+    const goldCatJumpSprite = new Image();
+    goldCatJumpSprite.src = "./assets/sprites/noa-cat-jump-gold-armor-v1.png";
     const catYarnSprite = new Image();
     catYarnSprite.src = "./assets/sprites/noa-cat-yarn-v2.png";
+    const goldCatYarnSprite = new Image();
+    goldCatYarnSprite.src = "./assets/sprites/noa-cat-yarn-gold-armor-v1.png";
     const catThrowSprite = new Image();
     catThrowSprite.src = "./assets/sprites/noa-cat-throw-v1.png";
+    const goldCatThrowSprite = new Image();
+    goldCatThrowSprite.src = "./assets/sprites/noa-cat-throw-gold-armor-v1.png";
     const yarnBallSprite = new Image();
     yarnBallSprite.src = "./assets/sprites/yarn-ball-v1.png";
     const catRunSprite = new Image();
     catRunSprite.src = "./assets/sprites/noa-cat-run-v2.png";
+    const goldCatRunSprite = new Image();
+    goldCatRunSprite.src = "./assets/sprites/noa-cat-run-gold-armor-v1.png";
     const jumpSprite = new Image();
     jumpSprite.src = "./assets/sprites/noa-jump-v2.png";
+    const goldJumpSprite = new Image();
+    goldJumpSprite.src = "./assets/sprites/noa-jump-gold-armor-v1.png";
     const raster: RasterAssets = {
       enemies: createRasterImage("./assets/atlases/enemies-v1.png"),
       castleEnemies: createRasterImage("./assets/atlases/castle-enemies-v1.png"),
@@ -1930,11 +1910,6 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
     const drawPlayer = () => {
       const x = Math.round(player.x - cameraX);
       const protectedByApple = player.power === "apple";
-      const shieldX = x + player.width / 2;
-      const shieldY = player.y + (player.grounded ? 0 : 12);
-      const shieldRadiusX = player.grounded ? 70 : 82;
-      const shieldRadiusY = player.grounded ? 68 : 79;
-      if (protectedByApple) drawPsychicShield(context, shieldX, shieldY, shieldRadiusX, shieldRadiusY, frame, false);
       const runningFrame = Math.floor(frame / 12) % 4;
       let row = 0;
       let column = 0;
@@ -1955,10 +1930,15 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
       const usesCatRunSprite = player.power === "cat" && player.grounded && Math.abs(player.vx) > 25;
       const usesCleanCatJump = player.power === "cat" && !player.grounded;
       const usesCleanJump = player.power !== "cat" && !player.grounded;
-      const activeSprite = usesCatThrowSprite ? catThrowSprite : usesCatYarnSprite ? catYarnSprite : usesCatRunSprite ? catRunSprite : usesCleanCatJump ? catJumpSprite : usesCleanJump ? jumpSprite : sprite;
+      const activeSprite = usesCatThrowSprite ? (protectedByApple ? goldCatThrowSprite : catThrowSprite)
+        : usesCatYarnSprite ? (protectedByApple ? goldCatYarnSprite : catYarnSprite)
+        : usesCatRunSprite ? (protectedByApple ? goldCatRunSprite : catRunSprite)
+        : usesCleanCatJump ? (protectedByApple ? goldCatJumpSprite : catJumpSprite)
+        : usesCleanJump ? (protectedByApple ? goldJumpSprite : jumpSprite)
+        : protectedByApple ? goldSprite : sprite;
       if (activeSprite.complete && activeSprite.naturalWidth) {
-        const cellWidth = sprite.naturalWidth / 4;
-        const cellHeight = sprite.naturalHeight / 4;
+        const cellWidth = activeSprite.naturalWidth / 4;
+        const cellHeight = activeSprite.naturalHeight / 4;
         const insetX = row === 3 ? 0 : 14;
         // Las tres primeras filas comparten bordes muy juntos. La fila de gata,
         // en cambio, empieza con las orejas pegadas arriba: no la recortamos.
@@ -1972,27 +1952,27 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         }
         if (usesCatThrowSprite) {
           // Pose exclusiva de lanzamiento: deja claro que Noa ha disparado la lana.
-          context.drawImage(catThrowSprite, x - 65, Math.round(player.y - 55), 175, 130);
+          context.drawImage(activeSprite, x - 65, Math.round(player.y - 55), 175, 130);
         } else if (usesCatYarnSprite) {
           // Sprite independiente con transparencia: se conservan las orejas,
           // la bola de lana y la punta de la cola.
-          context.drawImage(catYarnSprite, x - 64, Math.round(player.y - 61), 165, 130);
+          context.drawImage(activeSprite, x - 64, Math.round(player.y - 61), 165, 130);
         } else if (usesCatRunSprite) {
           // Al correr, Noa gata usa una pose propia y un pequeño balanceo de
           // pasos, sin volver a la hoja de sprites que cortaba las orejas.
           const stepBob = runningFrame % 2 === 0 ? 0 : 2;
-          context.drawImage(catRunSprite, x - 65, Math.round(player.y - 54 + stepBob), 170, 125);
+          context.drawImage(activeSprite, x - 65, Math.round(player.y - 54 + stepBob), 170, 125);
         } else if (usesCleanCatJump) {
           // El PNG de salto incluye margen transparente para que no se corten
           // orejas ni cola. Lo ampliamos para conservar el tamaño de Noa.
-          context.drawImage(catJumpSprite, x - 48, Math.round(player.y - 45), 140, 140);
+          context.drawImage(activeSprite, x - 48, Math.round(player.y - 45), 140, 140);
         } else if (usesCleanJump) {
           // La pose de salto normal también vive fuera de la hoja para que el
           // pelo no quede recortado al cruzar el borde de su celda.
-          context.drawImage(jumpSprite, x - 50, Math.round(player.y - 37), 145, 125);
+          context.drawImage(activeSprite, x - 50, Math.round(player.y - 37), 145, 125);
         } else {
           context.drawImage(
-            sprite,
+            activeSprite,
             column * cellWidth + insetX,
             row * cellHeight + rowInsetTop,
             cellWidth - insetX * 2,
@@ -2022,7 +2002,6 @@ export function GameCanvas({ level, running, onLoseLife, onComplete, onBossEncou
         context.fillRect(dustX + (player.facing === 1 ? -5 : 5), Math.round(player.y + player.height - 13), 5, 5);
       }
       context.globalAlpha = 1;
-      if (protectedByApple) drawPsychicShield(context, shieldX, shieldY, shieldRadiusX, shieldRadiusY, frame, true);
     };
 
     const render = () => {

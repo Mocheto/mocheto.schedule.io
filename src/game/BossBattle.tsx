@@ -21,6 +21,7 @@ type RoundRecord = { noaChoice: Choice; bossChoice: Choice; winner: RoundWinner 
 type BossBattleProps = {
   bossId: BossId;
   apples: number;
+  protectedByApple: boolean;
   onSpendApple: () => void;
   onRestartLevel: () => void;
   onAbandon: () => void;
@@ -78,18 +79,19 @@ function BossSprite({ assetPrefix, frame, name }: { assetPrefix: string; frame: 
   );
 }
 
-function NoaDuelSprite({ frame }: { frame: number | null }) {
+function NoaDuelSprite({ frame, protectedByApple }: { frame: number | null; protectedByApple: boolean }) {
   const gesture = frame === 0 ? "piedra" : frame === 1 ? "papel" : frame === 2 ? "tijera" : frame === 3 ? "victoria" : "preparada";
+  const armorSuffix = protectedByApple ? "-gold-armor-v1" : "";
   return (
     <div className="duel-noa-sprite" role="img" aria-label={`Noa hace el gesto de ${gesture}`}>
       {frame === null
-        ? <div className="duel-noa-idle" style={{ backgroundImage: 'url("./assets/sprites/noa-sprite-sheet.png")' }} />
-        : <img src={`./assets/sprites/noa-rps-${frame}.png`} alt="" />}
+        ? <div className="duel-noa-idle" style={{ backgroundImage: `url("./assets/sprites/noa-sprite-sheet${armorSuffix}.png")` }} />
+        : <img src={`./assets/sprites/noa-rps-${frame}${armorSuffix}.png`} alt="" />}
     </div>
   );
 }
 
-export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onAbandon, onWin, playSound }: BossBattleProps) {
+export function BossBattle({ bossId, apples, protectedByApple, onSpendApple, onRestartLevel, onAbandon, onWin, playSound }: BossBattleProps) {
   const boss = bosses[bossId];
   const [battle, setBattle] = useState<BattleState>({ noaScore: 0, bossScore: 0, status: "choosing" });
   const [countdown, setCountdown] = useState(3);
@@ -179,7 +181,7 @@ export function BossBattle({ bossId, apples, onSpendApple, onRestartLevel, onAba
         <div className={`duel-arena ${battle.status === "countdown" ? "is-countdown" : ""} ${choicesRevealed ? "is-revealed" : ""}`}>
           {battle.status === "countdown" && <div className="duel-countdown" aria-live="assertive">{countdown === 0 ? "¡YA!" : countdown}</div>}
           <div className={`duel-fighter noa-fighter ${visibleWinner === "noa" ? "round-winner" : visibleWinner === "boss" ? "round-loser" : ""}`}>
-            <NoaDuelSprite frame={noaFrame} />
+            <NoaDuelSprite frame={noaFrame} protectedByApple={protectedByApple} />
             <strong>NOA</strong>
             <div className={`gesture-card ${battle.status === "countdown" ? "is-hidden" : ""}`}>
               <span>{choicesRevealed && battle.noaChoice ? <RpsIcon choice={battle.noaChoice} /> : "?"}</span>
